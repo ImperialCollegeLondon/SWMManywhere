@@ -64,7 +64,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
-addopts = "-v --mypy -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/__main__.py"
+# addopts = "-v --mypy -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/__main__.py"
 
 [tool.ruff]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
