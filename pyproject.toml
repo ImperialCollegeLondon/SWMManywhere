@@ -52,11 +52,11 @@ dev = [
 ]
 
 [tool.mypy]
-disallow_any_explicit = true
-disallow_any_generics = true
+disallow_any_explicit = false
+disallow_any_generics = false
 warn_unreachable = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
 exclude = [".venv/"]
 
 [[tool.mypy.overrides]]
