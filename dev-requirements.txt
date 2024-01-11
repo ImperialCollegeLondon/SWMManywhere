@@ -42,7 +42,7 @@ platformdirs==3.11.0
     # via virtualenv
 pluggy==1.3.0
     # via pytest
-pre-commit==3.5.0
+pre-commit==3.6.0
     # via datahub (pyproject.toml)
 pyproject-hooks==1.0.0
     # via build
