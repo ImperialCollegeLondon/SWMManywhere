@@ -13,7 +13,31 @@ authors = [
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [ # TODO definitely don't need all of these
+                "cdsapi",
+                "fastparquet",
+                "fiona",
+                "geopandas",
+                "geopy",
+                "GitPython",
+                "matplotlib",
+                "netcdf4",
+                "networkx",
+                "numpy",
+                "osmnx",
+                "pandas",
+                "pyarrow",
+                "pygeos",
+                "pysheds",
+                "PyYAML",
+                "rasterio",
+                "SALib",
+                "SciPy",
+                "shapely",
+                "snkit",
+                "tqdm",
+                "xarray"
+                ]
 
 [project.optional-dependencies]
 dev = [
