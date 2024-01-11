@@ -63,7 +63,7 @@ cycler==0.12.1
     # via matplotlib
 dill==0.3.7
     # via multiprocess
-distlib==0.3.7
+distlib==0.3.8
     # via virtualenv
 fastparquet==2023.10.1
     # via swmmanywhere (pyproject.toml)
