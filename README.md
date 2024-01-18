@@ -1,7 +1,22 @@
-# pip-tools Template
+# SWMManywhere
 
-[![Test and build](https://github.com/ImperialCollegeLondon/pip-tools-template/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/pip-tools-template/actions/workflows/ci.yml)
+[![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
 
+## High level workflow overview
+- Specify a bounding box and project name
+- Downloaders will download: building outlines, precipitation data, street network, rivers network, elevation data for the bounding box.
+- A list of functions (registered `graphfcn`, that take as inputs a graph, file addresses and/or parameters) will transform the rivers + streets graph into a parameterised sewer network graph.
+- Write functions will convert this to a SWMM input file
+- Sensivitiy analysis will execute a partial (hopefully the quicker portion) of the workflow, to be called 000's of times to conduct SA with SAlib
+
+## List of functions to be applied??
+- In a config file you will specify a list of functions up to a certain point in the preprocessing procedure (e.g., no point delineating subcatchments in every iteration of sensitivity analysis if you are only changing parameters to do with hydraulic design), which you will run once. 
+- In another config file you will specify the location of the outputs of this first run, and the remaining functions required to create and run your SWMM model file
+- These seems like the preferred approach for a few reasons:
+   - Lets you optimise your workflow depending on which parameters you plan to investigate
+   - If your workflow is inherently different (e.g., you do hydraulic design in parallel with topology derivation) then this is easily accommodated
+
+# Keeping this here just for reference for now (from the ICL template)
 This is a minimal Python 3.10 application that uses [`pip-tools`] for packaging and dependency management. It also provides [`pre-commit`](https://pre-commit.com/) hooks (for for [ruff](https://pypi.org/project/ruff/) and [`mypy`](https://mypy.readthedocs.io/en/stable/)) and automated tests using [`pytest`](https://pytest.org/) and [GitHub Actions](https://github.com/features/actions). Pre-commit hooks are automatically kept updated with a dedicated GitHub Action, this can be removed and replace with [pre-commit.ci](https://pre-commit.ci) if using an public repo. It was developed by the [Imperial College Research Computing Service](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/).
 
 [`pip-tools`] is chosen as a lightweight dependency manager that adheres to the [latest standards](https://peps.python.org/pep-0621/) using `pyproject.toml`.
