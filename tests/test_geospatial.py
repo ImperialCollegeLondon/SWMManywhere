@@ -9,6 +9,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pandas as pd
 import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 
@@ -121,4 +122,21 @@ def test_get_transformer():
     expected_point = (699330.1106898375, 5710164.30300683)
     assert transformer.transform(*initial_point) == expected_point
 
-  
+def test_reproject_df():
+    """Test the reproject_df function."""
+    # Create a mock DataFrame
+    df = pd.DataFrame({
+        'longitude': [-0.1276],
+        'latitude': [51.5074]
+    })
+
+    # Define the input parameters
+    source_crs = 'EPSG:4326'
+    target_crs = 'EPSG:32630'
+
+    # Call the function
+    transformed_df = go.transform_df(df, source_crs, target_crs)
+
+    # Check the output
+    assert transformed_df['x'].values[0] == 699330.1106898375
+    assert transformed_df['y'].values[0] == 5710164.30300683

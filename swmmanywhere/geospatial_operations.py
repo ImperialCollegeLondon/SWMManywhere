@@ -6,6 +6,7 @@
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import pyproj
 import rasterio as rst
 from rasterio.warp import Resampling, calculate_default_transform, reproject
@@ -162,3 +163,26 @@ def get_transformer(source_crs: str,
     return pyproj.Transformer.from_crs(source_crs, 
                                        target_crs, 
                                        always_xy=True)
+
+def reproject_df(df: pd.DataFrame, 
+                 source_crs: str, 
+                 target_crs: str) -> pd.DataFrame:
+    """Reproject the coordinates in a DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame with columns 'longitude' and 'latitude'.
+        source_crs (str): Source CRS in EPSG format (e.g., EPSG:4326).
+        target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
+    """
+    # Function to transform coordinates
+    df = df.copy()
+    transformer = get_transformer(source_crs, target_crs)
+
+    # Reproject the coordinates in the DataFrame
+    def f(row):
+        return transformer.transform(row['longitude'], 
+                                     row['latitude'])
+
+    df['x'], df['y'] = zip(*df.apply(f,axis=1))
+
+    return df
