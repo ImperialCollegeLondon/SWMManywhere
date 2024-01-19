@@ -8,11 +8,12 @@ from typing import Optional
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pygeos
 import pyproj
 import rasterio as rst
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
-from shapely.geometry import LineString
+from shapely import geometry as sgeom
 
 
 def get_utm_epsg(lon: float, lat: float) -> str:
@@ -218,12 +219,55 @@ def reproject_graph(G: nx.Graph,
     for u, v, data in G_new.edges(data=True):
         if 'geometry' in data.keys():
             geometry = data['geometry']
-            new_geometry = LineString(transformer.transform(x, y) 
+            new_geometry = sgeom.LineString(transformer.transform(x, y) 
                                       for x, y in geometry.coords)
         else:
-            new_geometry = LineString([[G_new.nodes[u]['x'],
+            new_geometry = sgeom.LineString([[G_new.nodes[u]['x'],
                                         G_new.nodes[u]['y']],
                                        [G_new.nodes[v]['x'],
                                         G_new.nodes[v]['y']]])
         data['geometry'] = new_geometry
     return G_new
+
+def nearest_node_buffer(points1: dict[str, sgeom.Point], 
+                        points2: dict[str, sgeom.Point], 
+                        threshold: float) -> dict:
+    """Find the nearest node within a given buffer threshold.
+
+    Args:
+        points1 (dict): A dictionary where keys are labels and values are 
+            Shapely points geometries.
+        points2 (dict): A dictionary where keys are labels and values are 
+            Shapely points geometries.
+        threshold (float): The maximum distance for a node to be considered 
+            'nearest'. If no nodes are within this distance, the node is not 
+            included in the output.
+
+    Returns:
+        dict: A dictionary where keys are labels from points1 and values are 
+            labels from points2 of the nearest nodes within the threshold.
+    """
+    # Convert the keys of points2 to a list
+    labels2 = list(points2.keys())
+    
+    # Convert the values of points2 to PyGEOS geometries 
+    # and create a spatial index
+    pygeos_nodes = pygeos.from_shapely(list(points2.values()))
+    tree = pygeos.STRtree(pygeos_nodes)
+    
+    # Initialize an empty dictionary to store the matching nodes
+    matching = {}
+    
+    # Iterate over points1
+    for key, geom in points1.items():
+        # Find the nearest node in the spatial index to the current geometry
+        nearest = tree.nearest(pygeos.from_shapely(geom))[1][0]
+        nearest_geom = points2[labels2[nearest]]
+        
+        # If the nearest node is within the threshold, add it to the 
+        # matching dictionary
+        if geom.buffer(threshold).intersection(nearest_geom):
+            matching[key] = labels2[nearest]
+    
+    # Return the matching dictionary
+    return matching

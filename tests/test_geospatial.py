@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
-from shapely.geometry import LineString
+from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_operations as go
 
@@ -159,7 +159,7 @@ def test_reproject_graph():
     G.add_node(2, x=1, y=1)
     G.add_edge(1, 2)
     G.add_node(3, x=1, y=2)
-    G.add_edge(2, 3, geometry=LineString([(1, 1), (1, 2)]))
+    G.add_edge(2, 3, geometry=sgeom.LineString([(1, 1), (1, 2)]))
 
     # Define the input parameters
     source_crs = 'EPSG:4326'
@@ -181,3 +181,19 @@ def test_reproject_graph():
                         833978.5569194595)
     assert almost_equal(list(G_new[2][3]['geometry'].coords)[0][0],
                         945396.6839773951)
+
+def test_nearest_node_buffer():
+    """Test the nearest_node_buffer function."""
+    # Create mock dictionaries of points
+    points1 = {'a': sgeom.Point(0, 0), 'b': sgeom.Point(1, 1)}
+    points2 = {'c': sgeom.Point(0.5, 0.5), 'd': sgeom.Point(2, 2)}
+
+    # Define the input threshold
+    threshold = 1.0
+
+    # Call the function
+    matching = go.nearest_node_buffer(points1, points2, threshold)
+
+    # Check if the function returns the correct matching nodes
+    assert matching == {'a': 'c', 'b': 'c'}
+
