@@ -6,6 +6,7 @@
 from typing import Optional
 
 import numpy as np
+import pyproj
 import rasterio as rst
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
@@ -141,3 +142,23 @@ def reproject_raster(target_crs: str,
                 dst_crs=target_crs,
                 resampling=Resampling.bilinear
                 )
+
+def get_transformer(source_crs: str, 
+                    target_crs: str) -> pyproj.Transformer:
+    """Get a transformer object for reprojection.
+
+    Args:
+        source_crs (str): Source CRS in EPSG format (e.g., EPSG:32630).
+        target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
+
+    Returns:
+        pyproj.Transformer: Transformer object for reprojection.
+    
+    Example:
+        >>> transformer = get_transformer('EPSG:4326', 'EPSG:32630')
+        >>> transformer.transform(-0.1276, 51.5074)
+        (699330.1106898375, 5710164.30300683)
+    """
+    return pyproj.Transformer.from_crs(source_crs, 
+                                       target_crs, 
+                                       always_xy=True)

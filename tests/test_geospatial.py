@@ -111,3 +111,14 @@ def test_reproject_raster():
     # Clean up the created files
     os.remove(fid)
     os.remove(new_fid)
+
+def test_get_transformer():
+    """Test the get_transformer function."""
+    # Test a northern hemisphere point
+    transformer = go.get_transformer('EPSG:4326', 'EPSG:32630')
+
+    initial_point = (-0.1276, 51.5074)
+    expected_point = (699330.1106898375, 5710164.30300683)
+    assert transformer.transform(*initial_point) == expected_point
+
+  
