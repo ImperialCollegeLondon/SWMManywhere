@@ -5,12 +5,14 @@
 """
 from typing import Optional
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import pyproj
 import rasterio as rst
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
+from shapely.geometry import LineString
 
 
 def get_utm_epsg(lon: float, lat: float) -> str:
@@ -186,3 +188,42 @@ def reproject_df(df: pd.DataFrame,
     df['x'], df['y'] = zip(*df.apply(f,axis=1))
 
     return df
+
+def reproject_graph(G: nx.Graph, 
+                    source_crs: str, 
+                    target_crs: str) -> nx.Graph:
+    """Reproject the coordinates in a graph.
+
+    Args:
+        G (nx.Graph): Graph with nodes containing 'x' and 'y' properties.
+        source_crs (str): Source CRS in EPSG format (e.g., EPSG:4326).
+        target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
+    
+    Returns:
+        nx.Graph: Graph with nodes containing 'x' and 'y' properties.
+    """
+    # Create a PyProj transformer for CRS conversion
+    transformer = get_transformer(source_crs, target_crs)
+
+    # Create a new graph with the converted nodes and edges
+    G_new = G.copy()
+
+    # Convert and add nodes with 'x', 'y' properties
+    for node, data in G_new.nodes(data=True):
+        x, y = transformer.transform(data['x'], data['y'])
+        data['x'] = x
+        data['y'] = y
+
+    # Convert and add edges with 'geometry' property
+    for u, v, data in G_new.edges(data=True):
+        if 'geometry' in data.keys():
+            geometry = data['geometry']
+            new_geometry = LineString(transformer.transform(x, y) 
+                                      for x, y in geometry.coords)
+        else:
+            new_geometry = LineString([[G_new.nodes[u]['x'],
+                                        G_new.nodes[u]['y']],
+                                       [G_new.nodes[v]['x'],
+                                        G_new.nodes[v]['y']]])
+        data['geometry'] = new_geometry
+    return G_new
