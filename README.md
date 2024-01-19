@@ -12,7 +12,7 @@
 
 ## List of functions to be applied
 
-- In a config file you will specify a list of functions up to a certain point in the preprocessing procedure (e.g., no point delineating subcatchments in every iteration of sensitivity analysis if you are only changing parameters to do with hydraulic design), which you will run once. 
+- In a config file you will specify a list of functions up to a certain point in the preprocessing procedure (e.g., no point delineating subcatchments in every iteration of sensitivity analysis if you are only changing parameters to do with hydraulic design), which you will run once.
 - In another config file you will specify the location of the outputs of this first run, and the remaining functions required to create and run your SWMM model file
 - These seems like the preferred approach for a few reasons:
   - Lets you optimise your workflow depending on which parameters you plan to investigate
