@@ -3,10 +3,33 @@
 
 @author: Barnaby Dobson
 """
+from typing import Optional
+
 import numpy as np
 import rasterio as rst
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
 
+
+def get_utm_epsg(lon: float, lat: float) -> str:
+    """Get the formatted UTM EPSG code for a given longitude and latitude.
+
+    Args:
+        lon (float): Longitude in EPSG:4326 (x)
+        lat (float): Latitude in EPSG:4326 (y)
+
+    Returns:
+        str: Formatted EPSG code for the UTM zone.
+    
+    Example:
+        >>> get_utm_epsg(-0.1276, 51.5074)
+        'EPSG:32630'
+    """
+    # Determine the UTM zone number
+    zone_number = int((lon + 180) / 6) + 1
+    # Determine the UTM EPSG code based on the hemisphere
+    utm_epsg = 32600 + zone_number if lat >= 0 else 32700 + zone_number
+    return 'EPSG:{0}'.format(utm_epsg)
 
 def interp_wrap(xy: tuple[float,float], 
                 interp: RegularGridInterpolator, 
@@ -79,3 +102,42 @@ def interpolate_points_on_raster(x: list[float],
                                         fill_value=None)
         # Interpolate for x,y
         return [interp_wrap((y_, x_), interp, grid, values) for x_, y_ in zip(x,y)]
+    
+def reproject_raster(target_crs: str, 
+                     fid: str, 
+                     new_fid: Optional[str] = None):
+    """Reproject a raster to a new CRS.
+
+    Args:
+        target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
+        fid (str): Filepath to the raster to reproject.
+        new_fid (str, optional): Filepath to save the reprojected raster. 
+            Defaults to None, which will just use fid with '_reprojected'.
+    """
+    with rst.open(fid) as src:
+        # Define the transformation parameters for reprojection
+        transform, width, height = calculate_default_transform(
+            src.crs, target_crs, src.width, src.height, *src.bounds)
+
+        # Create the output raster file
+        kwargs = src.meta.copy()
+        kwargs.update({
+            'crs': target_crs,
+            'transform': transform,
+            'width': width,
+            'height': height
+        })
+        if new_fid is None:
+            new_fid = fid.replace('.tif','_reprojected.tif')
+
+        with rst.open(new_fid, 'w', **kwargs) as dst:
+            # Reproject the data
+            reproject(
+                source=rst.band(src, 1),
+                destination=rst.band(dst, 1),
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=transform,
+                dst_crs=target_crs,
+                resampling=Resampling.bilinear
+                )

@@ -5,9 +5,11 @@
 """
 
 # import pytest
+import os
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 
 from swmmanywhere import geospatial_operations as go
@@ -63,3 +65,49 @@ def test_interpolate_points_on_raster(mock_rst_open):
 
     # [3,2] feels unintuitive but it's because rasters measure from the top
     assert result == [3.0, 2.0]
+
+def test_get_utm():
+    """Test the get_utm_epsg function."""
+    # Test a northern hemisphere point
+    crs = go.get_utm_epsg(-1, 51)
+    assert crs == 'EPSG:32630'
+
+    # Test a southern hemisphere point
+    crs = go.get_utm_epsg(-1, -51)
+    assert crs == 'EPSG:32730'
+
+
+def test_reproject_raster():
+    """Test the reproject_raster function."""
+    # Create a mock raster file
+    fid = 'test.tif'
+    data = np.random.randint(0, 255, (100, 100)).astype('uint8')
+    transform = rst.transform.from_origin(0, 0, 0.1, 0.1)
+    with rst.open(fid, 
+                  'w', 
+                  driver='GTiff', 
+                  height=100, 
+                  width=100, 
+                  count=1, 
+                  dtype='uint8', 
+                  crs='EPSG:4326', 
+                  transform=transform) as src:
+        src.write(data, 1)
+
+    # Define the input parameters
+    target_crs = 'EPSG:32630'
+    new_fid = 'test_reprojected.tif'
+
+    # Call the function
+    go.reproject_raster(target_crs, fid)
+
+    # Check if the reprojected file exists
+    assert os.path.exists(new_fid)
+
+    # Check if the reprojected file has the correct CRS
+    with rst.open(new_fid) as src:
+        assert src.crs.to_string() == target_crs
+
+    # Clean up the created files
+    os.remove(fid)
+    os.remove(new_fid)
