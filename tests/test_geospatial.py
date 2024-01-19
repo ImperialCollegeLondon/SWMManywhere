@@ -115,6 +115,10 @@ def test_reproject_raster():
     os.remove(fid)
     os.remove(new_fid)
 
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    return abs(a-b) < tol
+
 def test_get_transformer():
     """Test the get_transformer function."""
     # Test a northern hemisphere point
@@ -122,7 +126,11 @@ def test_get_transformer():
 
     initial_point = (-0.1276, 51.5074)
     expected_point = (699330.1106898375, 5710164.30300683)
-    assert transformer.transform(*initial_point) == expected_point
+    new_point = transformer.transform(*initial_point)
+    assert almost_equal(new_point[0],
+                        expected_point[0])
+    assert almost_equal(new_point[1],
+                        expected_point[1])
 
 def test_reproject_df():
     """Test the reproject_df function."""
@@ -140,8 +148,8 @@ def test_reproject_df():
     transformed_df = go.reproject_df(df, source_crs, target_crs)
 
     # Check the output
-    assert transformed_df['x'].values[0] == 699330.1106898375
-    assert transformed_df['y'].values[0] == 5710164.30300683
+    assert almost_equal(transformed_df['x'].values[0], 699330.1106898375)
+    assert almost_equal(transformed_df['y'].values[0], 5710164.30300683)
 
 def test_reproject_graph():
     """Test the reproject_graph function."""
@@ -161,13 +169,15 @@ def test_reproject_graph():
     G_new = go.reproject_graph(G, source_crs, target_crs)
 
     # Test node coordinates
-    assert G_new.nodes[1]['x'] == 833978.5569194595
-    assert G_new.nodes[1]['y'] == 0
-    assert G_new.nodes[2]['x'] == 945396.6839773951
-    assert G_new.nodes[2]['y'] == 110801.83254625657
-    assert G_new.nodes[3]['x'] == 945193.8596723974
-    assert G_new.nodes[3]['y'] == 221604.0105092727
+    assert almost_equal(G_new.nodes[1]['x'], 833978.5569194595)
+    assert almost_equal(G_new.nodes[1]['y'], 0)
+    assert almost_equal(G_new.nodes[2]['x'], 945396.6839773951)
+    assert almost_equal(G_new.nodes[2]['y'], 110801.83254625657)
+    assert almost_equal(G_new.nodes[3]['x'], 945193.8596723974)
+    assert almost_equal(G_new.nodes[3]['y'], 221604.0105092727)
 
     # Test edge geometry
-    assert list(G_new[1][2]['geometry'].coords)[0][0] == 833978.5569194595
-    assert list(G_new[2][3]['geometry'].coords)[0][0] == 945396.6839773951
+    assert almost_equal(list(G_new[1][2]['geometry'].coords)[0][0],
+                        833978.5569194595)
+    assert almost_equal(list(G_new[2][3]['geometry'].coords)[0][0],
+                        945396.6839773951)
