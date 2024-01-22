@@ -29,6 +29,7 @@ dependencies = [ # TODO definitely don't need all of these
                 "pyarrow",
                 "pygeos",
                 "pysheds",
+                "pyswmm",
                 "PyYAML",
                 "rasterio",
                 "SALib",
