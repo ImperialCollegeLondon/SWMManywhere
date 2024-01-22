@@ -3,9 +3,12 @@
 
 @author: Barnaby Dobson
 """
+import os
 import re
 
 import numpy as np
+import pandas as pd
+import yaml
 
 
 def overwrite_section(data: np.ndarray,
@@ -142,7 +145,183 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
         print(key)
         start_section = '[{0}]'.format(key)
      
-        overwrite_section(data, new_input_file, start_section)
+        overwrite_section(data, start_section, new_input_file)
 
     # Set the flow routing
     change_flow_routing(routing, new_input_file)
+
+def explode_polygon(row):
+    """Explode a polygon into a DataFrame of coordinates.
+    
+    Args:
+        row (pd.Series): A row of a GeoDataFrame containing a polygon.
+
+    Example:
+        >>> import geopandas as gpd
+        >>> from shapely.geometry import Polygon
+        >>> df = pd.Series({'subcatchment' : '1',
+        ...                 'geometry' : Polygon([(0,0), (1,0), 
+        ...                                       (1,1), (0,1)])})
+        >>> explode_polygon(df)
+           x  y subcatchment
+        0  0  0            1
+        1  1  0            1
+        2  1  1            1
+        3  0  1            1
+        4  0  0            1
+    """
+    # Get the vertices of the polygon
+    vertices = list(row['geometry'].exterior.coords)
+    
+    # Create a new DataFrame for this row
+    df = pd.DataFrame(columns = ['x','y'], 
+                        data =vertices)
+    df['subcatchment'] = row['subcatchment']
+    return df
+
+def format_to_swmm_dict(nodes,
+                        outfalls,
+                        conduits,
+                        subs,
+                        event,
+                        symbol):
+    """Format data to a dictionary of data arrays with columns matching SWMM.
+
+    These data are the parameters of all assets that are written to the SWMM
+    input file. More parameters are available to edit (see 
+    defs/swmm_conversion.yml).
+
+    Args:
+        nodes (pd.DataFrame): GeoDataFrame of nodes. With at least columns:
+            'id', 'x', 'y', 'max_depth', 'chamber_floor_elevation',
+            'manhole_area'.
+        outfalls (pd.DataFrame): GeoDataFrame of outfalls. With at least
+            columns: 'id', 'chamber_floor_elevation'.
+        conduits (pd.DataFrame): GeoDataFrame of conduits. With at least
+            columns: 'id', 'u', 'v', 'length', 'roughness', 'shape_swmm', 
+            'diameter'.
+        subs (gpd.GeoDataFrame): GeoDataFrame of subcatchments. With at least
+            columns: 'subcatchment', 'rain_gage', 'id', 'area', 'rc', 'width',
+            'geometry',
+        event (dict): Dict describing storm event. With at least 
+            keys: 'name', 'unit', 'interval', 'fid'.
+        symbol (dict): Dict with coordinates of rain gage. With at least keys:
+            'x', 'y', 'name'.
+    
+    Example:
+        >>> import geopandas as gpd
+        >>> from shapely.geometry import Point
+        >>> nodes = gpd.GeoDataFrame({'id' : ['node1', 'node2'],
+        ...                        'x' : [0, 1],
+        ...                        'y' : [0, 1],
+        ...                        'max_depth' : [1, 1],
+        ...                        'chamber_floor_elevation' : [1, 1],
+        ...                        'manhole_area' : [1,1]
+        ...                        })
+        >>> outfalls = gpd.GeoDataFrame({'id' : ['outfall3'],
+        ...                                'chamber_floor_elevation' : [1],
+        ...                                'x' : [0],
+        ...                                'y' : [0]})
+        >>> conduits = gpd.GeoDataFrame({'id' : ['link1','link2'],
+        ...                                'u' : ['node1','node2'],
+        ...                                'v' : ['node2','outfall3'],
+        ...                                'length' : [1,1],
+        ...                                'roughness' : [1,1],
+        ...                                'shape_swmm' : ['CIRCULAR','CIRCULAR'],
+        ...                                'diameter' : [1,1],
+        ...                                'capacity' : [0.1,0.1]
+        ...                                })
+        >>> subs = gpd.GeoDataFrame({'subcatchment' : ['sub1'],
+        ...                                'rain_gage' : ['1'],
+        ...                                'id' : ['node1'],
+        ...                                'area' : [1],
+        ...                                'rc' : [1],
+        ...                                'width' : [1],
+        ...                                'slope' : [0.001],
+        ...                                'geometry' : [sgeom.Polygon([(0,0), (1,0), 
+        ...                                                            (1,1), (0,1)])]})
+        >>> rain_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+        ...                '..',
+        ...                    'swmmanywhere',
+        ...                    'defs',
+        ...                    'storm.dat')
+        >>> event = {'name' : '1',
+        ...                'unit' : 'mm',
+        ...                'interval' : 1,
+        ...                'fid' : rain_fid}
+        >>> symbol = {'x' : 0,
+        ...            'y' : 0,
+        ...            'name' : 'name'}
+        >>> data_dict = stt.format_to_swmm_dict(nodes,
+        ...                                    outfalls,
+        ...                                    conduits,
+        ...                                    subs,
+        ...                                    event,
+        ...                                    symbol)
+    """
+    # Get the directory of the current module
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # TODO use 'load_yaml_from_defs'
+    # Create the path to iso_converter.yml
+    iso_path = os.path.join(current_dir,
+                            "defs", 
+                            "swmm_conversion.yml")
+
+
+    # Load conversion mapping from YAML file
+    with open(iso_path, "r") as file:
+        conversion_dict = yaml.safe_load(file)
+
+    ## Create nodes, coordinates and map dimensions
+    dims = {'x1' : nodes.x.min(), 
+            'y1' : nodes.y.min(),
+            'x2' : nodes.x.max(), 
+            'y2' : nodes.y.max(),
+            }
+    dims = {x : str(y) + ' ' for x,y in dims.items()}
+    
+    map_dimensions = pd.Series(dims).reset_index().set_index('index').T
+    polygons = subs[['subcatchment','geometry']].copy()
+
+    # Format dicts to DataFrames
+    event = pd.Series(event).reset_index().set_index('index').T
+    symbol = pd.Series(symbol).reset_index().set_index('index').T
+
+    # Apply the function to each row
+    polygons = pd.concat(polygons.apply(explode_polygon, axis=1).tolist())
+
+    ## Specify sections
+    shps = {'SUBCATCHMENTS' : subs,
+            'CONDUITS' : conduits,
+            'OUTFALLS' : outfalls,
+            'STORAGE' : nodes,
+            'XSECTIONS' : conduits,
+            'SUBAREAS' : subs,
+            'INFILTRATION' : subs,
+            'COORDINATES' : pd.concat([nodes, outfalls],axis=0),
+            'MAP' : map_dimensions,
+            'Polygons' : polygons,
+            'PUMPS' : None,
+            'ORIFICES' : None,
+            'WEIRS' : None,
+            'OUTLETS' : None,
+            'RAINGAGES' : event,
+            'SYMBOLS' : symbol
+            }
+    
+    data_dict = {}
+    for key, shp in shps.items():
+        if shp is not None:
+            shp = shp.copy()
+            shp = shp.fillna(0)
+            shp = shp[[s for s in shp.columns if not s.startswith('/')]]
+            columns = conversion_dict[key]['iwcolumns']
+            for col in columns:
+                if col[0] == '/':
+                    shp[col] = col.replace('/','')
+            data = shp[columns].values
+            data_dict[key] = data
+        else:
+            data_dict[key] = None
+    return data_dict
