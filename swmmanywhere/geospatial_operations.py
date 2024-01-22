@@ -11,6 +11,7 @@ import pandas as pd
 import pygeos
 import pyproj
 import rasterio as rst
+from rasterio import features
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
@@ -271,3 +272,44 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
     
     # Return the matching dictionary
     return matching
+
+def carve(geoms: list[sgeom.LineString], 
+          depth: float,
+          raster_fid: str, 
+          new_raster_fid: str):
+    """Carve a raster along a list of shapely geometries.
+
+    Args:
+        geoms (list): List of Shapely geometries.
+        depth (float): Depth to carve.
+        raster_fid (str): Filepath to input raster.
+        new_raster_fid (str): Filepath to save the carved raster.
+    """
+    with rst.open(raster_fid) as src:
+        # read data
+        data = src.read(1)
+        data = data.astype(float)
+        data_mask = data != src.nodata
+        bool_mask = np.zeros(data.shape, dtype=bool)
+        for geom in geoms:
+            # Create a mask for the line
+            mask = features.geometry_mask([sgeom.mapping(geom)], 
+                                        out_shape=src.shape, 
+                                        transform=src.transform, 
+                                        invert=True)
+            # modify masked data
+            bool_mask[mask] = True  # Adjust this multiplier as needed
+        #modify data
+        data[bool_mask & data_mask] -= depth
+        # Create a new GeoTIFF with modified values
+        with rst.open(new_raster_fid, 
+                      'w', 
+                      driver='GTiff', 
+                      height=src.height, 
+                      width=src.width, 
+                      count=1,
+                      dtype=data.dtype, 
+                      crs=src.crs, 
+                      transform=src.transform, 
+                      nodata = src.nodata) as dest:
+            dest.write(data, 1)
