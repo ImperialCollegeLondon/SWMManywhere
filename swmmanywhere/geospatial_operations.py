@@ -3,6 +3,7 @@
 
 @author: Barnaby Dobson
 """
+from functools import lru_cache
 from typing import Optional
 
 import geopandas as gpd
@@ -17,6 +18,57 @@ from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 from shapely.strtree import STRtree
 
+TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
+
+
+def get_utm_crs(x: float, 
+                y: float, 
+                crs: str | int | pyproj.CRS = 'EPSG:4326', 
+                datum_name: str = "WGS 84"):
+    """Get the UTM CRS code for a given coordinate.
+
+    Note, this function is taken from GeoPandas and modified to use
+    for getting the UTM CRS code for a given coordinate.
+
+    Args:
+        x (float): Longitude in crs
+        y (float): Latitude in crs
+        crs (str | int | pyproj.CRS, optional): The CRS of the input 
+            coordinates. Defaults to 'EPSG:4326'.
+        datum_name (str, optional): The datum name to use for the UTM CRS
+
+    Returns:
+        str: Formatted EPSG code for the UTM zone.
+    
+    Example:
+        >>> get_utm_epsg(-0.1276, 51.5074)
+        'EPSG:32630'
+    """
+    if not isinstance(x, float) or not isinstance(y, float):
+        raise TypeError("x and y must be floats")
+
+    try:
+        crs = pyproj.CRS(crs)
+    except pyproj.exceptions.CRSError:
+        raise ValueError("Invalid CRS")
+
+    # ensure using geographic coordinates
+    if pyproj.CRS(crs).is_geographic:
+        lon = x
+        lat = y
+    else:
+        transformer = TransformerFromCRS(crs, "EPSG:4326", always_xy=True)
+        lon, lat = transformer.transform(x, y)
+    utm_crs_list = pyproj.database.query_utm_crs_info(
+        datum_name=datum_name,
+        area_of_interest=pyproj.aoi.AreaOfInterest(
+            west_lon_degree=lon,
+            south_lat_degree=lat,
+            east_lon_degree=lon,
+            north_lat_degree=lat,
+        ),
+    )
+    return f"{utm_crs_list[0].auth_name}:{utm_crs_list[0].code}"
 
 def get_utm_epsg(lon: float, lat: float) -> str:
     """Get the formatted UTM EPSG code for a given longitude and latitude.
