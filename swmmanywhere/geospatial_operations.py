@@ -5,16 +5,17 @@
 """
 from typing import Optional
 
+import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
-import pygeos
 import pyproj
 import rasterio as rst
+import rioxarray
 from rasterio import features
-from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
+from shapely.strtree import STRtree
 
 
 def get_utm_epsg(lon: float, lat: float) -> str:
@@ -120,33 +121,18 @@ def reproject_raster(target_crs: str,
         new_fid (str, optional): Filepath to save the reprojected raster. 
             Defaults to None, which will just use fid with '_reprojected'.
     """
-    with rst.open(fid) as src:
-        # Define the transformation parameters for reprojection
-        transform, width, height = calculate_default_transform(
-            src.crs, target_crs, src.width, src.height, *src.bounds)
+     # Open the raster
+    with rioxarray.open_rasterio(fid) as raster:
 
-        # Create the output raster file
-        kwargs = src.meta.copy()
-        kwargs.update({
-            'crs': target_crs,
-            'transform': transform,
-            'width': width,
-            'height': height
-        })
+        # Reproject the raster
+        reprojected = raster.rio.reproject(target_crs)
+
+        # Define the output filepath
         if new_fid is None:
             new_fid = fid.replace('.tif','_reprojected.tif')
 
-        with rst.open(new_fid, 'w', **kwargs) as dst:
-            # Reproject the data
-            reproject(
-                source=rst.band(src, 1),
-                destination=rst.band(dst, 1),
-                src_transform=src.transform,
-                src_crs=src.crs,
-                dst_transform=transform,
-                dst_crs=target_crs,
-                resampling=Resampling.bilinear
-                )
+        # Save the reprojected raster
+        reprojected.rio.to_raster(new_fid)
 
 def get_transformer(source_crs: str, 
                     target_crs: str) -> pyproj.Transformer:
@@ -179,22 +165,22 @@ def reproject_df(df: pd.DataFrame,
         target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
     """
     # Function to transform coordinates
+    pts = gpd.points_from_xy(df["longitude"], 
+                             df["latitude"], 
+                             crs=source_crs).to_crs(target_crs)
     df = df.copy()
-    transformer = get_transformer(source_crs, target_crs)
-
-    # Reproject the coordinates in the DataFrame
-    def f(row):
-        return transformer.transform(row['longitude'], 
-                                     row['latitude'])
-
-    df['x'], df['y'] = zip(*df.apply(f,axis=1))
-
+    df['x'] = pts.x
+    df['y'] = pts.y
     return df
 
 def reproject_graph(G: nx.Graph, 
                     source_crs: str, 
                     target_crs: str) -> nx.Graph:
     """Reproject the coordinates in a graph.
+
+    osmnx.projection.project_graph might be suitable if some other behaviour
+    needs to be captured, but it currently fails the tests so I will ignore for
+    now.
 
     Args:
         G (nx.Graph): Graph with nodes containing 'x' and 'y' properties.
@@ -228,7 +214,9 @@ def reproject_graph(G: nx.Graph,
                                        [G_new.nodes[v]['x'],
                                         G_new.nodes[v]['y']]])
         data['geometry'] = new_geometry
+    
     return G_new
+
 
 def nearest_node_buffer(points1: dict[str, sgeom.Point], 
                         points2: dict[str, sgeom.Point], 
@@ -251,10 +239,8 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
     # Convert the keys of points2 to a list
     labels2 = list(points2.keys())
     
-    # Convert the values of points2 to PyGEOS geometries 
-    # and create a spatial index
-    pygeos_nodes = pygeos.from_shapely(list(points2.values()))
-    tree = pygeos.STRtree(pygeos_nodes)
+    # Create a spatial index
+    tree = STRtree(list(points2.values()))
     
     # Initialize an empty dictionary to store the matching nodes
     matching = {}
@@ -262,22 +248,22 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
     # Iterate over points1
     for key, geom in points1.items():
         # Find the nearest node in the spatial index to the current geometry
-        nearest = tree.nearest(pygeos.from_shapely(geom))[1][0]
+        nearest = tree.nearest(geom)
         nearest_geom = points2[labels2[nearest]]
         
         # If the nearest node is within the threshold, add it to the 
         # matching dictionary
-        if geom.buffer(threshold).intersection(nearest_geom):
+        if geom.buffer(threshold).intersects(nearest_geom):
             matching[key] = labels2[nearest]
     
     # Return the matching dictionary
     return matching
 
-def carve(geoms: list[sgeom.LineString], 
+def burn_shape_in_raster(geoms: list[sgeom.LineString], 
           depth: float,
           raster_fid: str, 
           new_raster_fid: str):
-    """Carve a raster along a list of shapely geometries.
+    """Burn a depth into a raster along a list of shapely geometries.
 
     Args:
         geoms (list): List of Shapely geometries.

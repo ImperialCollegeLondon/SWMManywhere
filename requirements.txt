@@ -113,9 +113,9 @@ numpy==1.26.3
     #   osmnx
     #   pandas
     #   pyarrow
-    #   pygeos
     #   pysheds
     #   rasterio
+    #   rioxarray
     #   salib
     #   scikit-image
     #   scipy
@@ -131,6 +131,7 @@ packaging==23.2
     #   fastparquet
     #   geopandas
     #   matplotlib
+    #   rioxarray
     #   scikit-image
     #   xarray
 pandas==2.1.4
@@ -149,8 +150,6 @@ pillow==10.2.0
     #   scikit-image
 pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
-pygeos==0.14
-    # via swmmanywhere (pyproject.toml)
 pyparsing==3.1.1
     # via
     #   matplotlib
@@ -159,6 +158,7 @@ pyproj==3.6.1
     # via
     #   geopandas
     #   pysheds
+    #   rioxarray
 pysheds==0.3.5
     # via swmmanywhere (pyproject.toml)
 python-dateutil==2.8.2
@@ -172,11 +172,14 @@ pyyaml==6.0.1
 rasterio==1.3.9
     # via
     #   pysheds
+    #   rioxarray
     #   swmmanywhere (pyproject.toml)
 requests==2.31.0
     # via
     #   cdsapi
     #   osmnx
+rioxarray==0.15.1
+    # via swmmanywhere (pyproject.toml)
 salib==1.4.7
     # via swmmanywhere (pyproject.toml)
 scikit-image==0.22.0
@@ -214,7 +217,9 @@ tzdata==2023.4
 urllib3==2.1.0
     # via requests
 xarray==2023.12.0
-    # via swmmanywhere (pyproject.toml)
+    # via
+    #   rioxarray
+    #   swmmanywhere (pyproject.toml)
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

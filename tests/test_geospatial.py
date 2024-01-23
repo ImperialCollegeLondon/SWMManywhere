@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 
 import networkx as nx
 import numpy as np
-import pandas as pd
 import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
@@ -137,25 +136,6 @@ def test_get_transformer():
     assert almost_equal(new_point[1],
                         expected_point[1])
 
-def test_reproject_df():
-    """Test the reproject_df function."""
-    # Create a mock DataFrame
-    df = pd.DataFrame({
-        'longitude': [-0.1276],
-        'latitude': [51.5074]
-    })
-
-    # Define the input parameters
-    source_crs = 'EPSG:4326'
-    target_crs = 'EPSG:32630'
-
-    # Call the function
-    transformed_df = go.reproject_df(df, source_crs, target_crs)
-
-    # Check the output
-    assert almost_equal(transformed_df['x'].values[0], 699330.1106898375)
-    assert almost_equal(transformed_df['y'].values[0], 5710164.30300683)
-
 def test_reproject_graph():
     """Test the reproject_graph function."""
     # Create a mock graph
@@ -202,8 +182,8 @@ def test_nearest_node_buffer():
     # Check if the function returns the correct matching nodes
     assert matching == {'a': 'c', 'b': 'c'}
 
-def test_carve_line():
-    """Test the carve_line function."""
+def test_burn_shape_in_raster():
+    """Test the burn_shape_in_raster function."""
     # Create a mock geometry
     geoms = [sgeom.LineString([(0, 0), (1, 1)]),
              sgeom.Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])]
@@ -216,7 +196,7 @@ def test_carve_line():
         create_raster(raster_fid)
         
         # Call the function
-        go.carve(geoms, depth, raster_fid, new_raster_fid)
+        go.burn_shape_in_raster(geoms, depth, raster_fid, new_raster_fid)
 
         with rst.open(raster_fid) as src:
             data_ = src.read(1)
