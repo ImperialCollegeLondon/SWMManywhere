@@ -6,9 +6,126 @@
 import os
 import re
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import yaml
+
+
+def synthetic_write(model_dir: str):
+    """Load synthetic data and write to SWMM input file.
+
+    Loads nodes, edges and subcatchments from synthetic data, assumes that 
+    these are all located in `model_dir`. Fills in appropriate default values 
+    for many SWMM parameters. More parameters are available to edit (see 
+    defs/swmm_conversion.yml). Identifies outfalls and automatically ensures
+    that they have only one link to them (as is required by SWMM). Formats
+    (with format_to_swmm_dict) and writes (with data_dict_to_inp) the data to
+    a SWMM input (.inp) file.
+
+    Args:
+        model_dir (str): model directory address. Assumes a format along the 
+            lines of 'model_2', where the number is the model number.
+    """
+    # TODO these node/edge names are probably not good or extendible defulats
+    # revisit once overall software architecture is more clear.
+    nodes = gpd.read_file(os.path.join(model_dir, 
+                                       'pipe_by_pipe_nodes.geojson'))
+    edges = gpd.read_file(os.path.join(model_dir, 
+                                       'pipe_by_pipe_edges.geojson'))
+    subs = gpd.read_file(os.path.join(model_dir, 
+                                       'subcatchments.geojson'))
+    
+    # Extract SWMM relevant data
+    edges = edges[['u','v','diameter','length']]
+    nodes = nodes[['id',
+                    'x',
+                    'y',
+                    'chamber_floor_elevation',
+                   'surface_elevation']]
+    subs = subs[['id',
+                'geometry',
+                'area',
+                'slope',
+                'width',
+                'rc']]
+    
+    # Nodes
+    nodes['id'] = nodes['id'].astype(str)
+    nodes['max_depth'] = nodes.surface_elevation - nodes.chamber_floor_elevation
+    nodes['surcharge_depth'] = 0
+    nodes['flooded_area'] = 100 # TODO arbitrary... not sure how to calc this
+    nodes['manhole_area'] = 0.5
+    
+    # Subs
+    subs['id'] = subs['id'].astype(str)
+    subs['subcatchment'] = subs['id'] + '-sub'
+    subs['rain_gage'] = 1 # TODO revise when revising storms
+    
+    # Edges
+    UNBOUNDED_CAPACITY = 1E10 # capacity in swmm is a hard limit
+    edges['u'] = edges['u'].astype(str)
+    edges['v'] = edges['v'].astype(str)
+    edges['roughness'] = 0.01
+    edges['capacity'] = UNBOUNDED_CAPACITY
+    
+    # Outfalls (create new nodes that link to the stores connected tothem
+    outfalls = nodes.loc[~nodes.id.isin(edges.u)].copy()
+    outfalls['id'] = outfalls['id'] + '_outfall'
+
+    # Reduce elevation to ensure flow
+    outfalls['chamber_floor_elevation'] -= 1
+    outfalls['x'] -= 1
+    outfalls['y'] -= 1
+
+    # Link stores to outfalls
+    new_edges = edges.iloc[0:outfalls.shape[0]].copy()
+    new_edges['u'] = outfalls['id'].str.replace('_outfall','').values
+    new_edges['v'] = outfalls['id'].values
+    new_edges['diameter'] = 15 # TODO .. big pipe to enable all outfall...
+    new_edges['length'] = 1
+
+    # Append new edges
+    edges = pd.concat([edges, new_edges], ignore_index = True)
+
+    # Name all edges
+    edges['id'] = edges.u.astype(str) + '-' + edges.v.astype(str)
+
+    # Create event
+    # TODO will need some updating if multiple rain gages
+    # TODO automatically match units to storm.csv?
+    event = {'name' : '1',
+             'unit' : 'mm',
+             'interval' : '01:00',
+             'fid' : 'storm.dat' # overwritten at runtime
+                                 }
+
+    # Locate raingage(s) on the map
+    symbol = {'x' : nodes.x.min(),
+               'y' : nodes.y.min(),
+               'name' : '1' # matches event name(s)
+               }
+
+    # Template SWMM input file
+    existing_input_file = os.path.join(os.path.dirname(__file__),
+                                    'defs',
+                                    'basic_drainage_all_bits.inp')
+    
+    # New input file
+    model_number = model_dir.split('_')[-1]
+    new_input_file = os.path.join(model_dir, 
+                                  'model_{0}.inp'.format(model_number))
+    
+    # Format to dict
+    data_dict = format_to_swmm_dict(nodes,
+                                    outfalls,
+                                    edges,
+                                    subs,
+                                    event,
+                                    symbol)
+    
+    # Write new input file
+    data_dict_to_inp(data_dict, existing_input_file, new_input_file)
 
 
 def overwrite_section(data: np.ndarray,
@@ -306,6 +423,7 @@ def format_to_swmm_dict(nodes,
             'ORIFICES' : None,
             'WEIRS' : None,
             'OUTLETS' : None,
+            'JUNCTIONS' : None,
             'RAINGAGES' : event,
             'SYMBOLS' : symbol
             }
