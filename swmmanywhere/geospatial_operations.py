@@ -238,15 +238,13 @@ def reproject_graph(G: nx.Graph,
     # Convert and add edges with 'geometry' property
     for u, v, data in G_new.edges(data=True):
         if 'geometry' in data.keys():
-            geometry = data['geometry']
-            new_geometry = sgeom.LineString(transformer.transform(x, y) 
-                                      for x, y in geometry.coords)
+            data['geometry'] = sgeom.LineString(transformer.transform(x, y) 
+                                      for x, y in data['geometry'].coords)
         else:
-            new_geometry = sgeom.LineString([[G_new.nodes[u]['x'],
+            data['geometry'] = sgeom.LineString([[G_new.nodes[u]['x'],
                                         G_new.nodes[u]['y']],
                                        [G_new.nodes[v]['x'],
                                         G_new.nodes[v]['y']]])
-        data['geometry'] = new_geometry
     
     return G_new
 
