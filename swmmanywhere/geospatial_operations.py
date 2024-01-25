@@ -70,25 +70,6 @@ def get_utm_crs(x: float,
     )
     return f"{utm_crs_list[0].auth_name}:{utm_crs_list[0].code}"
 
-def get_utm_epsg(lon: float, lat: float) -> str:
-    """Get the formatted UTM EPSG code for a given longitude and latitude.
-
-    Args:
-        lon (float): Longitude in EPSG:4326 (x)
-        lat (float): Latitude in EPSG:4326 (y)
-
-    Returns:
-        str: Formatted EPSG code for the UTM zone.
-    
-    Example:
-        >>> get_utm_epsg(-0.1276, 51.5074)
-        'EPSG:32630'
-    """
-    # Determine the UTM zone number
-    zone_number = int((lon + 180) / 6) + 1
-    # Determine the UTM EPSG code based on the hemisphere
-    utm_epsg = 32600 + zone_number if lat >= 0 else 32700 + zone_number
-    return 'EPSG:{0}'.format(utm_epsg)
 
 def interp_wrap(xy: tuple[float,float], 
                 interp: RegularGridInterpolator, 
