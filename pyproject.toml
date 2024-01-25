@@ -35,7 +35,6 @@ dependencies = [ # TODO definitely don't need all of these
                 "SALib",
                 "SciPy",
                 "shapely",
-                "shutils",
                 "snkit",
                 "tqdm",
                 "xarray"

@@ -9,7 +9,6 @@ import re
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import shutils
 import yaml
 
 
@@ -250,6 +249,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
+    import shutils
+    
     shutils.copy2(base_input_file, new_input_file)
 
     # Write the inp file

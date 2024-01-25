@@ -47,8 +47,6 @@ colorama==0.4.6
     # via
     #   click
     #   tqdm
-configparser==6.0.0
-    # via shutils
 contourpy==1.2.0
     # via matplotlib
 cramjam==2.7.0
@@ -160,8 +158,6 @@ pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
 pygeos==0.14
     # via swmmanywhere (pyproject.toml)
-pymysql==1.1.0
-    # via shutils
 pyparsing==3.1.1
     # via
     #   matplotlib
@@ -206,8 +202,6 @@ shapely==2.0.2
     #   osmnx
     #   snkit
     #   swmmanywhere (pyproject.toml)
-shutils==0.1.0
-    # via swmmanywhere (pyproject.toml)
 six==1.16.0
     # via
     #   fiona
