@@ -71,7 +71,7 @@ def get_utm_crs(x: float,
     return f"{utm_crs_list[0].auth_name}:{utm_crs_list[0].code}"
 
 
-def interp_wrap(xy: tuple[float,float], 
+def interp_with_nans(xy: tuple[float,float], 
                 interp: RegularGridInterpolator, 
                 grid: np.ndarray, 
                 values: list[float]) -> float:
