@@ -1,6 +1,7 @@
 # SWMManywhere
-
+<!-- markdown-link-check-disable -->
 [![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
+<!-- markdown-link-check-enable -->
 
 ## High level workflow overview
 
