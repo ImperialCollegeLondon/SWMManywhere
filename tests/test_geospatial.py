@@ -16,8 +16,8 @@ from shapely import geometry as sgeom
 from swmmanywhere import geospatial_operations as go
 
 
-def test_interp_wrap():
-    """Test the interp_wrap function."""
+def test_interp_with_nans():
+    """Test the interp_interp_with_nans function."""
     # Define a simple grid and values
     x = np.linspace(0, 1, 5)
     y = np.linspace(0, 1, 5)
@@ -32,13 +32,13 @@ def test_interp_wrap():
 
     # Test the function at a point inside the grid
     yx = (0.875, 0.875)
-    result = go.interp_wrap(yx, interp, grid, values)
+    result = go.interp_with_nans(yx, interp, grid, values)
     assert result == 0.875
 
     # Test the function on a nan point
     values_grid[1][1] = np.nan
     yx = (0.251, 0.25) 
-    result = go.interp_wrap(yx, interp, grid, values)
+    result = go.interp_with_nans(yx, interp, grid, values)
     assert result == values_grid[1][2]
 
 @patch('rasterio.open')
@@ -70,11 +70,11 @@ def test_interpolate_points_on_raster(mock_rst_open):
 def test_get_utm():
     """Test the get_utm_epsg function."""
     # Test a northern hemisphere point
-    crs = go.get_utm_epsg(-1, 51)
+    crs = go.get_utm_epsg(-1.0, 51.0)
     assert crs == 'EPSG:32630'
 
     # Test a southern hemisphere point
-    crs = go.get_utm_epsg(-1, -51)
+    crs = go.get_utm_epsg(-1.0, -51.0)
     assert crs == 'EPSG:32730'
 
 def create_raster(fid):

@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Created 2024-01-20.
 
+A module containing functions to perform a variety of geospatial operations,
+such as reprojecting coordinates and handling raster data.
+
 @author: Barnaby Dobson
 """
 from functools import lru_cache
@@ -21,7 +24,7 @@ from shapely.strtree import STRtree
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
 
-def get_utm_crs(x: float, 
+def get_utm_epsg(x: float, 
                 y: float, 
                 crs: str | int | pyproj.CRS = 'EPSG:4326', 
                 datum_name: str = "WGS 84"):
@@ -141,7 +144,7 @@ def interpolate_points_on_raster(x: list[float],
                                         bounds_error=False, 
                                         fill_value=None)
         # Interpolate for x,y
-        return [interp_wrap((y_, x_), interp, grid, values) for x_, y_ in zip(x,y)]
+        return [interp_with_nans((y_, x_), interp, grid, values) for x_, y_ in zip(x,y)]
     
 def reproject_raster(target_crs: str, 
                      fid: str, 
