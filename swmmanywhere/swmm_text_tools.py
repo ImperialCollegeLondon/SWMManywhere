@@ -249,14 +249,9 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
-    # Read the content from the existing input file
-    with open(base_input_file, 'r') as existing_file:
-        existing_content = existing_file.read()
-
-    # Open the new input file for writing
-    with open(new_input_file, 'w') as new_file:
-        # Write the content from the existing input file to the new file
-        new_file.write(existing_content)
+    import shutils
+    
+    shutils.copy2(base_input_file, new_input_file)
 
     # Write the inp file
     for key, data in data_dict.items():
