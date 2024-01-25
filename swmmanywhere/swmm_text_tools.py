@@ -5,6 +5,7 @@
 """
 import os
 import re
+import shutil
 
 import geopandas as gpd
 import numpy as np
@@ -249,9 +250,7 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
-    import shutils
-    
-    shutils.copy2(base_input_file, new_input_file)
+    shutil.copy2(base_input_file, new_input_file)
 
     # Write the inp file
     for key, data in data_dict.items():
@@ -425,17 +424,24 @@ def format_to_swmm_dict(nodes,
             }
     
     data_dict = {}
+    # Iterate over assets in the shps dict
     for key, shp in shps.items():
-        if shp is not None:
-            shp = shp.copy()
-            shp = shp.fillna(0)
-            shp = shp[[s for s in shp.columns if not s.startswith('/')]]
-            columns = conversion_dict[key]['iwcolumns']
-            for col in columns:
-                if col[0] == '/':
-                    shp[col] = col.replace('/','')
-            data = shp[columns].values
-            data_dict[key] = data
-        else:
+        if shp is None:
             data_dict[key] = None
+            continue
+        shp = shp.copy()
+        shp = shp.fillna(0)
+        # Include only columns that do not have a default value assigned ('/')
+        shp = shp[[s for s in shp.columns if not s.startswith('/')]]
+        # Lookup the columns for that asset in the order that SWMM expects them
+        columns = conversion_dict[key]['iwcolumns']
+        for col in columns:
+            # For columns starting with '/' fill it with the default value, 
+            # defined after the '/'
+            if col[0] == '/':
+                shp[col] = col.replace('/','')
+        # Extract data in the right order
+        data = shp[columns].values
+        data_dict[key] = data
+
     return data_dict
