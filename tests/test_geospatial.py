@@ -13,7 +13,7 @@ import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
-from swmmanywhere import geospatial_operations as go
+from swmmanywhere import utils_geo as go
 
 
 def test_interp_with_nans():

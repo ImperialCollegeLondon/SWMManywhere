@@ -10,7 +10,7 @@ import os
 import geopandas as gpd
 import rasterio
 
-from swmmanywhere import downloaders
+from swmmanywhere import prepare_data as downloaders
 
 
 # Test get_country
