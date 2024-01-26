@@ -9,7 +9,7 @@ import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
-from swmmanywhere import swmm_text_tools as stt
+from swmmanywhere import post_processing as stt
 
 
 def test_overwrite_section():
