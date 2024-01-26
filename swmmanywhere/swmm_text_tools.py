@@ -428,18 +428,32 @@ def format_to_swmm_dict(nodes,
             'SYMBOLS' : symbol
             }
     
+    # Fill backslash columns and store data in data_dict in the correct order
     data_dict = {}
-    # Iterate over assets in the shps dict
     for key, shp in shps.items():
-        if shp is None:
+        if shp is not None:
+            columns = conversion_dict[key]['iwcolumns']
+            data_dict[key] = _fill_backslash_columns(shp, columns)
+        else: 
             data_dict[key] = None
-            continue
+    return data_dict
+
+def _fill_backslash_columns(shp: gpd.GeoDataFrame | pd.DataFrame, 
+                            columns: list[str]) -> np.ndarray:
+        """Fill backslash columns and reorder.
+        
+        Iterates over columns in DataFrames and fills columns starting with '/' 
+        with the default value defined after the '/'. Reorders the columns to 
+        match the order defined in the defs/swmm_conversion.yml file.
+
+        Args:
+            shp (gpd.GeoDataFrame): GeoDataFrame containing the data.
+            columns (list): List of column names in the correct order.
+        """
         shp = shp.copy()
         shp = shp.fillna(0)
         # Include only columns that do not have a default value assigned ('/')
         shp = shp[[s for s in shp.columns if not s.startswith('/')]]
-        # Lookup the columns for that asset in the order that SWMM expects them
-        columns = conversion_dict[key]['iwcolumns']
         for col in columns:
             # For columns starting with '/' fill it with the default value, 
             # defined after the '/'
@@ -447,6 +461,4 @@ def format_to_swmm_dict(nodes,
                 shp[col] = col.replace('/','')
         # Extract data in the right order
         data = shp[columns].values
-        data_dict[key] = data
-
-    return data_dict
+        return data
