@@ -432,36 +432,23 @@ def format_to_swmm_dict(nodes,
             }
     
     # Fill backslash columns and store data in data_dict in the correct order
-    data_dict = {}
-    for key, shp in shps.items():
-        if shp is not None:
-            columns = conversion_dict[key]['iwcolumns']
-            data_dict[key] = _fill_backslash_columns(shp, columns)
-        else: 
-            data_dict[key] = None
-    return data_dict
+    import numpy.typing as npt
 
-def _fill_backslash_columns(shp: gpd.GeoDataFrame | pd.DataFrame, 
-                            columns: list[str]) -> np.ndarray:
-        """Fill backslash columns and reorder.
+    def _fill_backslash_columns(shp: pd.DataFrame | None, 
+                                key: str) -> npt.ArrayLike | None:
+        if shp is None:
+            return None
         
-        Iterates over columns in DataFrames and fills columns starting with '/' 
-        with the default value defined after the '/'. Reorders the columns to 
-        match the order defined in the defs/swmm_conversion.yml file.
-
-        Args:
-            shp (gpd.GeoDataFrame): GeoDataFrame containing the data.
-            columns (list): List of column names in the correct order.
-        """
-        shp = shp.copy()
+        # Extract SWMM order and default values
+        columns = conversion_dict[key]['iwcolumns']    
         shp = shp.fillna(0)
-        # Include only columns that do not have a default value assigned ('/')
-        shp = shp[[s for s in shp.columns if not s.startswith('/')]]
-        for col in columns:
-            # For columns starting with '/' fill it with the default value, 
-            # defined after the '/'
-            if col[0] == '/':
-                shp[col] = col.replace('/','')
-        # Extract data in the right order
-        data = shp[columns].values
-        return data
+        
+        # Find columns with a default specified
+        cols_default = [c[1:] for c in columns if c.startswith("/")]
+
+        # Fill columns with defaults
+        shp[['/' + c for c in cols_default]] = np.array(cols_default).T
+        return shp[columns].values
+    
+    data_dict = {key: _fill_backslash_columns(shp, key) for key, shp in shps.items()}
+    return data_dict
