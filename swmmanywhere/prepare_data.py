@@ -229,8 +229,7 @@ def download_precipitation(bbox: tuple[float, float, float, float],
     with xr.open_dataset('download.nc') as data:
         # Convert the xarray Dataset to a pandas DataFrame
         df = data.to_dataframe()
-        df['precipitation'] *= 1000
-        df['unit'] = 'mm/hr'
+        df['unit'] = 'm/hr'
         
     
     # Delete nc file
