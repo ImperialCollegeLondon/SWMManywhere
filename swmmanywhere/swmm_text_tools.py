@@ -6,6 +6,8 @@
 import os
 import re
 import shutil
+from pathlib import Path
+from typing import Literal
 
 import geopandas as gpd
 import numpy as np
@@ -213,31 +215,34 @@ def overwrite_section(data: np.ndarray,
             outfile.write(new_text)  # Write the new content
             outfile.write('\n')
 
-def change_flow_routing(new_routing, inp_file):
-    """Change the flow routing method in a SWMM .inp file.
-
+def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
+                        file_path: str | Path)-> None:
+    """Replace the flow routing method in a SWMM inp file with a new method, in-place.
+    
     Args:
-        new_routing (str): New flow routing method (KINWAVE, DYNWAVE, STEADY).
-        inp_file (str): File path to the SWMM .inp file.
+        file_path : str or Path
+            Path to the SWMM inp file to be modified.
+        routing_method : {"KINWAVE", "DYNWAVE", "STEADY"}
+            The new flow routing method to be used. Available options are:
+            ``KINWAVE``, ``DYNWAVE``, or ``STEADY``.
     """
-    # Read the input file
-    with open(inp_file, 'r') as f:
-        lines = f.readlines()
-    
-    # Find and replace the FLOW_ROUTING line
-    for i, line in enumerate(lines):
-        if line.strip().startswith('FLOW_ROUTING'):
-            lines[i] = f'FLOW_ROUTING {new_routing}\n'
-            break
-    
-    # Write the modified content back to the input file
-    with open(inp_file, 'w') as f:
-        f.writelines(lines)
+    if routing_method.upper() not in ["KINWAVE", "DYNWAVE", "STEADY"]:
+        raise ValueError(
+            "routing_method must be one of 'KINWAVE', 'DYNWAVE', or 'STEADY'."
+        )
+    file_path = Path(file_path)
+    updated_contents = re.sub(
+        r'^FLOW_ROUTING\s+.*$',
+        f'FLOW_ROUTING {routing_method.upper()}',
+        file_path.read_text(),
+        flags=re.MULTILINE,
+    )
+    file_path.write_text(updated_contents)
 
 def data_dict_to_inp(data_dict: dict[str, np.ndarray],
                      base_input_file: str, 
                      new_input_file: str, 
-                     routing: str = "DYNWAVE"):
+                     routing: Literal["KINWAVE", "DYNWAVE", "STEADY"] = "DYNWAVE"):
     """Write a SWMM .inp file from a dictionary of data arrays.
 
     Args:

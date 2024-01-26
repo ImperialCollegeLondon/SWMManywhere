@@ -49,11 +49,11 @@ def test_change_flow_routing():
     temp_fid = 'temp.inp'
     shutil.copy(fid, temp_fid)
     try:
-        new_routing = 'FAKE_ROUTING'
+        new_routing = 'STEADY'
         stt.change_flow_routing(new_routing, temp_fid)
         with open(temp_fid, 'r') as file:
             content = file.read()
-        assert 'FAKE_ROUTING' in content
+        assert 'STEADY' in content
     finally:
         os.remove(temp_fid)
 
