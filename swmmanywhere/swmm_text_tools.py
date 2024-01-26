@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Created 2024-01-22.
 
+A module containing functions to format and write processed data into SWMM .inp 
+files.
+
 @author: Barnaby Dobson
 """
 import os
