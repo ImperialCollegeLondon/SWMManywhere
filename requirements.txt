@@ -4,6 +4,10 @@
 #
 #    pip-compile
 #
+aenum==3.1.11
+    # via
+    #   pyswmm
+    #   swmm-toolkit
 affine==2.4.0
     # via
     #   pysheds
@@ -80,6 +84,8 @@ idna==3.6
     # via requests
 imageio==2.33.1
     # via scikit-image
+julian==0.14
+    # via pyswmm
 kiwisolver==1.4.5
     # via matplotlib
 lazy-loader==0.3
@@ -131,6 +137,7 @@ packaging==23.2
     #   fastparquet
     #   geopandas
     #   matplotlib
+    #   pyswmm
     #   rioxarray
     #   scikit-image
     #   xarray
@@ -160,6 +167,8 @@ pyproj==3.6.1
     #   pysheds
     #   rioxarray
 pysheds==0.3.5
+    # via swmmanywhere (pyproject.toml)
+pyswmm==1.5.1
     # via swmmanywhere (pyproject.toml)
 python-dateutil==2.8.2
     # via
@@ -206,6 +215,8 @@ snkit==1.9.0
     # via swmmanywhere (pyproject.toml)
 snuggs==1.4.7
     # via rasterio
+swmm-toolkit==0.15.3
+    # via pyswmm
 tifffile==2023.12.9
     # via scikit-image
 tqdm==4.66.1
