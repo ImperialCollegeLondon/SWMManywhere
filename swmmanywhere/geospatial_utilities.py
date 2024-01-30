@@ -8,6 +8,7 @@ such as reprojecting coordinates and handling raster data.
 """
 from copy import deepcopy
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Optional
 
 import geopandas as gpd
@@ -117,13 +118,13 @@ def interp_with_nans(xy: tuple[float,float],
 
 def interpolate_points_on_raster(x: list[float], 
                                  y: list[float], 
-                                 elevation_fid: str) -> list[float ]:
+                                 elevation_fid: Path) -> list[float ]:
     """Interpolate points on a raster.
 
     Args:
         x (list): X coordinates.
         y (list): Y coordinates.
-        elevation_fid (str): Filepath to elevation raster.
+        elevation_fid (Path): Filepath to elevation raster.
         
     Returns:
         elevation (float): Elevation at point.
@@ -152,14 +153,14 @@ def interpolate_points_on_raster(x: list[float],
         return [interp_with_nans((y_, x_), interp, grid, values) for x_, y_ in zip(x,y)]
     
 def reproject_raster(target_crs: str, 
-                     fid: str, 
-                     new_fid: Optional[str] = None):
+                     fid: Path, 
+                     new_fid: Optional[Path] = None):
     """Reproject a raster to a new CRS.
 
     Args:
         target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
-        fid (str): Filepath to the raster to reproject.
-        new_fid (str, optional): Filepath to save the reprojected raster. 
+        fid (Path): Filepath to the raster to reproject.
+        new_fid (Path, optional): Filepath to save the reprojected raster. 
             Defaults to None, which will just use fid with '_reprojected'.
     """
      # Open the raster
@@ -170,7 +171,7 @@ def reproject_raster(target_crs: str,
 
         # Define the output filepath
         if new_fid is None:
-            new_fid = fid.replace('.tif','_reprojected.tif')
+            new_fid = Path(str(fid.with_suffix('')) + '_reprojected.tif')
 
         # Save the reprojected raster
         reprojected.rio.to_raster(new_fid)
@@ -300,15 +301,15 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
 
 def burn_shape_in_raster(geoms: list[sgeom.LineString], 
           depth: float,
-          raster_fid: str, 
-          new_raster_fid: str):
+          raster_fid: Path, 
+          new_raster_fid: Path):
     """Burn a depth into a raster along a list of shapely geometries.
 
     Args:
         geoms (list): List of Shapely geometries.
         depth (float): Depth to carve.
-        raster_fid (str): Filepath to input raster.
-        new_raster_fid (str): Filepath to save the carved raster.
+        raster_fid (Path): Filepath to input raster.
+        new_raster_fid (Path): Filepath to save the carved raster.
     """
     with rst.open(raster_fid) as src:
         # read data
@@ -525,20 +526,20 @@ def calculate_slope(polys_gdf: gpd.GeoDataFrame,
         polys_gdf.loc[idx, 'slope'] = max(float(average_slope), 0)
     return polys_gdf
 
-def derive_subcatchments(G: nx.Graph, fid: str) -> gpd.GeoDataFrame:
+def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Args:
         G (nx.Graph): The input graph.
-        fid (str): Filepath to the DEM.
+        fid (Path): Filepath to the DEM.
     
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', and 'slope'.
     """
     # Initialise pysheds grids
-    grid = pgrid.Grid.from_raster(fid)
-    dem = grid.read_raster(fid)
+    grid = pgrid.Grid.from_raster(str(fid))
+    dem = grid.read_raster(str(fid))
 
     # Condition the DEM
     inflated_dem = condition_dem(grid, dem)

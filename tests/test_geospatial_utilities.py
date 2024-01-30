@@ -4,7 +4,7 @@
 @author: Barney
 """
 
-import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import networkx as nx
@@ -63,7 +63,9 @@ def test_interpolate_points_on_raster(mock_rst_open):
     y = [0.25, 0.75]
 
     # Call the function
-    result = go.interpolate_points_on_raster(x, y, 'fake_path')
+    result = go.interpolate_points_on_raster(x, 
+                                             y, 
+                                             Path('fake_path'))
 
     # [3,2] feels unintuitive but it's because rasters measure from the top
     assert result == [3.0, 2.0]
@@ -95,29 +97,29 @@ def create_raster(fid):
 def test_reproject_raster():
     """Test the reproject_raster function."""
     # Create a mock raster file
-    fid = 'test.tif'
+    fid = Path('test.tif')
     try:
         create_raster(fid)
 
         # Define the input parameters
         target_crs = 'EPSG:32630'
-        new_fid = 'test_reprojected.tif'
+        new_fid = Path('test_reprojected.tif')
 
         # Call the function
         go.reproject_raster(target_crs, fid)
 
         # Check if the reprojected file exists
-        assert os.path.exists(new_fid)
+        assert new_fid.exists()
 
         # Check if the reprojected file has the correct CRS
         with rst.open(new_fid) as src:
             assert src.crs.to_string() == target_crs
     finally:
         # Regardless of test outcome, delete the temp file
-        if os.path.exists(fid):
-            os.remove(fid)
-        if os.path.exists(new_fid):
-            os.remove(new_fid)
+        if fid.exists():
+            fid.unlink()
+        if new_fid.exists():
+            new_fid.unlink()
 
 
 def almost_equal(a, b, tol=1e-6):
@@ -191,8 +193,8 @@ def test_burn_shape_in_raster():
 
     # Define the input parameters
     depth = 1.0
-    raster_fid = 'input.tif'
-    new_raster_fid = 'output.tif'
+    raster_fid = Path('input.tif')
+    new_raster_fid = Path('output.tif')
     try:
         create_raster(raster_fid)
         
@@ -208,22 +210,22 @@ def test_burn_shape_in_raster():
             assert (data != data_).any()
     finally:
         # Regardless of test outcome, delete the temp file
-        if os.path.exists(raster_fid):
-            os.remove(raster_fid)
-        if os.path.exists(new_raster_fid):
-            os.remove(new_raster_fid)
-
+        if raster_fid.exists():
+            raster_fid.unlink()
+        if new_raster_fid.exists():
+            new_raster_fid.unlink()
+        
 def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     bbox = (-0.11643,51.50309,-0.11169,51.50549)
     G = download_street(bbox)
-    temp_fid = 'temp.tif'
+    temp_fid = Path('temp.tif')
     try:
         test_api_key = 'b206e65629ac0e53d599e43438560d28' 
         download_elevation(temp_fid,
                            bbox,
                            test_api_key)
-        temp_fid_r = 'temp_reprojected.tif'
+        temp_fid_r = Path('temp_reprojected.tif')
         crs = go.get_utm_epsg(bbox[0], bbox[1])
         go.reproject_raster(crs, 
                             temp_fid, 
@@ -240,7 +242,7 @@ def test_derive_subcatchments():
         assert polys.shape[0] > 0
         assert polys.dropna().shape == polys.shape
     finally:
-        if os.path.exists(temp_fid):
-            os.remove(temp_fid)
-        if os.path.exists(temp_fid_r):
-            os.remove(temp_fid_r)
+        if temp_fid.exists():
+            temp_fid.unlink()
+        if temp_fid_r.exists():
+            temp_fid_r.unlink()
