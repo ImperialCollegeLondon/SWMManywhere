@@ -6,20 +6,25 @@ such as reprojecting coordinates and handling raster data.
 
 @author: Barnaby Dobson
 """
+from copy import deepcopy
 from functools import lru_cache
-from typing import Optional
+from typing import List, Optional
 
 import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
 import pyproj
+import pysheds
 import rasterio as rst
 import rioxarray
+from pysheds import grid as pgrid
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
+from shapely import ops as sops
 from shapely.strtree import STRtree
+from tqdm import tqdm
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
@@ -333,3 +338,285 @@ def burn_shape_in_raster(geoms: list[sgeom.LineString],
                       transform=src.transform, 
                       nodata = src.nodata) as dest:
             dest.write(data, 1)
+
+def condition_dem(grid: "pysheds.sgrid.Grid", 
+                  dem: "pysheds.sview.Raster") -> "pysheds.sview.Raster":
+    """Condition a DEM with pysheds.
+
+    Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        dem (pysheds.sview.Raster): The input DEM.
+
+    Returns:
+        pysheds.sview.Raster: The conditioned DEM.
+    """
+    # Fill pits, depressions, and resolve flats in the DEM
+    pit_filled_dem = grid.fill_pits(dem)
+    flooded_dem = grid.fill_depressions(pit_filled_dem)
+    inflated_dem = grid.resolve_flats(flooded_dem)
+
+    return inflated_dem
+
+def compute_flow_directions(grid: "pysheds.sgrid.Grid", 
+                            inflated_dem: "pysheds.sview.Raster") \
+                            -> tuple["pysheds.sview.Raster", tuple]:
+    """Compute flow directions.
+
+    Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        inflated_dem (pysheds.sview.Raster): The input DEM.
+
+    Returns:
+        pysheds.sview.Raster: Flow directions.
+        tuple: Direction mapping.
+    """
+    dirmap = (64, 128, 1, 2, 4, 8, 16, 32)
+    fdir = grid.flowdir(inflated_dem, dirmap=dirmap)
+    return fdir, dirmap
+
+def calculate_flow_accumulation(grid: "pysheds.sgrid.Grid", 
+                                fdir: "pysheds.sview.Raster", 
+                                dirmap: tuple) -> "pysheds.sview.Raster":
+    """Calculate flow accumulation.
+
+    Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        fdir (pysheds.sview.Raster): Flow directions.
+        dirmap (tuple): Direction mapping.
+
+    Returns:
+        pysheds.sview.Raster: Flow accumulations.
+    """
+    acc = grid.accumulation(fdir, dirmap=dirmap)
+    return acc
+
+def delineate_catchment(grid: "pysheds.sgrid.Grid",
+                        acc: "pysheds.sview.Raster",
+                        fdir: "pysheds.sview.Raster",
+                        dirmap: tuple,
+                        G: nx.Graph) -> gpd.GeoDataFrame:
+    """Delineate catchments.
+
+    Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        acc (pysheds.sview.Raster): Flow accumulations.
+        fdir (pysheds.sview.Raster): Flow directions.
+        dirmap (tuple): Direction mapping.
+        G (nx.Graph): The input graph.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
+            'geometry', 'area', and 'id'. Sorted by area in descending order.
+    """
+    #TODO - rather than using this mad list of dicts better to just use a gdf
+    polys = []
+    # Iterate over the nodes in the graph
+    for id, data in tqdm(G.nodes(data=True), total=len(G.nodes)):
+        # Snap the node to the nearest grid cell
+        x, y = data['x'], data['y']
+        grid_ = deepcopy(grid)
+        x_snap, y_snap = grid_.snap_to_mask(acc > 5, (x, y))
+        
+        # Delineate the catchment
+        catch = grid_.catchment(x=x_snap, 
+                                y=y_snap, 
+                                fdir=fdir, 
+                                dirmap=dirmap, 
+                                xytype='coordinate')
+        grid_.clip_to(catch)
+
+        # Polygonize the catchment
+        shapes = grid_.polygonize()
+        catchment_polygon = sops.unary_union([sgeom.shape(shape) for shape, 
+                                              value in shapes])
+        
+        # Add the catchment to the list
+        polys.append({'id': id, 
+                      'geometry': catchment_polygon,
+                      'area': catchment_polygon.area})
+    polys = sorted(polys, key=lambda d: d['area'], reverse=True)
+    return gpd.GeoDataFrame(polys, crs = grid.crs)
+
+def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Remove intersections from polygons.
+
+    Args:
+        polys (gpd.GeoDataFrame): A geodataframe with columns id and geometry.
+    
+    Returns:
+        gpd.GeoDataFrame: A geodataframe with columns id and geometry.
+    """
+    result_polygons = polys.copy()
+    for i in tqdm(range(len(polys))):
+        for j in range(i + 1, len(polys)):
+            if polys.iloc[i]['geometry'].intersects(polys.iloc[j]['geometry']):
+                polyi = result_polygons.iloc[i]['geometry']
+                polyj = polys.iloc[j]['geometry']
+                result_polygons.at[polys.index[i],
+                                   'geometry'] = polyi.difference(polyj)
+    return result_polygons
+
+def remove_zero_area_subareas(mp: sgeom.MultiPolygon,
+                              removed_subareas: List[sgeom.Polygon]) \
+                                -> sgeom.MultiPolygon:
+    """Remove subareas with zero area from a multipolygon.
+
+    Args:
+        mp (sgeom.MultiPolygon): A multipolygon.
+        removed_subareas (List[sgeom.Polygon]): A list of removed subareas.
+    
+    Returns:
+        sgeom.MultiPolygon: A multipolygon with zero area subareas removed.
+    """
+    if hasattr(mp, 'geoms'):
+        largest = max(mp.geoms, key=lambda x: x.area)
+        removed = [subarea for subarea in mp.geoms if subarea != largest]
+        removed_subareas.extend(removed)
+        return largest
+    else:
+        return mp
+
+def attach_unconnected_subareas(polys_gdf: gpd.GeoDataFrame, 
+                                unconnected_subareas: List[sgeom.Polygon]) \
+                                    -> gpd.GeoDataFrame:
+    """Attach unconnected subareas to the nearest polygon.
+
+    Args:
+        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
+            columns: 'geometry', 'area', and 'id'. 
+        unconnected_subareas (List[sgeom.Polygon]): A list of subareas that are 
+            not attached to others.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons.
+    """
+    tree = STRtree(polys_gdf.geometry)
+    for subarea in unconnected_subareas:
+        nearest_poly = tree.nearest(subarea)
+        ind = polys_gdf.index[nearest_poly]
+        new_poly = polys_gdf.loc[ind, 'geometry'].union(subarea)
+        if hasattr(new_poly, 'geoms'):
+            new_poly = max(new_poly.geoms, key=lambda x: x.area)
+        polys_gdf.at[ind, 'geometry'] = new_poly
+    return polys_gdf
+
+def calculate_slope(polys_gdf: gpd.GeoDataFrame, 
+                    grid: "pysheds.sgrid.Grid", 
+                    cell_slopes: np.ndarray) -> gpd.GeoDataFrame:
+    """Calculate the average slope of each polygon.
+
+    Args:
+        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
+            columns: 'geometry', 'area', and 'id'. 
+        grid (pysheds.sgrid.Grid): The grid object.
+        cell_slopes (np.ndarray): The slopes of each cell in the grid.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with an added 
+            'slope' column.
+    """
+    polys_gdf['slope'] = None
+    for idx, row in polys_gdf.iterrows():
+        mask = features.geometry_mask([row.geometry], 
+                                      grid.shape, 
+                                      grid.affine, 
+                                      invert=True)
+        average_slope = cell_slopes[mask].mean().mean()
+        polys_gdf.loc[idx, 'slope'] = max(float(average_slope), 0)
+    return polys_gdf
+
+def derive_subcatchments(G: nx.Graph, fid: str) -> gpd.GeoDataFrame:
+    """Derive subcatchments from the nodes on a graph and a DEM.
+
+    Args:
+        G (nx.Graph): The input graph.
+        fid (str): Filepath to the DEM.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
+            'geometry', 'area', 'id', and 'slope'.
+    """
+    # Initialise pysheds grids
+    grid = pgrid.Grid.from_raster(fid)
+    dem = grid.read_raster(fid)
+
+    # Condition the DEM
+    inflated_dem = condition_dem(grid, dem)
+
+    # Compute flow directions
+    fdir, dirmap = compute_flow_directions(grid, inflated_dem)
+
+    # Calculate slopes
+    cell_slopes = grid.cell_slopes(dem, fdir)
+
+    # Calculate flow accumulations
+    acc = calculate_flow_accumulation(grid, fdir, dirmap)
+
+    # Delineate catchments
+    polys = delineate_catchment(grid, acc, fdir, dirmap, G)
+
+    # Remove intersections
+    result_polygons = remove_intersections(polys)
+
+    # Convert to GeoDataFrame
+    polys_gdf = result_polygons.dropna(subset=['geometry'])
+    polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
+
+    # Remove zero area subareas and attach to nearest polygon
+    removed_subareas: List[sgeom.Polygon] = list() # needed for mypy
+    def remove_(mp): return remove_zero_area_subareas(mp, removed_subareas)
+    polys_gdf['geometry'] = polys_gdf['geometry'].apply(remove_)
+    polys_gdf = attach_unconnected_subareas(polys_gdf, removed_subareas)
+
+    # Calculate area and slope
+    polys_gdf['area'] = polys_gdf.geometry.area
+    polys_gdf = calculate_slope(polys_gdf, grid, cell_slopes)
+    return polys_gdf
+
+def derive_rc(polys_gdf: gpd.GeoDataFrame,
+              G: nx.Graph,
+              building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Derive the RC of each subcatchment.
+
+    Args:
+        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
+            columns: 'geometry', 'area', and 'id'. 
+        G (nx.Graph): The input graph.
+        building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
+            building footprints with a 'geometry' column.
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
+            'geometry', 'area', 'id', 'impervious_area', and 'rc'.
+    """
+    polys_gdf = polys_gdf.copy()
+
+    # TODO this should probably be in derive_subcatchments
+    polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
+
+    ## Format as swmm type catchments 
+
+    # TODO think harder about lane widths (am I double counting here?)
+    lines = []
+    for u, v, x in G.edges(data=True):
+        lines.append({'geometry' : x['geometry'].buffer(x['width'], 
+                                                                cap_style = 2, 
+                                                                join_style=2),
+                            'id' : x['id']})
+    lines_df = pd.DataFrame(lines)
+    lines_gdf = gpd.GeoDataFrame(lines_df, 
+                                geometry=lines_df.geometry,
+                                    crs = polys_gdf.crs)
+
+    result = gpd.overlay(lines_gdf[['geometry']], 
+                         building_footprints[['geometry']], 
+                         how='union')
+    result = gpd.overlay(polys_gdf, result)
+
+    dissolved_result = result.dissolve(by='id').reset_index()
+    dissolved_result['impervious_area'] = dissolved_result.geometry.area
+    polys_gdf = pd.merge(polys_gdf, 
+                            dissolved_result[['id','impervious_area']], 
+                            on = 'id')
+    polys_gdf['rc'] = polys_gdf['impervious_area'] / polys_gdf['area'] * 100
+    return polys_gdf

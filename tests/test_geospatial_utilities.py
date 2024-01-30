@@ -14,6 +14,7 @@ from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
+from swmmanywhere.prepare_data import download_elevation, download_street
 
 
 def test_interp_with_nans():
@@ -211,3 +212,35 @@ def test_burn_shape_in_raster():
             os.remove(raster_fid)
         if os.path.exists(new_raster_fid):
             os.remove(new_raster_fid)
+
+def test_derive_subcatchments():
+    """Test the derive_subcatchments function."""
+    bbox = (-0.11643,51.50309,-0.11169,51.50549)
+    G = download_street(bbox)
+    temp_fid = 'temp.tif'
+    try:
+        test_api_key = 'b206e65629ac0e53d599e43438560d28' 
+        download_elevation(temp_fid,
+                           bbox,
+                           test_api_key)
+        temp_fid_r = 'temp_reprojected.tif'
+        crs = go.get_utm_epsg(bbox[0], bbox[1])
+        go.reproject_raster(crs, 
+                            temp_fid, 
+                            temp_fid_r)
+        G = go.reproject_graph(G, 
+                            'EPSG:4326', 
+                            crs)
+        
+        polys = go.derive_subcatchments(G, temp_fid_r)
+        assert 'slope' in polys.columns
+        assert 'area' in polys.columns
+        assert 'geometry' in polys.columns
+        assert 'id' in polys.columns
+        assert polys.shape[0] > 0
+        assert polys.dropna().shape == polys.shape
+    finally:
+        if os.path.exists(temp_fid):
+            os.remove(temp_fid)
+        if os.path.exists(temp_fid_r):
+            os.remove(temp_fid_r)
