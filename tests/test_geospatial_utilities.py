@@ -20,9 +20,8 @@ from swmmanywhere import graph_utilities as ge
 
 def load_street_network():
     """Load a street network."""
-    bbox = (-0.11643,51.50309,-0.11169,51.50549)
     G = ge.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
-    return G, bbox
+    return G
 
 def test_interp_with_nans():
     """Test the interp_interp_with_nans function."""
@@ -224,31 +223,23 @@ def test_burn_shape_in_raster():
         
 def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
-    G, bbox = load_street_network()
+    G = load_street_network()
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    try:
+    
+    polys = go.derive_subcatchments(G, elev_fid)
+    assert 'slope' in polys.columns
+    assert 'area' in polys.columns
+    assert 'geometry' in polys.columns
+    assert 'id' in polys.columns
+    assert polys.shape[0] > 0
+    assert polys.dropna().shape == polys.shape
+    assert polys.crs == G.graph['crs']
 
-        temp_fid_r = Path('temp_reprojected.tif')
-        crs = go.get_utm_epsg(bbox[0], bbox[1])
-        go.reproject_raster(crs, 
-                            elev_fid, 
-                            temp_fid_r)
-        
-        polys = go.derive_subcatchments(G, temp_fid_r)
-        assert 'slope' in polys.columns
-        assert 'area' in polys.columns
-        assert 'geometry' in polys.columns
-        assert 'id' in polys.columns
-        assert polys.shape[0] > 0
-        assert polys.dropna().shape == polys.shape
-    finally:
-        if temp_fid_r.exists():
-            temp_fid_r.unlink()
 
 def test_derive_rc():
     """Test the derive_rc function."""
-    G, bbox = load_street_network()
-    crs = go.get_utm_epsg(bbox[0], bbox[1])
+    G = load_street_network()
+    crs = G.graph['crs']
     eg_bldg = sgeom.Polygon([(700291,5709928), 
                        (700331,5709927),
                        (700321,5709896), 
