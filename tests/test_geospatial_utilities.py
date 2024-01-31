@@ -7,6 +7,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import geopandas as gpd
 import networkx as nx
 import numpy as np
 import rasterio as rst
@@ -14,8 +15,14 @@ from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere.prepare_data import download_elevation, download_street
+from swmmanywhere import graph_utilities as ge
 
+
+def load_street_network():
+    """Load a street network."""
+    bbox = (-0.11643,51.50309,-0.11169,51.50549)
+    G = ge.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    return G, bbox
 
 def test_interp_with_nans():
     """Test the interp_interp_with_nans function."""
@@ -217,22 +224,15 @@ def test_burn_shape_in_raster():
         
 def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
-    bbox = (-0.11643,51.50309,-0.11169,51.50549)
-    G = download_street(bbox)
-    temp_fid = Path('temp.tif')
+    G, bbox = load_street_network()
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
     try:
-        test_api_key = 'b206e65629ac0e53d599e43438560d28' 
-        download_elevation(temp_fid,
-                           bbox,
-                           test_api_key)
+
         temp_fid_r = Path('temp_reprojected.tif')
         crs = go.get_utm_epsg(bbox[0], bbox[1])
         go.reproject_raster(crs, 
-                            temp_fid, 
+                            elev_fid, 
                             temp_fid_r)
-        G = go.reproject_graph(G, 
-                            'EPSG:4326', 
-                            crs)
         
         polys = go.derive_subcatchments(G, temp_fid_r)
         assert 'slope' in polys.columns
@@ -242,7 +242,64 @@ def test_derive_subcatchments():
         assert polys.shape[0] > 0
         assert polys.dropna().shape == polys.shape
     finally:
-        if temp_fid.exists():
-            temp_fid.unlink()
         if temp_fid_r.exists():
             temp_fid_r.unlink()
+
+def test_derive_rc():
+    """Test the derive_rc function."""
+    G, bbox = load_street_network()
+    crs = go.get_utm_epsg(bbox[0], bbox[1])
+    eg_bldg = sgeom.Polygon([(700291,5709928), 
+                       (700331,5709927),
+                       (700321,5709896), 
+                       (700293,5709900),
+                       (700291,5709928)])
+    buildings = gpd.GeoDataFrame(geometry = [eg_bldg],
+                                 crs = crs)
+    subs = [sgeom.Polygon([(700262, 5709928),
+                            (700262, 5709883),
+                            (700351, 5709883),
+                            (700351, 5709906),
+                            (700306, 5709906),
+                            (700306, 5709928),
+                            (700262, 5709928)]),
+            sgeom.Polygon([(700306, 5709928),
+                            (700284, 5709928),
+                            (700284, 5709950),
+                            (700374, 5709950),
+                            (700374, 5709906),
+                            (700351, 5709906),
+                            (700306, 5709906),
+                            (700306, 5709928)]),
+            sgeom.Polygon([(700351, 5709883),
+                            (700351, 5709906),
+                            (700374, 5709906),
+                            (700374, 5709883),
+                            (700396, 5709883),
+                            (700396, 5709816),
+                            (700329, 5709816),
+                            (700329, 5709838),
+                            (700329, 5709883),
+                            (700351, 5709883)])]
+
+    subs = gpd.GeoDataFrame(data = {'id' : [107733,
+                                            1696030874,
+                                            6277683849]
+                                            },
+                                    geometry = subs,
+                                    crs = crs)
+    subs['area'] = subs.geometry.area
+
+    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    assert subs_rc.loc[6277683849,'impervious_area'] == 0
+    assert subs_rc.loc[107733,'impervious_area'] > 0
+    for u,v,d in G.edges(data=True):
+        d['width'] = 10
+
+    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    assert subs_rc.loc[6277683849,'impervious_area'] > 0
+    assert subs_rc.loc[6277683849,'rc'] > 0
+    assert subs_rc.rc.max() <= 100
+
+    for u,v,d in G.edges(data=True):
+        d['width'] = 0

@@ -29,7 +29,6 @@ from tqdm import tqdm
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
-
 def get_utm_epsg(x: float, 
                 y: float, 
                 crs: str | int | pyproj.CRS = 'EPSG:4326', 
@@ -535,7 +534,7 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
-            'geometry', 'area', 'id', and 'slope'.
+            'geometry', 'area', 'id', 'width', and 'slope'.
     """
     # Initialise pysheds grids
     grid = pgrid.Grid.from_raster(str(fid))
@@ -572,6 +571,9 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     # Calculate area and slope
     polys_gdf['area'] = polys_gdf.geometry.area
     polys_gdf = calculate_slope(polys_gdf, grid, cell_slopes)
+
+    # Calculate width
+    polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
 
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
@@ -580,9 +582,9 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     """Derive the RC of each subcatchment.
 
     Args:
-        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
-            columns: 'geometry', 'area', and 'id'. 
-        G (nx.Graph): The input graph.
+        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
+            represent subcatchments with columns: 'geometry', 'area', and 'id'. 
+        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
 
@@ -591,9 +593,6 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
             'geometry', 'area', 'id', 'impervious_area', and 'rc'.
     """
     polys_gdf = polys_gdf.copy()
-
-    # TODO this should probably be in derive_subcatchments
-    polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
 
     ## Format as swmm type catchments 
 
@@ -618,6 +617,8 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     dissolved_result['impervious_area'] = dissolved_result.geometry.area
     polys_gdf = pd.merge(polys_gdf, 
                             dissolved_result[['id','impervious_area']], 
-                            on = 'id')
+                            on = 'id',
+                            how='left').fillna(0)
     polys_gdf['rc'] = polys_gdf['impervious_area'] / polys_gdf['area'] * 100
     return polys_gdf
+
