@@ -4,13 +4,16 @@
 @author: Barney
 """
 import json
+import tempfile
 from pathlib import Path
 from typing import Callable
 
+import geopandas as gpd
 import networkx as nx
 import osmnx as ox
 from shapely import geometry as sgeom
 
+from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
 
 
@@ -289,3 +292,67 @@ def split_long_edges(graph: nx.Graph,
         graph.add_edge(edge[0], edge[1], **edge[2])
 
     return graph
+
+@register_graphfcn
+def calculate_contributing_area(G: nx.Graph, 
+                         subcatchment_derivation: parameters.SubcatchmentDerivation,
+                         addresses: parameters.Addresses,
+                         **kwargs):
+    """Calculate the contributing area for each edge.
+    
+    This function calculates the contributing area for each edge. The
+    contributing area is the area of the subcatchment that drains to the
+    edge. The contributing area is calculated from the elevation data.
+
+    Also writes the file 'subcatchments.geojson' to addresses.subcatchments.
+
+    Requires a graph with edges that have:
+        - 'geometry' (shapely LineString)
+        - 'id' (str)
+        - 'width' (float)
+
+    Adds the attributes:
+        - 'contributing_area' (float)
+
+    Args:
+        G (nx.Graph): A graph
+        subcatchment_derivation (parameters.SubcatchmentDerivation): A
+            SubcatchmentDerivation parameter object
+        addresses (parameters.Addresses): An Addresses parameter object
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    G = G.copy()
+
+    # Carve
+    # TODO I guess we don't need to keep this 'carved' file..
+    # maybe could add verbose/debug option to keep it
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / "carved.tif"
+        go.burn_shape_in_raster([d['geometry'] for u,v,d in G.edges(data=True)],
+                subcatchment_derivation.carve_depth,
+                addresses.elevation,
+                temp_fid)
+        
+        # Derive
+        subs_gdf = go.derive_subcatchments(G,temp_fid)
+
+    # RC
+    buildings = gpd.read_file(addresses.building)
+    subs_rc = go.derive_rc(subs_gdf, G, buildings)
+
+    # Write subs
+    # TODO - could just attach subs to nodes where each node has a list of subs
+    subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
+
+    # Assign contributing area
+    imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()
+    for u,v,d in G.edges(data=True):
+        if u in imperv_lookup.keys():
+            d['contributing_area'] = imperv_lookup[u]
+        else:
+            d['contributing_area'] = 0.0
+    return G
+
