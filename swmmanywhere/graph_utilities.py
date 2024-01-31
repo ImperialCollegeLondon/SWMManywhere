@@ -3,7 +3,8 @@
 
 @author: Barney
 """
-
+import json
+from pathlib import Path
 from typing import Callable
 
 import networkx as nx
@@ -12,6 +13,47 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
 
+
+def load_graph(fid: Path) -> nx.Graph:
+    """Load a graph from a file saved with save_graph.
+
+    Args:
+        fid (Path): The path to the file
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    # Define the custom decoding function    
+    with open(fid, 'r') as file:
+        json_data = json.load(file)
+
+    G = nx.node_link_graph(json_data,directed=True)
+    for u, v, data in G.edges(data=True):
+        if 'geometry' in data:
+            geometry_coords = data['geometry']
+            line_string = sgeom.LineString(geometry_coords)
+            data['geometry'] = line_string
+    return G
+
+def save_graph(G: nx.Graph, 
+               fid: Path):
+    """Save a graph to a file.
+
+    Args:
+        G (nx.Graph): A graph
+        fid (Path): The path to the file
+    """
+    json_data = nx.node_link_data(G)
+    def serialize_line_string(obj):
+        if isinstance(obj, sgeom.LineString):
+            return list(obj.coords)
+        else:
+            return obj
+    with open(fid, 'w') as file:
+        json.dump(json_data, 
+                  file,
+                  default = serialize_line_string)
+        
 graphfcns = {}
 
 def register_graphfcn(func: Callable[..., 
@@ -149,6 +191,7 @@ def split_long_edges(graph: nx.Graph,
     Returns:
         graph (nx.Graph): A graph
     """
+    #TODO refactor obviously
     max_length = subcatchment_derivation.max_street_length
     graph = graph.copy()
     edges_to_remove = []
