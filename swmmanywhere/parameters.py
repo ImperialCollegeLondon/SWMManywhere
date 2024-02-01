@@ -6,6 +6,7 @@
 
 from pathlib import Path
 
+import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -130,7 +131,50 @@ class NewTopo(TopologyDerivation):
                         min_items = 1,
                         unit = "-",
                         description = "Weights for topo derivation")
-     
+
+class HydraulicDesign(BaseModel):
+    """Parameters for hydraulic design."""
+    diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
+                            min_items = 1,
+                            unit = "m",
+                            description = """Diameters to consider in 
+                            pipe by pipe method""")
+    max_fr: float = Field(default = 0.8,
+		upper_limit = 1,
+		lower_limit = 0,
+		unit = "-",
+		description = "Maximum filling ratio in pipe by pipe method")
+    min_shear: float = Field(default = 2,
+		upper_limit = 3,
+		lower_limit = 0,
+		unit = "Pa",
+		description = "Minimum wall shear stress in pipe by pipe method")
+    min_v: float = Field(default = 0.75,
+		upper_limit = 2,
+		lower_limit = 0,
+		unit = "m/s",
+		description = "Minimum velocity in pipe by pipe method")
+    max_v: float = Field(default = 5,
+		upper_limit = 10,
+		lower_limit = 3,
+		unit = "m/s",
+		description = "Maximum velocity in pipe by pipe method")
+    min_depth: float = Field(default = 0.5,
+		upper_limit = 1,
+		lower_limit = 0,
+		unit = "m",
+		description = "Minimum excavation depth in pipe by pipe method")
+    max_depth: float = Field(default = 5,
+		upper_limit = 10,
+		lower_limit = 2,
+		unit = "m",
+		description = "Maximum excavation depth in pipe by pipe method")
+    precipitation: float = Field(default = 0.006,
+		upper_limit = 0.010,
+		lower_limit = 0.001,
+		description = "Depth of design storm in pipe by pipe method",
+		unit = "m")
+
 class Addresses:
     """Parameters for address lookup.
 

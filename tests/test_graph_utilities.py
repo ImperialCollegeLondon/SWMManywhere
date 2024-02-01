@@ -87,6 +87,10 @@ def test_derive_subcatchments():
             assert 'contributing_area' in data.keys()
             assert isinstance(data['contributing_area'], float)
 
+        for u, data in G.nodes(data=True):
+            assert 'contributing_area' in data.keys()
+            assert isinstance(data['contributing_area'], float)
+
 def test_set_elevation_and_slope():
     """Test the set_elevation and set_surface_slope function."""
     G, _ = load_street_network()
@@ -130,12 +134,14 @@ def test_calculate_weights():
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
 
-def test_identify_outlets():
-    """Test the identify_outlets function."""
+def test_identify_outlets_and_derive_topology():
+    """Test the identify_outlets and derive_topology functions."""
     G, _ = load_street_network()
-    
-    for u,v,d in G.edges(data=True):
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
         d['edge_type'] = 'street'
+        d['weight'] = ix
 
     params = parameters.OutletDerivation(river_buffer_distance = 300)
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
@@ -168,14 +174,39 @@ def test_identify_outlets():
     G.nodes['river4']['x'] = 700103.427
     G.nodes['river4']['y'] = 5710169.052
 
+    # Test outlet derivation
     G_ = G.copy()
     G_ = gu.identify_outlets(G_, params)
 
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 2
     
+    # Test topo derivation
+    G_ = gu.derive_topology(G_)
+    assert len(G_.edges) == 22
+
+    # Test outlet derivation parameters
     G_ = G.copy()
     params.outlet_length = 600
     G_ = gu.identify_outlets(G_, params)
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
+
+def test_pipe_by_pipe():
+    """Test the pipe_by_pipe function."""
+    G = gu.load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    for ix, (u,d) in enumerate(G.nodes(data=True)):
+        d['elevation'] = ix
+        d['contributing_area'] = ix
+    
+    params = parameters.HydraulicDesign()
+
+    G = gu.pipe_by_pipe(G, params)
+    for u, v, d in G.edges(data=True):
+        assert 'diameter' in d.keys()
+        assert d['diameter'] in params.diameters
+    
+    for u, d in G.nodes(data=True):
+        assert 'chamber_floor_elevation' in d.keys()
+        assert math.isfinite(d['chamber_floor_elevation'])
+        
