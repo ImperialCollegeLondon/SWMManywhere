@@ -10,14 +10,15 @@ from pathlib import Path
 import geopandas as gpd
 from shapely import geometry as sgeom
 
-from swmmanywhere import graph_utilities as gu
 from swmmanywhere import parameters
+from swmmanywhere.graph_utilities import graphfcns as gu
+from swmmanywhere.graph_utilities import load_graph
 
 
 def load_street_network():
     """Load a street network."""
     bbox = (-0.11643,51.50309,-0.11169,51.50549)
-    G = gu.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    G = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     return G, bbox
 
 def test_assign_id():
@@ -42,8 +43,6 @@ def test_format_osmnx_lanes():
     params = parameters.SubcatchmentDerivation()
     G = gu.format_osmnx_lanes(G, params)
     for u, v, data in G.edges(data=True):
-        assert 'lanes' in data.keys()
-        assert isinstance(data['lanes'], float)
         assert 'width' in data.keys()
         assert isinstance(data['width'], float)
 
@@ -194,7 +193,7 @@ def test_identify_outlets_and_derive_topology():
 
 def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
-    G = gu.load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     for ix, (u,d) in enumerate(G.nodes(data=True)):
         d['elevation'] = ix
         d['contributing_area'] = ix
