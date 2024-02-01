@@ -458,3 +458,52 @@ def set_chahinan_angle(G: nx.Graph,
             min_weight = 0
         d['chahinan_angle'] = min_weight
     return G
+
+def calculate_weights(G: nx.Graph, 
+                       topo_derivation: parameters.TopologyDerivation,
+                       **kwargs) -> nx.Graph:
+    """Calculate the weights for each edge.
+
+    This function calculates the weights for each edge. The weights are
+    calculated from the edge attributes.
+
+    Requires a graph with edges that have:
+        - weights as defined in topo_derivation.weights
+    
+    Adds the edge attributes:
+        - 'weight' (float)
+
+    Args:
+        G (nx.Graph): A graph
+        topo_derivation (parameters.TopologyDerivation): A TopologyDerivation
+            parameter object
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    # Calculate bounds to normalise between
+    bounds = {}
+    for weight in topo_derivation.weights:
+        bounds[weight] = [np.Inf, -np.Inf]
+
+    for u, v, d in G.edges(data=True):
+        for attr, bds in bounds.items():
+            bds[0] = min(bds[0], d[attr])
+            bds[1] = max(bds[1], d[attr])
+    
+    G = G.copy()
+    for u, v, d in G.edges(data=True):
+        total_weight = 0
+        for attr, bds in bounds.items():
+            # Normalise
+            weight = (d[attr] - bds[0]) / (bds[1] - bds[0])
+            # Exponent
+            weight = weight ** getattr(topo_derivation,f'{attr}_exponent')
+            # Scaling
+            weight = weight * getattr(topo_derivation,f'{attr}_scaling')
+            # Sum
+            total_weight += weight
+        # Set
+        d['weight'] = total_weight
+    return G

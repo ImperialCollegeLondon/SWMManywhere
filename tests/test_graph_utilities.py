@@ -116,3 +116,16 @@ def test_chahinan_angle():
     for u, v, data in G.edges(data=True):
         assert 'chahinan_angle' in data.keys()
         assert math.isfinite(data['chahinan_angle'])
+
+def test_calculate_weights():
+    """Test the calculate_weights function."""
+    G, _ = load_street_network()
+    params = parameters.TopologyDerivation()
+    for weight in params.weights:
+        for ix, (u,v,data) in enumerate(G.edges(data=True)):
+            data[weight] = ix
+
+    G = gu.calculate_weights(G, params)
+    for u, v, data in G.edges(data=True):
+        assert 'weight' in data.keys()
+        assert math.isfinite(data['weight'])

@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SubcatchmentDerivation(BaseModel):
@@ -29,6 +29,87 @@ class SubcatchmentDerivation(BaseModel):
             unit = "m", 
             description = "Distance to split streets into segments.")
 
+class TopologyDerivation(BaseModel):
+    """Parameters for topology derivation."""
+    weights: list = Field(default = ['surface_slope',
+                                      'chahinan_angle',
+                                      'length',
+                                      'contributing_area'],
+                        min_items = 1,
+                        unit = "-",
+                        description = "Weights for topo derivation")
+
+    surface_slope_scaling: float = Field(default = 1,
+        le = 1,
+        ge = 0,
+        unit = "-",
+        description = "Constant to apply to surface slope in topo derivation")
+    
+    chahinan_angle_scaling: float = Field(default = 1,
+        le = 1,
+        ge = 0,
+        unit = "-",
+        description = "Constant to apply to chahinan angle in topo derivation")
+    
+    length_scaling: float = Field(default = 1,
+        le = 1,
+        ge = 0,
+        unit = "-",
+        description = "Constant to apply to length in topo derivation")
+    
+    contributing_area_scaling: float = Field(default = 1,
+        le = 1,
+        ge = 0,
+        unit = "-",
+        description = "Constant to apply to contributing area in topo derivation")
+    
+    surface_slope_exponent: float = Field(default = 1,
+        le = 2,
+        ge = -2,
+        unit = "-",
+        description = "Exponent to apply to surface slope in topo derivation")
+    
+    chahinan_angle_exponent: float = Field(default = 1,
+        le = 2,
+        ge = -2,
+        unit = "-",
+        description = "Exponent to apply to chahinan angle in topo derivation")
+
+    length_exponent: float = Field(default = 1,
+        le = 2,
+        ge = -2,
+        unit = "-",
+        description = "Exponent to apply to length in topo derivation")
+    
+    contributing_area_exponent: float = Field(default = 1,
+        le = 2,
+        ge = -2,
+        unit = "-",
+        description = "Exponent to apply to contributing area in topo derivation")
+    
+
+    
+    @model_validator(mode='after')
+    def check_weights(cls, values):
+        """Check that weights have associated scaling and exponents."""
+        for weight in values.weights:
+                if not hasattr(values, f'{weight}_scaling'):
+                        raise ValueError(f"Missing {weight}_scaling")
+                if not hasattr(values, f'{weight}_exponent'):
+                        raise ValueError(f"Missing {weight}_exponent")
+        return values
+
+# TODO move this to tests and run it if we're happy with this way of doing things
+class NewTopo(TopologyDerivation):
+     """Demo for changing weights that should break the validator."""
+     weights: list = Field(default = ['surface_slope',
+                                      'chahinan_angle',
+                                      'length',
+                                      'contributing_area',
+                                'test'],
+                        min_items = 1,
+                        unit = "-",
+                        description = "Weights for topo derivation")
 class Addresses:
     """Parameters for address lookup.
 
