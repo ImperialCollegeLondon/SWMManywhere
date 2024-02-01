@@ -402,7 +402,7 @@ def delineate_catchment(grid: "pysheds.sgrid.Grid",
         acc (pysheds.sview.Raster): Flow accumulations.
         fdir (pysheds.sview.Raster): Flow directions.
         dirmap (tuple): Direction mapping.
-        G (nx.Graph): The input graph.
+        G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
     
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
@@ -529,7 +529,7 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Args:
-        G (nx.Graph): The input graph.
+        G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
         fid (Path): Filepath to the DEM.
     
     Returns:
@@ -584,7 +584,8 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf.
+        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf and
+            edges with the 'id', 'width' and 'geometry' property.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
 
