@@ -6,6 +6,7 @@ such as reprojecting coordinates and handling raster data.
 
 @author: Barnaby Dobson
 """
+import math
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -623,3 +624,42 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     polys_gdf['rc'] = polys_gdf['impervious_area'] / polys_gdf['area'] * 100
     return polys_gdf
 
+def calculate_angle(point1: tuple[float,float], 
+                    point2: tuple[float,float],
+                    point3: tuple[float,float]) -> float:
+    """Calculate the angle between three points.
+
+    Calculate the angle between the vectors formed by (point1, 
+    point2) and (point2, point3)
+
+    Args:
+        point1 (tuple): The first point (x,y).
+        point2 (tuple): The second point (x,y).
+        point3 (tuple): The third point (x,y).
+
+    Returns:
+        float: The angle between the three points in degrees.
+    """
+    vector1 = (point1[0] - point2[0], point1[1] - point2[1])
+    vector2 = (point3[0] - point2[0], point3[1] - point2[1])
+
+    dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
+    magnitude1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
+    magnitude2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+
+    if magnitude1 * magnitude2 == 0:
+        # Avoid division by zero
+        return float('inf')
+
+    cosine_angle = dot_product / (magnitude1 * magnitude2)
+
+    # Ensure the cosine value is within the valid range [-1, 1]
+    cosine_angle = min(max(cosine_angle, -1), 1)
+
+    # Calculate the angle in radians
+    angle_radians = math.acos(cosine_angle)
+
+    # Convert angle to degrees
+    angle_degrees = math.degrees(angle_radians)
+
+    return angle_degrees

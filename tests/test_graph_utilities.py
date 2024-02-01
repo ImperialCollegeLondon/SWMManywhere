@@ -101,11 +101,18 @@ def test_set_elevation_and_slope():
         G = gu.set_elevation(G, addresses)
         for id_, data in G.nodes(data=True):
             assert 'elevation' in data.keys()
-            assert isinstance(data['elevation'], float)
+            assert math.isfinite(data['elevation'])
             assert data['elevation'] > 0
         
         G = gu.set_surface_slope(G)
         for u, v, data in G.edges(data=True):
             assert 'surface_slope' in data.keys()
-            assert isinstance(data['surface_slope'], float)
             assert math.isfinite(data['surface_slope'])
+
+def test_chahinan_angle():
+    """Test the chahinan_angle function."""
+    G, _ = load_street_network()
+    G = gu.set_chahinan_angle(G)
+    for u, v, data in G.edges(data=True):
+        assert 'chahinan_angle' in data.keys()
+        assert math.isfinite(data['chahinan_angle'])

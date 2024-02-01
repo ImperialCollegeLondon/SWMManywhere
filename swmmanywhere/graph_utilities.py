@@ -10,6 +10,7 @@ from typing import Callable
 
 import geopandas as gpd
 import networkx as nx
+import numpy as np
 import osmnx as ox
 from shapely import geometry as sgeom
 
@@ -413,4 +414,47 @@ def set_surface_slope(G: nx.Graph,
     for u,v,d in G.edges(data=True):
         slope = (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) / d['length']
         d['surface_slope'] = slope
+    return G
+
+def set_chahinan_angle(G: nx.Graph, 
+                       **kwargs) -> nx.Graph:
+    """Set the Chahinan angle for each edge.
+
+    This function sets the Chahinan angle for each edge. The Chahinan angle is
+    calculated from the geometry of the edge and weighted according to the 
+    angle (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
+
+    Requires a graph with nodes that have:
+        - 'x' (float)
+        - 'y' (float)
+
+    Adds the edge attributes:
+        - 'chahinan_angle' (float)
+
+    Args:
+        G (nx.Graph): A graph
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    # TODO - in a double directed graph, not sure how meaningful this is
+    # TODO could probably refactor
+    G = G.copy()
+    for u,v,d in G.edges(data=True):
+        min_weight = float('inf')
+        for node in G.successors(v):
+            if node != u:
+                p1 = (G.nodes[u]['x'], G.nodes[u]['y'])
+                p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
+                p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
+                angle = go.calculate_angle(p1,p2,p3)
+                chahinan_weight = np.interp(angle,
+                                            [0, 90, 135, 180, 225, 270, 360],
+                                            [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
+                                            )
+                min_weight = min(chahinan_weight, min_weight)
+        if min_weight == float('inf'):
+            min_weight = 0
+        d['chahinan_angle'] = min_weight
     return G

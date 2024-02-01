@@ -63,7 +63,7 @@ def test_interpolate_points_on_raster(mock_rst_open):
     mock_src.height = 2
     mock_src.nodata = None
     mock_rst_open.return_value.__enter__.return_value = mock_src
-    
+
     # Define the x and y coordinates
     x = [0.25, 0.75]
     y = [0.25, 0.75]
@@ -294,3 +294,29 @@ def test_derive_rc():
 
     for u,v,d in G.edges(data=True):
         d['width'] = 0
+
+def test_calculate_angle():
+    """Test the calculate_angle function."""
+    # Test with points forming a right angle
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (1, 1)
+    assert go.calculate_angle(point1, point2, point3) == 90
+
+    # Test with points forming a straight line
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (2, 0)
+    assert go.calculate_angle(point1, point2, point3) == 180
+
+    # Test with points forming an angle of 45 degrees
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (0, 1)
+    assert almost_equal(go.calculate_angle(point1, point2, point3), 45)
+
+    # Test with points forming an angle of 0 degrees
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (0, 0)
+    assert go.calculate_angle(point1, point2, point3) == 0
