@@ -275,7 +275,7 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.3
     # via pyswmm
-tifffile==2023.12.9
+tifffile==2024.1.30
     # via scikit-image
 tqdm==4.66.1
     # via
