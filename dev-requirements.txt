@@ -71,7 +71,7 @@ distlib==0.3.8
     # via virtualenv
 fastparquet==2023.10.1
     # via swmmanywhere (pyproject.toml)
-filelock==3.12.4
+filelock==3.13.1
     # via
     #   pytest-mypy
     #   virtualenv
