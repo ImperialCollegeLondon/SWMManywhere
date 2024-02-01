@@ -3,6 +3,7 @@
 
 @author: Barney
 """
+import math
 import tempfile
 from pathlib import Path
 
@@ -86,8 +87,8 @@ def test_derive_subcatchments():
             assert 'contributing_area' in data.keys()
             assert isinstance(data['contributing_area'], float)
 
-def test_set_elevation():
-    """Test the set_elevation function."""
+def test_set_elevation_and_slope():
+    """Test the set_elevation and set_surface_slope function."""
     G, _ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -102,3 +103,9 @@ def test_set_elevation():
             assert 'elevation' in data.keys()
             assert isinstance(data['elevation'], float)
             assert data['elevation'] > 0
+        
+        G = gu.set_surface_slope(G)
+        for u, v, data in G.edges(data=True):
+            assert 'surface_slope' in data.keys()
+            assert isinstance(data['surface_slope'], float)
+            assert math.isfinite(data['surface_slope'])

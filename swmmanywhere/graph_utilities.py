@@ -388,3 +388,29 @@ def set_elevation(G: nx.Graph,
     elevations_dict = {id_: elev for id_, elev in zip(G.nodes, elevations)}
     nx.set_node_attributes(G, elevations_dict, 'elevation')
     return G
+
+def set_surface_slope(G: nx.Graph,
+                      **kwargs) -> nx.Graph:
+    """Set the surface slope for each edge.
+
+    This function sets the surface slope for each edge. The surface slope is
+    calculated from the elevation data.
+
+    Requires a graph with nodes that have:
+        - 'elevation' (float)
+    
+    Adds the edge attributes:
+        - 'surface_slope' (float)
+
+    Args:
+        G (nx.Graph): A graph
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    G = G.copy()
+    for u,v,d in G.edges(data=True):
+        slope = (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) / d['length']
+        d['surface_slope'] = slope
+    return G
