@@ -134,16 +134,16 @@ def interpolate_points_on_raster(x: list[float],
         data[data == src.nodata] = None
 
         # Get the raster's coordinates
-        x = np.linspace(src.bounds.left, src.bounds.right, src.width)
-        y = np.linspace(src.bounds.bottom, src.bounds.top, src.height)
+        x_grid = np.linspace(src.bounds.left, src.bounds.right, src.width)
+        y_grid = np.linspace(src.bounds.bottom, src.bounds.top, src.height)
 
         # Define grid
-        xx, yy = np.meshgrid(x, y)
+        xx, yy = np.meshgrid(x_grid, y_grid)
         grid = np.vstack([xx.ravel(), yy.ravel()]).T
         values = data.ravel()
 
         # Define interpolator
-        interp = RegularGridInterpolator((y,x), 
+        interp = RegularGridInterpolator((y_grid,x_grid), 
                                         np.flipud(data), 
                                         method='linear', 
                                         bounds_error=False, 

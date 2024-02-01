@@ -93,7 +93,7 @@ def assign_id(G: nx.Graph,
     Requires a graph with edges that have:
         - 'osmid' or 'id'
     
-    Adds the attributes:
+    Adds the edge attributes:
         - 'id'
 
     Args:
@@ -117,7 +117,7 @@ def format_osmnx_lanes(G: nx.Graph,
         - 'lanes' (in osmnx format, i.e., empty for single lane, an int for a
             number of lanes or a list if the edge has multiple carriageways)
     
-    Adds the attributes:
+    Adds the edge attributes:
         - 'lanes' (float)
         - 'width' (float)
 
@@ -311,7 +311,7 @@ def calculate_contributing_area(G: nx.Graph,
         - 'id' (str)
         - 'width' (float)
 
-    Adds the attributes:
+    Adds the edge attributes:
         - 'contributing_area' (float)
 
     Args:
@@ -356,3 +356,35 @@ def calculate_contributing_area(G: nx.Graph,
             d['contributing_area'] = 0.0
     return G
 
+def set_elevation(G: nx.Graph, 
+                  addresses: parameters.Addresses,
+                  **kwargs) -> nx.Graph:
+    """Set the elevation for each node.
+
+    This function sets the elevation for each node. The elevation is
+    calculated from the elevation data.
+
+    Requires a graph with nodes that have:
+        - 'x' (float)
+        - 'y' (float)
+
+    Adds the node attributes:
+        - 'elevation' (float)
+
+    Args:
+        G (nx.Graph): A graph
+        addresses (parameters.Addresses): An Addresses parameter object
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    G = G.copy()
+    x = [d['x'] for x, d in G.nodes(data=True)]
+    y = [d['y'] for x, d in G.nodes(data=True)]
+    elevations = go.interpolate_points_on_raster(x, 
+                                                 y, 
+                                                 addresses.elevation)
+    elevations_dict = {id_: elev for id_, elev in zip(G.nodes, elevations)}
+    nx.set_node_attributes(G, elevations_dict, 'elevation')
+    return G

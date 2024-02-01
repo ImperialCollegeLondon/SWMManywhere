@@ -63,7 +63,7 @@ def test_interpolate_points_on_raster(mock_rst_open):
     mock_src.height = 2
     mock_src.nodata = None
     mock_rst_open.return_value.__enter__.return_value = mock_src
-
+    
     # Define the x and y coordinates
     x = [0.25, 0.75]
     y = [0.25, 0.75]
@@ -73,8 +73,8 @@ def test_interpolate_points_on_raster(mock_rst_open):
                                              y, 
                                              Path('fake_path'))
 
-    # [3,2] feels unintuitive but it's because rasters measure from the top
-    assert result == [3.0, 2.0]
+    # [2.75, 2.25] feels unintuitive but it's because rasters measure from the top
+    assert result == [2.75, 2.25]
 
 def test_get_utm():
     """Test the get_utm_epsg function."""

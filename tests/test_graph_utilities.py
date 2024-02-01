@@ -85,3 +85,20 @@ def test_derive_subcatchments():
         for u, v, data in G.edges(data=True):
             assert 'contributing_area' in data.keys()
             assert isinstance(data['contributing_area'], float)
+
+def test_set_elevation():
+    """Test the set_elevation function."""
+    G, _ = load_street_network()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        addresses = parameters.Addresses(base_dir = temp_path, 
+                                project_name = 'test', 
+                                bbox_number = 1,
+                                extension = 'json',
+                                model_number = 1)
+        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+        G = gu.set_elevation(G, addresses)
+        for id_, data in G.nodes(data=True):
+            assert 'elevation' in data.keys()
+            assert isinstance(data['elevation'], float)
+            assert data['elevation'] > 0
