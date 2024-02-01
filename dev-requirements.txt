@@ -251,7 +251,7 @@ salib==1.4.7
     # via swmmanywhere (pyproject.toml)
 scikit-image==0.22.0
     # via pysheds
-scipy==1.11.4
+scipy==1.12.0
     # via
     #   pysheds
     #   salib
