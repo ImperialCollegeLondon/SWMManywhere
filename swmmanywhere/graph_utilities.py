@@ -507,3 +507,92 @@ def calculate_weights(G: nx.Graph,
         # Set
         d['weight'] = total_weight
     return G
+
+def identify_outlets(G: nx.Graph,
+                     outlet_derivation: parameters.OutletDerivation,
+                     **kwargs) -> nx.Graph:
+    """Identify outlets in a combined river-street graph.
+
+    This function identifies outlets in a combined river-street graph. An
+    outlet is a node that is connected to a river and a street. 
+
+    Requires a graph with edges that have:
+        - 'edge_type' ('river' or 'street')
+        - 'length' (float)
+    
+    Requires a graph with nodes that have:
+        - 'x' (float)
+        - 'y' (float)
+
+    Adds new edges to represent outlets with the attributes:
+        - 'edge_type' ('outlet')
+        - 'length' (float)
+        - 'id' (str)
+
+    Args:
+        G (nx.Graph): A graph
+        outlet_derivation (parameters.OutletDerivation): An OutletDerivation
+            parameter object
+        **kwargs: Additional keyword arguments are ignored.
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    G = G.copy()
+    river_points = {}
+    street_points = {}
+
+    # Get the points for each river and street node
+    for u, v, d in G.edges(data=True):
+        upoint = sgeom.Point(G.nodes[u]['x'], G.nodes[u]['y'])
+        vpoint = sgeom.Point(G.nodes[v]['x'], G.nodes[v]['y'])
+        if d['edge_type'] == 'river':
+            river_points[u] = upoint
+            river_points[v] = vpoint
+        else:
+            street_points[u] = upoint
+            street_points[v] = vpoint
+    
+    # Pair up the river and street nodes
+    matched_outlets = go.nearest_node_buffer(river_points,
+                                            street_points,
+                                            outlet_derivation.river_buffer_distance)
+    
+    # Copy graph to run shortest path on
+    G_ = G.copy()
+
+    # Add edges between the paired river and street nodes
+    for river_id, street_id in matched_outlets.items():
+        # TODO instead use a weight based on the distance between the two nodes
+        G_.add_edge(street_id, river_id,
+                    **{'length' : outlet_derivation.outlet_length,
+                       'edge_type' : 'outlet',
+                       'id' : f'{street_id}-{river_id}-outlet'})
+    
+    # Add edges from the river nodes to a waste node
+    for river_node in river_points.keys():
+        if G.out_degree(river_node) == 0:
+            G_.add_edge(river_node,
+                        'waste',
+                        **{'length' : 0,
+                           'edge_type' : 'outlet',
+                           'id' : f'{river_node}-waste-outlet'})
+    
+    # Set the length of the river edges to 0 - from a design perspective 
+    # once water is in the river we don't care about the length - since it 
+    # costs nothing
+    for u,v,d in G_.edges(data=True):
+        if d['edge_type'] == 'river':
+            d['length'] = 0
+    
+    # Find shortest path to identify only 'efficient' outlets
+    # TODO convert to shortest path when the speedy mechanism is implemented
+    G_ = nx.minimum_spanning_tree(G_.to_undirected(),
+                                       weight = 'length')
+    
+    # Retain the shortest path outlets in the original graph
+    for u,v,d in G_.edges(data=True):
+        if (d['edge_type'] == 'outlet') & (v != 'waste'):
+            G.add_edge(u,v,**d)
+
+    return G
