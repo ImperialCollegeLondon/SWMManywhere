@@ -684,8 +684,10 @@ class identify_outlets(BaseGraphFunction):
             if d['edge_type'] == 'river':
                 d['length'] = 0
         
-        # Find shortest path to identify only 'efficient' outlets
-        # TODO convert to shortest path when the speedy mechanism is implemented
+        # Find shortest path to identify only 'efficient' outlets. The MST
+        # makes sense here over shortest path as each node is only allowed to
+        # be visited once - thus encouraging fewer outlets. In shortest path
+        # nodes near rivers will always just pick their nearest river node.
         G_ = nx.minimum_spanning_tree(G_.to_undirected(),
                                         weight = 'length')
         
@@ -760,9 +762,9 @@ class derive_topology(BaseGraphFunction):
             dist, node = heappop(heap)
 
             # For each neighbor of the current node
-            for neighbor, edge_data in G[node].items():
+            for neighbor, _, edge_data in G.in_edges(node, data=True):
                 # Calculate the distance through the current node
-                alt_dist = dist + edge_data[0]['weight']
+                alt_dist = dist + edge_data['weight']
                 # If the alternative distance is shorter
 
                 if alt_dist < shortest_paths[neighbor]:
