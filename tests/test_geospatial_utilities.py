@@ -122,10 +122,8 @@ def test_reproject_raster():
             assert src.crs.to_string() == target_crs
     finally:
         # Regardless of test outcome, delete the temp file
-        if fid.exists():
-            fid.unlink()
-        if new_fid.exists():
-            new_fid.unlink()
+        fid.unlink(missing_ok=True)
+        new_fid.unlink(missing_ok=True)
 
 
 def almost_equal(a, b, tol=1e-6):
@@ -216,10 +214,8 @@ def test_burn_shape_in_raster():
             assert (data != data_).any()
     finally:
         # Regardless of test outcome, delete the temp file
-        if raster_fid.exists():
-            raster_fid.unlink()
-        if new_raster_fid.exists():
-            new_raster_fid.unlink()
+        raster_fid.unlink(missing_ok=True)
+        new_raster_fid.unlink(missing_ok=True)
         
 def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
