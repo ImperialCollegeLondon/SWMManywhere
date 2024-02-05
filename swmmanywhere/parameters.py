@@ -194,28 +194,74 @@ class Addresses:
         self.bbox_number = bbox_number
         self.model_number = model_number
         self.extension = extension
-
+    
+    def __getattr__(self, name):
+        """Fetch the address."""
+        return self._fetch_address(name)
+    
     def _generate_path(self, *subdirs):
+        """Generate a path."""
         return self.base_dir.joinpath(*subdirs)
 
-    def _generate_property(self, folder_name, location):
-        return property(lambda self: self._generate_path(self.project_name, 
-                                                         location, 
-                                                         folder_name))
+    def _generate_property(self, 
+                           property_name: str, 
+                           location: str):
+        """Generate a property.
+        
+        Check if the property exists in the class, otherwise generate it.
+        
+        Args:
+            property_name (str): Name of the folder/file.
+            location (str): Name of the folder that the property_name exists 
+                in.
+            
+        Returns:
+            Path: Path to the property.
+        """
+        if property_name in self.__dict__.keys():
+             return self.__dict__[property_name]
+        else:
+            return self._generate_path(self.project_name, 
+                                       getattr(self, location),
+                                       property_name)
 
-    def _generate_properties(self):
-        self.project = self._generate_path(self.project_name)
-        self.national = self._generate_property('national', 
-                                                'project')
-        self.bbox = self._generate_property(f'bbox_{self.bbox_number}', 
-                                            'project')
-        self.model = self._generate_property(f'model_{self.model_number}', 
-                                             'bbox')
-        self.subcatchments = self._generate_property('subcatchments', 
-                                                     'model')
-        self.download = self._generate_property('download', 
-                                                'bbox')
-        self.elevation = self._generate_property('elevation.tif', 
-                                                 'download')
-        self.building = self._generate_property(f'building.{self.extension}', 
-                                                'download')
+    def _fetch_address(self, name):
+        """Fetch the address.
+        
+        Generate a path to the folder/file described by name. If the 
+        folder/file has already been set, then it will be returned. Otherwise
+        it will be generated according to the default structure defined below.
+
+        Args:
+            name (str): Name of the folder/file.
+            
+        Returns:
+            Path: Path to the folder/file.
+        """
+        if name == 'project':
+            return self._generate_path(self.project_name)
+        elif name == 'national':
+             return self._generate_property('national', 'project')
+        elif name == 'bbox':
+            return self._generate_property(f'bbox_{self.bbox_number}', 
+                                       'project')
+        elif name == 'model':
+            return self._generate_property(f'model_{self.model_number}', 
+                                       'bbox')
+        elif name == 'subcatchments':
+            return self._generate_property(f'subcatchments.{self.extension}', 
+                                       'model')
+        elif name == 'download':
+            return self._generate_property('download', 
+                                            'bbox')
+        elif name == 'elevation':
+            return self._generate_property('elevation.tif', 'download')
+        elif name == 'building':
+            return self._generate_property(f'building.{self.extension}', 
+                                       'download')
+        elif name == 'precipitation':
+            return self._generate_property(f'precipitation.{self.extension}', 
+                                       'download')
+        else:
+            raise AttributeError(f"Attribute {name} not found")
+    
