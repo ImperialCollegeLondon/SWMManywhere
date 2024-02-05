@@ -17,6 +17,7 @@ import numpy as np
 import osmnx as ox
 import pandas as pd
 from shapely import geometry as sgeom
+from shapely import wkt
 from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
@@ -40,7 +41,7 @@ def load_graph(fid: Path) -> nx.Graph:
     for u, v, data in G.edges(data=True):
         if 'geometry' in data:
             geometry_coords = data['geometry']
-            line_string = sgeom.LineString(geometry_coords)
+            line_string = sgeom.LineString(wkt.loads(geometry_coords))
             data['geometry'] = line_string
     return G
 
@@ -55,7 +56,7 @@ def save_graph(G: nx.Graph,
     json_data = nx.node_link_data(G)
     def serialize_line_string(obj):
         if isinstance(obj, sgeom.LineString):
-            return list(obj.coords)
+            return obj.wkt
         else:
             return obj
     with open(fid, 'w') as file:
