@@ -242,6 +242,8 @@ class Addresses:
             return self._generate_path(self.project_name)
         elif name == 'national':
              return self._generate_property('national', 'project')
+        elif name == 'national_building':
+             return self._generate_property('national_building', 'national')
         elif name == 'bbox':
             return self._generate_property(f'bbox_{self.bbox_number}', 
                                        'project')
@@ -254,6 +256,12 @@ class Addresses:
         elif name == 'download':
             return self._generate_property('download', 
                                             'bbox')
+        elif name == 'river':
+            return self._generate_property('river.json', 
+                                       'download')
+        elif name == 'street':
+            return self._generate_property('street.json', 
+                                       'download')
         elif name == 'elevation':
             return self._generate_property('elevation.tif', 'download')
         elif name == 'building':
