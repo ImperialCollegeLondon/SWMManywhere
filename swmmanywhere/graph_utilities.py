@@ -45,7 +45,7 @@ def load_graph(fid: Path) -> nx.Graph:
     return G
 
 def save_graph(G: nx.Graph, 
-               fid: Path):
+               fid: Path) -> None:
     """Save a graph to a file.
 
     Args:
@@ -93,7 +93,7 @@ class BaseGraphFunction(ABC):
     
     def validate_requirements(self,
                               edge_attributes: set,
-                              node_attributes: set):
+                              node_attributes: set) -> None:
         """Validate that the graph has the required attributes."""
         for attribute in self.required_edge_attributes:
             assert attribute in edge_attributes, "{0} not in attributes".format(
@@ -106,7 +106,7 @@ class BaseGraphFunction(ABC):
 
     def add_graphfcn(self,
                     edge_attributes: set,
-                    node_attributes: set):
+                    node_attributes: set) -> tuple[set, set]:
         """Add the attributes that the graph function adds."""
         self.validate_requirements(edge_attributes, node_attributes)
         edge_attributes = edge_attributes.union(self.adds_edge_attributes)
@@ -131,7 +131,7 @@ def register_graphfcn(cls) -> Callable:
     setattr(graphfcns, cls.__name__, cls())
     return cls
 
-def get_osmid_id(data):
+def get_osmid_id(data: dict) -> Hashable:
     """Get the ID of an edge."""
     id_ = data.get('osmid', data.get('id'))
     if isinstance(id_, list):
@@ -149,7 +149,7 @@ class assign_id(BaseGraphFunction):
 
     def __call__(self,
                  G: nx.Graph, 
-                 **kwargs):
+                 **kwargs) -> nx.Graph:
         """Assign an ID to each edge.
 
         This function takes a graph and assigns an ID to each edge. The ID is
@@ -183,7 +183,7 @@ class format_osmnx_lanes(BaseGraphFunction):
     def __call__(self,
                  G: nx.Graph, 
                        subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                       **kwargs):
+                       **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
         Args:
@@ -212,7 +212,7 @@ class double_directed(BaseGraphFunction):
         """Initialize the class."""
         super().__init__()
         self.required_edge_attributes = ['id']
-    def __call__(self, G: nx.Graph, **kwargs):
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
         """Create a 'double directed graph'.
 
         This function duplicates a graph and adds reverse edges to the new graph. 
@@ -251,7 +251,7 @@ class split_long_edges(BaseGraphFunction):
     def __call__(self, 
                  G: nx.Graph, 
                  subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                 **kwargs):
+                 **kwargs) -> nx.Graph:
         """Split long edges into shorter edges.
 
         This function splits long edges into shorter edges. The edges are split
@@ -385,7 +385,7 @@ class calculate_contributing_area(BaseGraphFunction):
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
                          addresses: parameters.Addresses,
-                         **kwargs):
+                         **kwargs) -> nx.Graph:
         """Calculate the contributing area for each edge.
         
         This function calculates the contributing area for each edge. The
@@ -799,7 +799,7 @@ def design_pipe(ds_elevation: float,
                        edge_length: float,
                        pipe_design: parameters.HydraulicDesign,
                        Q: float
-                       ):
+                       ) -> nx.Graph:
     """Design a pipe.
 
     This function designs a pipe by iterating over a range of diameters and
@@ -897,12 +897,13 @@ def process_successors(G: nx.Graph,
                        chamber_floor: dict[Hashable, float], 
                        edge_diams: dict[tuple[Hashable,Hashable,int], float],
                        pipe_design: parameters.HydraulicDesign
-                       ):
+                       ) -> None:
     """Process the successors of a node.
 
     This function processes the successors of a node. It designs a pipe to the
     downstream node and sets the diameter and downstream invert level of the
-    pipe. It also sets the downstream invert level of the downstream node.
+    pipe. It also sets the downstream invert level of the downstream node. It
+    returns None but modifies the edge_diams and chamber_floor dictionaries.
 
     Args:
         G (nx.Graph): A graph
@@ -955,7 +956,7 @@ class pipe_by_pipe(BaseGraphFunction):
                  G: nx.Graph, 
                  pipe_design: parameters.HydraulicDesign,
                  **kwargs
-                 ):
+                 )->nx.Graph:
         """Pipe by pipe hydraulic design.
 
         Starting from the most upstream node, design a pipe to the downstream node
