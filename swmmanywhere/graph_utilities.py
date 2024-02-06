@@ -95,12 +95,10 @@ class BaseGraphFunction(ABC):
                               node_attributes: set) -> None:
         """Validate that the graph has the required attributes."""
         for attribute in self.required_edge_attributes:
-            assert attribute in edge_attributes, "{0} not in attributes".format(
-                attribute)
+            assert attribute in edge_attributes, f"{attribute} not in attributes"
             
         for attribute in self.required_node_attributes:
-            assert attribute in node_attributes, "{0} not in attributes".format(
-                attribute)
+            assert attribute in node_attributes, f"{attribute} not in attributes"
             
 
     def add_graphfcn(self,
@@ -235,7 +233,7 @@ class double_directed(BaseGraphFunction):
         for u, v, data in G.edges(data=True):
             if (v, u) not in G.edges:
                 reverse_data = data.copy()
-                reverse_data['id'] = '{0}.reversed'.format(data['id'])
+                reverse_data['id'] = f"{data['id']}.reversed"
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
 
@@ -304,12 +302,11 @@ class split_long_edges(BaseGraphFunction):
                             new_data = create_new_edge_data([start, 
                                                             end], 
                                                             data, 
-                                                            '{0}.{1}'.format(
-                                                                data['id'],ix))
+                                                            f"{data['id']}.{ix}")
                             if (v,u) in graph.edges:
                                 # Create reversed data
                                 data_r = graph.get_edge_data(v, u).copy()[0]
-                                id_ = '{0}.{1}'.format(data_r['id'],ix)
+                                id_ = f"{data_r['id']}.{ix}"
                                 new_data_r = create_new_edge_data([end, start], 
                                                                 data_r.copy(), 
                                                                 id_)

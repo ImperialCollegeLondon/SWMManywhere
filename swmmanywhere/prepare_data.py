@@ -52,7 +52,7 @@ def get_country(x: float,
         data = yaml.safe_load(file)
 
     # Get country ISO code from coordinates
-    location = geolocator.reverse("{0}, {1}".format(y, x), exactly_one=True)
+    location = geolocator.reverse(f"{y}, {x}", exactly_one=True)
     iso_country_code = location.raw.get("address", {}).get("country_code")
     iso_country_code = iso_country_code.upper()
 
@@ -219,7 +219,7 @@ def download_precipitation(bbox: tuple[float, float, float, float],
         }
 
     c = cdsapi.Client(url='https://cds.climate.copernicus.eu/api/v2', 
-                      key='{0}:{1}'.format(username, api_key))
+                      key=f'{username}:{api_key}')
     # Get data
     c.retrieve('reanalysis-era5-single-levels', 
                request, 
