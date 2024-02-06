@@ -17,8 +17,7 @@ import networkx as nx
 import numpy as np
 import osmnx as ox
 import pandas as pd
-from shapely import geometry as sgeom
-from shapely import wkt
+import shapely
 from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
@@ -40,7 +39,7 @@ def load_graph(fid: Path) -> nx.Graph:
     for u, v, data in G.edges(data=True):
         if 'geometry' in data:
             geometry_coords = data['geometry']
-            line_string = sgeom.LineString(wkt.loads(geometry_coords))
+            line_string = shapely.LineString(shapely.wkt.loads(geometry_coords))
             data['geometry'] = line_string
     return G
 
@@ -54,7 +53,7 @@ def save_graph(G: nx.Graph,
     """
     json_data = nx.node_link_data(G)
     def serialize_line_string(obj):
-        if isinstance(obj, sgeom.LineString):
+        if isinstance(obj, shapely.LineString):
             return obj.wkt
         else:
             return obj
@@ -281,11 +280,11 @@ class split_long_edges(BaseGraphFunction):
         ll = 0
 
         def create_new_edge_data(line, data, id_):
-            new_line = sgeom.LineString(line)
+            new_line = shapely.LineString(line)
             new_data = data.copy()
             new_data['id'] = id_
             new_data['length'] = new_line.length
-            new_data['geometry'] =  sgeom.LineString([(x[0], x[1]) 
+            new_data['geometry'] =  shapely.LineString([(x[0], x[1]) 
                                                     for x in new_line.coords])
             return new_data
 
@@ -294,7 +293,7 @@ class split_long_edges(BaseGraphFunction):
             length = data['length']
             if ((u, v) not in edges_to_remove) & ((v, u) not in edges_to_remove):
                 if length > max_length:
-                    new_points = [sgeom.Point(x) 
+                    new_points = [shapely.Point(x) 
                                 for x in ox.utils_geo.interpolate_points(line, 
                                                                         max_length)]
                     if len(new_points) > 2:
@@ -644,8 +643,8 @@ class identify_outlets(BaseGraphFunction):
 
         # Get the points for each river and street node
         for u, v, d in G.edges(data=True):
-            upoint = sgeom.Point(G.nodes[u]['x'], G.nodes[u]['y'])
-            vpoint = sgeom.Point(G.nodes[v]['x'], G.nodes[v]['y'])
+            upoint = shapely.Point(G.nodes[u]['x'], G.nodes[u]['y'])
+            vpoint = shapely.Point(G.nodes[v]['x'], G.nodes[v]['y'])
             if d['edge_type'] == 'river':
                 river_points[u] = upoint
                 river_points[v] = vpoint
