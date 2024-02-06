@@ -73,7 +73,7 @@ def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.Addresses(base_dir = temp_path, 
+        addresses = parameters.FilePaths(base_dir = temp_path, 
                             project_name = 'test', 
                             bbox_number = 1,
                             extension = 'json',
@@ -108,7 +108,7 @@ def test_set_elevation_and_slope():
     G, _ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.Addresses(base_dir = temp_path, 
+        addresses = parameters.FilePaths(base_dir = temp_path, 
                                 project_name = 'test', 
                                 bbox_number = 1,
                                 extension = 'json',

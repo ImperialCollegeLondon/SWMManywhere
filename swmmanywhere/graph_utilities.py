@@ -385,7 +385,7 @@ class calculate_contributing_area(BaseGraphFunction):
 
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
-                         addresses: parameters.Addresses,
+                         addresses: parameters.FilePaths,
                          **kwargs) -> nx.Graph:
         """Calculate the contributing area for each edge.
         
@@ -399,7 +399,7 @@ class calculate_contributing_area(BaseGraphFunction):
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.Addresses): An Addresses parameter object
+            addresses (parameters.FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -451,7 +451,7 @@ class set_elevation(BaseGraphFunction):
         self.adds_node_attributes = ['elevation']
 
     def __call__(self, G: nx.Graph, 
-                  addresses: parameters.Addresses,
+                  addresses: parameters.FilePaths,
                   **kwargs) -> nx.Graph:
         """Set the elevation for each node.
 
@@ -460,7 +460,7 @@ class set_elevation(BaseGraphFunction):
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.Addresses): An Addresses parameter object
+            addresses (parameters.FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
