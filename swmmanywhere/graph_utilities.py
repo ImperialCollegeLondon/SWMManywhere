@@ -425,15 +425,17 @@ class calculate_contributing_area(BaseGraphFunction):
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()
+        
+        # Set node attributes
+        nx.set_node_attributes(G, 0.0, 'contributing_area')
         nx.set_node_attributes(G, imperv_lookup, 'contributing_area')
-        for u, d in G.nodes(data=True):
-            if 'contributing_area' not in d.keys():
-                d['contributing_area'] = 0.0
-        for u,v,d in G.edges(data=True):
-            if u in imperv_lookup.keys():
-                d['contributing_area'] = imperv_lookup[u]
-            else:
-                d['contributing_area'] = 0.0
+
+        # Prepare edge attributes
+        edge_attributes = {edge: G.nodes[edge[0]]['contributing_area'] 
+                           for edge in G.edges}
+
+        # Set edge attributes
+        nx.set_edge_attributes(G, edge_attributes, 'contributing_area')
         return G
 
 @register_graphfcn
