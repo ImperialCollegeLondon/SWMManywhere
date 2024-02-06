@@ -17,6 +17,7 @@ import numpy as np
 import osmnx as ox
 import pandas as pd
 from shapely import geometry as sgeom
+from shapely import wkt
 from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
@@ -40,12 +41,12 @@ def load_graph(fid: Path) -> nx.Graph:
     for u, v, data in G.edges(data=True):
         if 'geometry' in data:
             geometry_coords = data['geometry']
-            line_string = sgeom.LineString(geometry_coords)
+            line_string = sgeom.LineString(wkt.loads(geometry_coords))
             data['geometry'] = line_string
     return G
 
 def save_graph(G: nx.Graph, 
-               fid: Path):
+               fid: Path) -> None:
     """Save a graph to a file.
 
     Args:
@@ -55,7 +56,7 @@ def save_graph(G: nx.Graph,
     json_data = nx.node_link_data(G)
     def serialize_line_string(obj):
         if isinstance(obj, sgeom.LineString):
-            return list(obj.coords)
+            return obj.wkt
         else:
             return obj
     with open(fid, 'w') as file:
@@ -93,7 +94,7 @@ class BaseGraphFunction(ABC):
     
     def validate_requirements(self,
                               edge_attributes: set,
-                              node_attributes: set):
+                              node_attributes: set) -> None:
         """Validate that the graph has the required attributes."""
         for attribute in self.required_edge_attributes:
             assert attribute in edge_attributes, "{0} not in attributes".format(
@@ -106,7 +107,7 @@ class BaseGraphFunction(ABC):
 
     def add_graphfcn(self,
                     edge_attributes: set,
-                    node_attributes: set):
+                    node_attributes: set) -> tuple[set, set]:
         """Add the attributes that the graph function adds."""
         self.validate_requirements(edge_attributes, node_attributes)
         edge_attributes = edge_attributes.union(self.adds_edge_attributes)
@@ -131,7 +132,7 @@ def register_graphfcn(cls) -> Callable:
     setattr(graphfcns, cls.__name__, cls())
     return cls
 
-def get_osmid_id(data):
+def get_osmid_id(data: dict) -> Hashable:
     """Get the ID of an edge."""
     id_ = data.get('osmid', data.get('id'))
     if isinstance(id_, list):
@@ -149,7 +150,7 @@ class assign_id(BaseGraphFunction):
 
     def __call__(self,
                  G: nx.Graph, 
-                 **kwargs):
+                 **kwargs) -> nx.Graph:
         """Assign an ID to each edge.
 
         This function takes a graph and assigns an ID to each edge. The ID is
@@ -183,7 +184,7 @@ class format_osmnx_lanes(BaseGraphFunction):
     def __call__(self,
                  G: nx.Graph, 
                        subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                       **kwargs):
+                       **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
         Args:
@@ -212,7 +213,7 @@ class double_directed(BaseGraphFunction):
         """Initialize the class."""
         super().__init__()
         self.required_edge_attributes = ['id']
-    def __call__(self, G: nx.Graph, **kwargs):
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
         """Create a 'double directed graph'.
 
         This function duplicates a graph and adds reverse edges to the new graph. 
@@ -251,7 +252,7 @@ class split_long_edges(BaseGraphFunction):
     def __call__(self, 
                  G: nx.Graph, 
                  subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                 **kwargs):
+                 **kwargs) -> nx.Graph:
         """Split long edges into shorter edges.
 
         This function splits long edges into shorter edges. The edges are split
@@ -384,8 +385,8 @@ class calculate_contributing_area(BaseGraphFunction):
 
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
-                         addresses: parameters.Addresses,
-                         **kwargs):
+                         addresses: parameters.FilePaths,
+                         **kwargs) -> nx.Graph:
         """Calculate the contributing area for each edge.
         
         This function calculates the contributing area for each edge. The
@@ -398,7 +399,7 @@ class calculate_contributing_area(BaseGraphFunction):
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.Addresses): An Addresses parameter object
+            addresses (parameters.FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -450,7 +451,7 @@ class set_elevation(BaseGraphFunction):
         self.adds_node_attributes = ['elevation']
 
     def __call__(self, G: nx.Graph, 
-                  addresses: parameters.Addresses,
+                  addresses: parameters.FilePaths,
                   **kwargs) -> nx.Graph:
         """Set the elevation for each node.
 
@@ -459,7 +460,7 @@ class set_elevation(BaseGraphFunction):
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.Addresses): An Addresses parameter object
+            addresses (parameters.FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -799,7 +800,7 @@ def design_pipe(ds_elevation: float,
                        edge_length: float,
                        pipe_design: parameters.HydraulicDesign,
                        Q: float
-                       ):
+                       ) -> nx.Graph:
     """Design a pipe.
 
     This function designs a pipe by iterating over a range of diameters and
@@ -897,12 +898,13 @@ def process_successors(G: nx.Graph,
                        chamber_floor: dict[Hashable, float], 
                        edge_diams: dict[tuple[Hashable,Hashable,int], float],
                        pipe_design: parameters.HydraulicDesign
-                       ):
+                       ) -> None:
     """Process the successors of a node.
 
     This function processes the successors of a node. It designs a pipe to the
     downstream node and sets the diameter and downstream invert level of the
-    pipe. It also sets the downstream invert level of the downstream node.
+    pipe. It also sets the downstream invert level of the downstream node. It
+    returns None but modifies the edge_diams and chamber_floor dictionaries.
 
     Args:
         G (nx.Graph): A graph
@@ -955,7 +957,7 @@ class pipe_by_pipe(BaseGraphFunction):
                  G: nx.Graph, 
                  pipe_design: parameters.HydraulicDesign,
                  **kwargs
-                 ):
+                 )->nx.Graph:
         """Pipe by pipe hydraulic design.
 
         Starting from the most upstream node, design a pipe to the downstream node

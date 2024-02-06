@@ -175,10 +175,10 @@ class HydraulicDesign(BaseModel):
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
 
-class Addresses:
-    """Parameters for address lookup.
+class FilePaths:
+    """Parameters for file path lookup.
 
-    TODO: this doesn't validate addresses to allow for un-initialised data
+    TODO: this doesn't validate file paths to allow for un-initialised data
     (e.g., subcatchments are created by a graph and so cannot be validated).
     """
 

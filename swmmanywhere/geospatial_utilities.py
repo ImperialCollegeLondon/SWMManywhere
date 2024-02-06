@@ -33,7 +33,7 @@ TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 def get_utm_epsg(x: float, 
                 y: float, 
                 crs: str | int | pyproj.CRS = 'EPSG:4326', 
-                datum_name: str = "WGS 84"):
+                datum_name: str = "WGS 84") -> str:
     """Get the UTM CRS code for a given coordinate.
 
     Note, this function is taken from GeoPandas and modified to use
@@ -154,7 +154,7 @@ def interpolate_points_on_raster(x: list[float],
     
 def reproject_raster(target_crs: str, 
                      fid: Path, 
-                     new_fid: Optional[Path] = None):
+                     new_fid: Optional[Path] = None) -> None:
     """Reproject a raster to a new CRS.
 
     Args:
@@ -302,7 +302,7 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
 def burn_shape_in_raster(geoms: list[sgeom.LineString], 
           depth: float,
           raster_fid: Path, 
-          new_raster_fid: Path):
+          new_raster_fid: Path) -> None:
     """Burn a depth into a raster along a list of shapely geometries.
 
     Args:

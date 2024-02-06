@@ -8,11 +8,12 @@ import tempfile
 from pathlib import Path
 
 import geopandas as gpd
+import networkx as nx
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import load_graph
+from swmmanywhere.graph_utilities import load_graph, save_graph
 
 
 def load_street_network():
@@ -20,6 +21,18 @@ def load_street_network():
     bbox = (-0.11643,51.50309,-0.11169,51.50549)
     G = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     return G, bbox
+
+def test_save_load():
+    """Test the save_graph and load_graph functions."""
+    # Load a street network
+    G,_ = load_street_network()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Save the graph
+        save_graph(G, Path(temp_dir) / 'test_graph.json')
+        # Load the graph
+        G_new = load_graph(Path(temp_dir) / 'test_graph.json')
+        # Check if the loaded graph is the same as the original graph
+        assert nx.is_isomorphic(G, G_new)
 
 def test_assign_id():
     """Test the assign_id function."""
@@ -60,7 +73,7 @@ def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.Addresses(base_dir = temp_path, 
+        addresses = parameters.FilePaths(base_dir = temp_path, 
                             project_name = 'test', 
                             bbox_number = 1,
                             extension = 'json',
@@ -95,7 +108,7 @@ def test_set_elevation_and_slope():
     G, _ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.Addresses(base_dir = temp_path, 
+        addresses = parameters.FilePaths(base_dir = temp_path, 
                                 project_name = 'test', 
                                 bbox_number = 1,
                                 extension = 'json',
