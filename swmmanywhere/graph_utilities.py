@@ -6,10 +6,11 @@
 import json
 import tempfile
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
-from typing import Callable, Hashable
+from typing import Any, Callable, Dict, Hashable, List
 
 import geopandas as gpd
 import networkx as nx
@@ -576,15 +577,13 @@ class calculate_weights(BaseGraphFunction):
             G (nx.Graph): A graph
         """
         # Calculate bounds to normalise between
-        bounds = {}
-        for weight in topo_derivation.weights:
-            bounds[weight] = [np.Inf, -np.Inf]
+        bounds: Dict[Any, List[float]] = defaultdict(lambda: [np.Inf, -np.Inf])
 
-        for u, v, d in G.edges(data=True):
-            for attr, bds in bounds.items():
-                bds[0] = min(bds[0], d[attr])
-                bds[1] = max(bds[1], d[attr])
-        
+        for (u, v, d), w in product(G.edges(data=True), 
+                                    topo_derivation.weights):
+            bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf))
+            bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
+
         G = G.copy()
         for u, v, d in G.edges(data=True):
             total_weight = 0
