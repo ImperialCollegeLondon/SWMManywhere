@@ -498,9 +498,13 @@ class set_surface_slope(BaseGraphFunction):
             G (nx.Graph): A graph
         """
         G = G.copy()
-        for u,v,d in G.edges(data=True):
-            slope = (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) / d['length']
-            d['surface_slope'] = slope
+        # Compute the slope for each edge
+        slope_dict = {(u, v, k): (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) 
+                        / d['length'] for u, v, k, d in G.edges(data=True,
+                                                                keys=True)}
+
+        # Set the 'surface_slope' attribute for all edges
+        nx.set_edge_attributes(G, slope_dict, 'surface_slope')
         return G
 
 @register_graphfcn
