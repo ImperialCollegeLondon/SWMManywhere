@@ -33,9 +33,7 @@ def load_graph(fid: Path) -> nx.Graph:
     Returns:
         G (nx.Graph): A graph
     """
-    # Define the custom decoding function    
-    with open(fid, 'r') as file:
-        json_data = json.load(file)
+    json_data = json.loads(fid.read_text())
 
     G = nx.node_link_graph(json_data,directed=True)
     for u, v, data in G.edges(data=True):
