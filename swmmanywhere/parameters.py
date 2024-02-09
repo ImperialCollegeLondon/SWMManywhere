@@ -10,6 +10,16 @@ import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
 
+def get_full_parameters():
+    """Get the full set of parameters."""
+    full_parameters = {
+        "subcatchment_derivation": SubcatchmentDerivation(),
+        "outlet_derivation": OutletDerivation(),
+        "topology_derivation": TopologyDerivation(),
+        "hydraulic_design": HydraulicDesign()
+    }
+    return full_parameters
+
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
     lane_width: float = Field(default = 3.5,
@@ -243,7 +253,8 @@ class FilePaths:
         elif name == 'national':
              return self._generate_property('national', 'project')
         elif name == 'national_building':
-             return self._generate_property('national_building', 'national')
+             return self._generate_property('building.parquet',
+                                            'national')
         elif name == 'bbox':
             return self._generate_property(f'bbox_{self.bbox_number}', 
                                        'project')

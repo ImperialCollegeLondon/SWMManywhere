@@ -235,7 +235,7 @@ class double_directed(BaseGraphFunction):
         # which direction the line should be going in...
         G_new = G.copy()
         for u, v, data in G.edges(data=True):
-            if (v, u) not in G.edges:
+            if ((v, u) not in G.edges) & (data['edge_type'] == 'street'):
                 reverse_data = data.copy()
                 reverse_data['id'] = '{0}.reversed'.format(data['id'])
                 G_new.add_edge(v, u, **reverse_data)
@@ -421,7 +421,10 @@ class calculate_contributing_area(BaseGraphFunction):
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
         # RC
-        buildings = gpd.read_file(addresses.building)
+        if addresses.building.suffix == '.parquet':
+            buildings = gpd.read_parquet(addresses.building)
+        else:
+            buildings = gpd.read_file(addresses.building)
         subs_rc = go.derive_rc(subs_gdf, G, buildings)
 
         # Write subs
@@ -562,7 +565,7 @@ class calculate_weights(BaseGraphFunction):
         self.adds_edge_attributes = ['weight']
 
     def __call__(self, G: nx.Graph, 
-                       topo_derivation: parameters.TopologyDerivation,
+                       topology_derivation: parameters.TopologyDerivation,
                        **kwargs) -> nx.Graph:
         """Calculate the weights for each edge.
 
@@ -571,7 +574,7 @@ class calculate_weights(BaseGraphFunction):
 
         Args:
             G (nx.Graph): A graph
-            topo_derivation (parameters.TopologyDerivation): A TopologyDerivation
+            topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
                 parameter object
             **kwargs: Additional keyword arguments are ignored.
 
@@ -580,7 +583,7 @@ class calculate_weights(BaseGraphFunction):
         """
         # Calculate bounds to normalise between
         bounds = {}
-        for weight in topo_derivation.weights:
+        for weight in topology_derivation.weights:
             bounds[weight] = [np.Inf, -np.Inf]
 
         for u, v, d in G.edges(data=True):
@@ -595,9 +598,9 @@ class calculate_weights(BaseGraphFunction):
                 # Normalise
                 weight = (d[attr] - bds[0]) / (bds[1] - bds[0])
                 # Exponent
-                weight = weight ** getattr(topo_derivation,f'{attr}_exponent')
+                weight = weight ** getattr(topology_derivation,f'{attr}_exponent')
                 # Scaling
-                weight = weight * getattr(topo_derivation,f'{attr}_scaling')
+                weight = weight * getattr(topology_derivation,f'{attr}_scaling')
                 # Sum
                 total_weight += weight
             # Set
@@ -667,6 +670,8 @@ class identify_outlets(BaseGraphFunction):
             G_.add_edge(street_id, river_id,
                         **{'length' : outlet_derivation.outlet_length,
                         'edge_type' : 'outlet',
+                        'geometry' : sgeom.LineString([street_points[street_id],
+                                                    river_points[river_id]]),
                         'id' : f'{street_id}-{river_id}-outlet'})
         
         # Add edges from the river nodes to a waste node
@@ -689,13 +694,17 @@ class identify_outlets(BaseGraphFunction):
         # makes sense here over shortest path as each node is only allowed to
         # be visited once - thus encouraging fewer outlets. In shortest path
         # nodes near rivers will always just pick their nearest river node.
-        G_ = nx.minimum_spanning_tree(G_.to_undirected(),
+        T = nx.minimum_spanning_tree(G_.to_undirected(),
                                         weight = 'length')
         
         # Retain the shortest path outlets in the original graph
-        for u,v,d in G_.edges(data=True):
+        for u,v,d in T.edges(data=True):
             if (d['edge_type'] == 'outlet') & (v != 'waste'):
-                G.add_edge(u,v,**d)
+                # Need to check both directions since T is undirected
+                if (u,v) in G_.edges():
+                    G.add_edge(u,v,**d)
+                elif (v,u) in G_.edges():
+                    G.add_edge(v,u,**d)
 
         return G
 
@@ -798,7 +807,7 @@ class derive_topology(BaseGraphFunction):
 def design_pipe(ds_elevation: float,
                        chamber_floor: float, 
                        edge_length: float,
-                       pipe_design: parameters.HydraulicDesign,
+                       hydraulic_design: parameters.HydraulicDesign,
                        Q: float
                        ) -> nx.Graph:
     """Design a pipe.
@@ -812,7 +821,7 @@ def design_pipe(ds_elevation: float,
         ds_elevation (float): The downstream elevationq
         chamber_floor (float): The elevation of the chamber floor
         edge_length (float): The length of the edge
-        pipe_design (parameters.HydraulicDesign): A HydraulicDesign parameter
+        hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
         Q (float): The flow rate
 
@@ -820,9 +829,9 @@ def design_pipe(ds_elevation: float,
         diam (float): The diameter of the pipe
         depth (float): The depth of the pipe
     """
-    designs = product(pipe_design.diameters,
-                          np.linspace(pipe_design.min_depth, 
-                                      pipe_design.max_depth, 
+    designs = product(hydraulic_design.diameters,
+                          np.linspace(hydraulic_design.min_depth, 
+                                      hydraulic_design.max_depth, 
                                       10) # TODO should 10 be a param?
                           )
     pipes = []
@@ -852,9 +861,9 @@ def design_pipe(ds_elevation: float,
         average_depth = (depth + chamber_floor) / 2
         V = edge_length * (diam + 0.3) * (average_depth + 0.1)
         cost = 1.32 / 2000 * (9579.31 * diam ** 0.5737 + 1153.77 * V**1.31)
-        v_feasibility = max(pipe_design.min_v - v, 0) + \
-            max(v - pipe_design.max_v, 0)
-        fr_feasibility = max(filling_ratio - pipe_design.max_fr, 0)
+        v_feasibility = max(hydraulic_design.min_v - v, 0) + \
+            max(v - hydraulic_design.max_v, 0)
+        fr_feasibility = max(filling_ratio - hydraulic_design.max_fr, 0)
         """
         TODO shear stress... got confused here
         density = 1000
@@ -897,7 +906,7 @@ def process_successors(G: nx.Graph,
                        surface_elevations: dict[Hashable, float], 
                        chamber_floor: dict[Hashable, float], 
                        edge_diams: dict[tuple[Hashable,Hashable,int], float],
-                       pipe_design: parameters.HydraulicDesign
+                       hydraulic_design: parameters.HydraulicDesign
                        ) -> None:
     """Process the successors of a node.
 
@@ -914,7 +923,7 @@ def process_successors(G: nx.Graph,
         chamber_floor (dict): A dictionary of chamber floor elevations keyed by
             node
         edge_diams (dict): A dictionary of pipe diameters keyed by edge
-        pipe_design (parameters.HydraulicDesign): A HydraulicDesign parameter
+        hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
     for ix, ds_node in enumerate(G.successors(node)):
@@ -925,13 +934,13 @@ def process_successors(G: nx.Graph,
         tot = sum([G.nodes[anc_node]['contributing_area'] for anc_node in anc])
         
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
-        Q = tot * pipe_design.precipitation * M3_PER_HR_TO_M3_PER_S
+        Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
         
         # Design the pipe to find the diameter and invert depth
         diam, depth = design_pipe(surface_elevations[ds_node],
                                     chamber_floor[node],
                                     edge['length'],
-                                    pipe_design,
+                                    hydraulic_design,
                                     Q
                                     )
         edge_diams[(node,ds_node,0)] = diam
@@ -955,7 +964,7 @@ class pipe_by_pipe(BaseGraphFunction):
 
     def __call__(self, 
                  G: nx.Graph, 
-                 pipe_design: parameters.HydraulicDesign,
+                 hydraulic_design: parameters.HydraulicDesign,
                  **kwargs
                  )->nx.Graph:
         """Pipe by pipe hydraulic design.
@@ -963,7 +972,7 @@ class pipe_by_pipe(BaseGraphFunction):
         Starting from the most upstream node, design a pipe to the downstream node
         specifying a diameter and downstream invert level. A range of diameters and
         invert levels are tested (ranging between conditions defined in 
-        pipe_design). From the tested diameters/inverts, a selection is made based
+        hydraulic_design). From the tested diameters/inverts, a selection is made based
         on each pipe's satisfying feasibility constraints on: surcharge velocity,
         filling ratio, (and shear stress - not currently implemented). Prioritising 
         feasibility in this order it identifies pipes with the preferred feasibility
@@ -976,7 +985,7 @@ class pipe_by_pipe(BaseGraphFunction):
 
         Args:
             G (nx.Graph): A graph
-            pipe_design (parameters.HydraulicDesign): A HydraulicDesign parameter
+            hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
                 object
             **kwargs: Additional keyword arguments are ignored.
 
@@ -992,14 +1001,15 @@ class pipe_by_pipe(BaseGraphFunction):
         for node in tqdm(topological_order):
             # Check if there's any nodes upstream, if not set the depth to min_depth
             if len(nx.ancestors(G,node)) == 0:
-                chamber_floor[node] = surface_elevations[node] - pipe_design.min_depth
+                chamber_floor[node] = surface_elevations[node] - \
+                    hydraulic_design.min_depth
             
             process_successors(G, 
                        node, 
                        surface_elevations, 
                        chamber_floor, 
                        edge_diams,
-                       pipe_design
+                       hydraulic_design
                        )
             
         nx.function.set_edge_attributes(G, edge_diams, "diameter")

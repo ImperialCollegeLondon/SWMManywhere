@@ -6,6 +6,7 @@ such as reprojecting coordinates and handling raster data.
 
 @author: Barnaby Dobson
 """
+import json
 import math
 from copy import deepcopy
 from functools import lru_cache
@@ -439,22 +440,45 @@ def delineate_catchment(grid: "pysheds.sgrid.Grid",
     return gpd.GeoDataFrame(polys, crs = grid.crs)
 
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Remove intersections from polygons.
+    """Remove intersections from a GeoDataFrame of polygons.
+
+    Subcatchments are derived for a given point, and so larger subcatchments
+    will contain smaller ones. This function removes the smaller subcatchments
+    from the larger ones.
 
     Args:
-        polys (gpd.GeoDataFrame): A geodataframe with columns id and geometry.
-    
+        polys (gpd.GeoDataFrame): A GeoDataFrame containing polygons with 
+            columns: 'geometry', 'area', and 'id'.
+
     Returns:
-        gpd.GeoDataFrame: A geodataframe with columns id and geometry.
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with no 
+            intersections.
     """
     result_polygons = polys.copy()
-    for i in tqdm(range(len(polys))):
-        for j in range(i + 1, len(polys)):
-            if polys.iloc[i]['geometry'].intersects(polys.iloc[j]['geometry']):
-                polyi = result_polygons.iloc[i]['geometry']
-                polyj = polys.iloc[j]['geometry']
-                result_polygons.at[polys.index[i],
-                                   'geometry'] = polyi.difference(polyj)
+    
+    # Sort the polygons by area (smallest first)
+    result_polygons['area'] = result_polygons.geometry.area
+    result_polygons = result_polygons.sort_values('area', ascending=True)
+    result_polygons = result_polygons.reset_index(drop=True)
+
+    # Store the area of 'trimmed' polygons into a combined geometry, starting
+    # with the smallest area polygon
+    minimal_geom = result_polygons.iloc[0]['geometry']
+    for idx, row in tqdm(result_polygons.iloc[1:].iterrows(), 
+                         total=result_polygons.shape[0] - 1):
+        
+        # Trim the polygon by the combined geometry
+        result_polygons.at[idx, 'geometry'] = row['geometry'].difference(
+            minimal_geom)
+
+        # Update the combined geometry with the new polygon
+        minimal_geom = minimal_geom.union(row['geometry'])
+    
+    # Sort the polygons by area (largest first) - this is just to conform to
+    # the unit test and is not strictly essential
+    result_polygons = result_polygons.sort_values('area', ascending=False)
+    result_polygons = result_polygons.drop('area', axis=1)
+
     return result_polygons
 
 def remove_zero_area_subareas(mp: sgeom.MultiPolygon,
@@ -663,3 +687,52 @@ def calculate_angle(point1: tuple[float,float],
     angle_degrees = math.degrees(angle_radians)
 
     return angle_degrees
+
+def graph_to_geojson(graph: nx.Graph, 
+                     fid: Path, 
+                     crs: str):
+    """Write a graph to a GeoJSON file.
+
+    Args:
+        graph (nx.Graph): The input graph.
+        fid (Path): The filepath to save the GeoJSON file.
+        crs (str): The CRS of the graph.
+    """
+    graph = graph.copy()
+    for iterable, label in zip([graph.nodes(data=True), 
+                                graph.edges(data=True)],
+                               ['nodes', 'edges']):
+        geojson_features = []
+        for item_ in iterable:
+            if label == 'nodes':
+                data = item_[1]
+                data['geometry'] = sgeom.Point(data['x'], data['y'])
+                name_data = {'id' : item_[0]}
+            else:
+                data = item_[2]
+                name_data = {'u' : item_[0] , 
+                             'v' : item_[1]}
+            if 'geometry' in data:
+                geometry = sgeom.mapping(data['geometry'])
+                data_ = data.copy()
+                del data_['geometry']
+                feature = {
+                    'type': 'Feature',
+                    'geometry': geometry,
+                    'properties': {**data_, **name_data}
+                }
+                geojson_features.append(feature)
+        geojson = {
+            'type': 'FeatureCollection',
+            'features': geojson_features,
+            'crs' : {
+                'type': 'name',
+                'properties': {
+                    'name': "urn:ogc:def:crs:{0}".format(crs.replace(':', '::'))
+                }
+            }
+        }
+        fid_ = fid.with_stem(fid.stem + f'_{label}').with_suffix('.geojson')
+
+        with fid_.open('w') as output_file:
+            json.dump(geojson, output_file, indent=2)

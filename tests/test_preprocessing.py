@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from swmmanywhere.parameters import Addresses
+from swmmanywhere.parameters import FilePaths
 
 
 def test_getattr():
     """Test the __getattr__ method."""
     filepath = Path(__file__).parent
-    addresses = Addresses(base_dir=filepath,
+    addresses = FilePaths(base_dir=filepath,
                           project_name='test',
                           bbox_number=1,
                           model_number=1,
