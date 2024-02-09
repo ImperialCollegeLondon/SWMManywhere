@@ -196,7 +196,7 @@ class FilePaths:
                  base_dir: Path, 
                  project_name: str, 
                  bbox_number: int, 
-                 model_number: str, 
+                 model_number: int, 
                  extension: str='json'):
         """Initialise the class."""
         self.base_dir = base_dir
