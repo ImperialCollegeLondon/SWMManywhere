@@ -220,7 +220,8 @@ class double_directed(BaseGraphFunction):
         These new edges share the same data as the 'forward' edges but have a new 
         'id'. An undirected graph is not suitable because it removes data of one of 
         the edges if there are edges in both directions between two nodes 
-        (necessary to preserve, e.g., consistent 'width').
+        (necessary to preserve, e.g., consistent 'width'). If 'edge_type' is
+        present, then the function will only be performed on 'street' types.
 
         Args:
             G (nx.Graph): A graph
@@ -235,7 +236,10 @@ class double_directed(BaseGraphFunction):
         # which direction the line should be going in...
         G_new = G.copy()
         for u, v, data in G.edges(data=True):
-            if ((v, u) not in G.edges) & (data['edge_type'] == 'street'):
+            include = data.get('edge_type', True)
+            if isinstance(include, str):
+                include = include == 'street'
+            if ((v, u) not in G.edges) & include:
                 reverse_data = data.copy()
                 reverse_data['id'] = '{0}.reversed'.format(data['id'])
                 G_new.add_edge(v, u, **reverse_data)
