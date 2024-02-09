@@ -5,10 +5,16 @@
 """
 
 import json
+import tempfile
 from collections import Counter
 from pathlib import Path
 
-from swmmanywhere import parameters
+import geopandas as gpd
+import pandas as pd
+
+from swmmanywhere import geospatial_utilities as go
+from swmmanywhere import graph_utilities as gu
+from swmmanywhere import parameters, prepare_data
 
 
 def next_directory(keyword: str, directory: Path) -> int:
@@ -126,3 +132,114 @@ def create_project_structure(bbox: tuple[float, float, float, float],
     addresses.model.mkdir(parents=True, exist_ok=True)
 
     return addresses
+
+
+def write_df(df: pd.DataFrame | gpd.GeoDataFrame, 
+             fid: Path):
+    """Write a DataFrame to a file.
+
+    Write a DataFrame to a file. The file type is determined by the file
+    extension.
+
+    Args:
+        df (DataFrame): DataFrame to write to a file.
+        fid (Path): Path to the file.
+    """
+    if fid.suffix == '.parquet':
+        df.to_parquet(fid)
+    elif fid.suffix == '.json':
+        if isinstance(df, gpd.GeoDataFrame):
+            df.to_file(fid, driver='GeoJSON')
+        else:
+            df.to_json(fid)
+
+def run_downloads(bbox: tuple[float, float, float, float],
+                  addresses: parameters.FilePaths,
+                  api_keys: dict[str, str]):
+    """Run the data downloads.
+
+    Run the precipitation, elevation, building, street and river network
+    downloads. If the data already exists, do not download it again. Assumes
+    that data downloads are in EPSG:4326 and reprojects them to the UTM zone.
+
+    Args:
+        bbox (tuple[float, float, float, float]): Bounding box coordinates in 
+            the format (minx, miny, maxx, maxy) in EPSG:4326.
+        addresses (FilePaths): Class containing the addresses of the directories.
+        api_keys (dict): Dictionary containing the API keys.
+    """
+    source_crs = 'EPSG:4326'
+    target_crs = go.get_utm_epsg(bbox[0], bbox[1])
+
+    # Download precipitation data
+    #TODO precipitation dates..?
+    if not addresses.precipitation.exists():
+        print(f'downloading precipitation to {addresses.precipitation}')
+        precip = prepare_data.download_precipitation(bbox,
+                                                     api_keys['cds_username'],
+                                                     api_keys['cds_api_key'])
+        precip = precip.reset_index()
+        precip = go.reproject_df(precip,
+                                 source_crs, 
+                                 target_crs)
+        write_df(precip, 
+                 addresses.precipitation)
+    
+    # Download elevation data
+    if not addresses.elevation.exists():
+        print(f'downloading elevation to {addresses.elevation}')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fid = Path(temp_dir) / 'elevation.tif'
+            prepare_data.download_elevation(fid,
+                                            bbox, 
+                                            api_keys['nasadem_key']
+                                            )
+            go.reproject_raster(target_crs,
+                                fid,
+                                addresses.elevation)
+        
+    else:
+        print('elevation already exists')
+    
+    # Download building data
+    if not addresses.national_building.exists():
+        print(f'downloading buildings to {addresses.national_building}')
+        prepare_data.download_buildings(addresses.national_building, 
+                                        bbox[0],
+                                        bbox[1])
+    else:
+        print('buildings already exist')
+    
+    # Trim and reproject buildings to bbox
+    if not addresses.building.exists():
+        print(f'trimming buildings to {addresses.building}')
+        national_buildings = gpd.read_parquet(addresses.national_building)
+        buildings = national_buildings.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]] # type: ignore 
+        
+        buildings = buildings.to_crs(target_crs)
+        write_df(buildings,
+                  addresses.building)
+    else:
+        print('buildings already trimmed')
+    
+    # Download street network data
+    if not addresses.street.exists():
+        print(f'downloading street network to {addresses.street}')
+        street_network = prepare_data.download_street(bbox)
+        street_network = go.reproject_graph(street_network, 
+                                            source_crs, 
+                                            target_crs)
+        gu.save_graph(street_network, addresses.street)
+    else:
+        print('street network already exists')
+
+    # Download river network data
+    if not addresses.river.exists():
+        print(f'downloading river network to {addresses.river}')
+        river_network = prepare_data.download_river(bbox)
+        river_network = go.reproject_graph(river_network, 
+                                           source_crs,
+                                           target_crs)
+        gu.save_graph(river_network, addresses.river)
+    else:
+        print('river network already exists')

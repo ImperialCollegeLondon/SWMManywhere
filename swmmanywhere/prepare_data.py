@@ -6,6 +6,7 @@
 
 import os
 import shutil
+from pathlib import Path
 from typing import cast
 
 import cdsapi
@@ -59,13 +60,13 @@ def get_country(x: float,
     # Return a dictionary with the two and three letter ISO codes
     return {2: iso_country_code, 3: data.get(iso_country_code, '')}
 
-def download_buildings(file_address: str, 
+def download_buildings(file_address: Path, 
                        x: float, 
                        y: float) -> int:
     """Download buildings data based on coordinates and save to a file.
 
     Args:
-        file_address (str): File address to save the downloaded data.
+        file_address (Path): File address to save the downloaded data.
         x (float): Longitude.
         y (float): Latitude.
     
@@ -82,7 +83,7 @@ def download_buildings(file_address: str,
     response = requests.get(api_url)
     if response.status_code == 200:
         # Save data to the specified file address
-        with open(file_address, "wb") as file:
+        with file_address.open("wb") as file:
             file.write(response.content)
         print(f"Data downloaded and saved to {file_address}")
     else:
@@ -130,7 +131,7 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     
     return cast("nx.MultiDiGraph", graph)
 
-def download_elevation(fid: str, 
+def download_elevation(fid: Path, 
                        bbox: tuple[float, float, float, float], 
                        api_key: str ='<your_api_key>') -> int:
     """Download NASADEM elevation data from OpenTopography API.
@@ -139,7 +140,7 @@ def download_elevation(fid: str,
       the specified bounding box.
 
     Args:
-        fid (str): File path to save the downloaded elevation data.
+        fid (Path): File path to save the downloaded elevation data.
         bbox (tuple): Bounding box coordinates in the format 
             (minx, miny, maxx, maxy).
         api_key (str, optional): Your OpenTopography API key. 
@@ -172,7 +173,7 @@ def download_elevation(fid: str,
         r = requests.get(url, stream=True)
         r.raise_for_status()
         
-        with open(fid, 'wb') as rast_file:
+        with fid.open('wb') as rast_file:
             shutil.copyfileobj(r.raw, rast_file)
             
         print('Elevation data downloaded successfully.')
