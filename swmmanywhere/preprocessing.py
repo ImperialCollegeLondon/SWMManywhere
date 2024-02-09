@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 
 import geopandas as gpd
+import networkx as nx
 import pandas as pd
 
 from swmmanywhere import geospatial_utilities as go
@@ -243,3 +244,20 @@ def run_downloads(bbox: tuple[float, float, float, float],
         gu.save_graph(river_network, addresses.river)
     else:
         print('river network already exists')
+
+def create_starting_graph(addresses: parameters.FilePaths):
+    """Create the starting graph.
+
+    Create the starting graph by combining the street and river networks.
+
+    Args:
+        addresses (FilePaths): Class containing the addresses of the directories.
+
+    Returns:
+        nx.Graph: Combined street and river network.
+    """
+    river = gu.load_graph(addresses.river)
+    nx.set_edge_attributes(river, 'river', 'edge_type')
+    street = gu.load_graph(addresses.street)
+    nx.set_edge_attributes(street, 'street', 'edge_type')
+    return nx.compose(river, street)
