@@ -204,7 +204,8 @@ class FilePaths:
         self.bbox_number = bbox_number
         self.model_number = model_number
         self.extension = extension
-    
+        self.defs = Path(__file__).parent / 'defs'
+        
     def __getattr__(self, name):
         """Fetch the address."""
         return self._fetch_address(name)

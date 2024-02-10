@@ -17,12 +17,17 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from swmmanywhere.parameters import FilePaths
 
-def synthetic_write(model_dir: str):
+
+def synthetic_write(addresses: FilePaths,
+                    nodes: gpd.GeoDataFrame = None,
+                    edges: gpd.GeoDataFrame = None,
+                    subs: gpd.GeoDataFrame = None) -> None:
     """Load synthetic data and write to SWMM input file.
 
     Loads nodes, edges and subcatchments from synthetic data, assumes that 
-    these are all located in `model_dir`. Fills in appropriate default values 
+    these are all located in `addresses`. Fills in appropriate default values 
     for many SWMM parameters. More parameters are available to edit (see 
     defs/swmm_conversion.yml). Identifies outfalls and automatically ensures
     that they have only one link to them (as is required by SWMM). Formats
@@ -30,17 +35,24 @@ def synthetic_write(model_dir: str):
     a SWMM input (.inp) file.
 
     Args:
-        model_dir (str): model directory address. Assumes a format along the 
-            lines of 'model_2', where the number is the model number.
+        addresses (FilePaths): FilePaths object
+        nodes (gpd.GeoDataFrame, optional): GeoDataFrame of nodes. With at least
+            columns: 'id', 'x', 'y', 'max_depth', 'chamber_floor_elevation',
+            'manhole_area'. Defaults to None.
+        edges (gpd.GeoDataFrame, optional): GeoDataFrame of edges. With at least
+            columns: 'u', 'v', 'diameter', 'length'. Defaults to None.
+        subs (gpd.GeoDataFrame, optional): GeoDataFrame of subcatchments. With
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_nodes.geojson'))
-    edges = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_edges.geojson'))
-    subs = gpd.read_file(os.path.join(model_dir, 
-                                       'subcatchments.geojson'))
+    if nodes is None:
+        nodes = gpd.read_file(addresses.model / 'pipe_by_pipe_nodes.geojson')
+
+    if edges is None:
+        edges = gpd.read_file(addresses.model / 'pipe_by_pipe_edges.geojson')
+    
+    if subs is None:
+        subs = gpd.read_file(addresses.model / 'subcatchments.geojson')
     
     # Extract SWMM relevant data
     edges = edges[['u','v','diameter','length']]
@@ -112,14 +124,11 @@ def synthetic_write(model_dir: str):
                }
 
     # Template SWMM input file
-    existing_input_file = os.path.join(os.path.dirname(__file__),
-                                    'defs',
-                                    'basic_drainage_all_bits.inp')
+    existing_input_file = addresses.defs / 'basic_drainage_all_bits.inp'
     
     # New input file
-    model_number = model_dir.split('_')[-1]
-    new_input_file = os.path.join(model_dir, 
-                                  'model_{0}.inp'.format(model_number))
+    model_number = str(addresses.model).split('_')[-1]
+    new_input_file = addresses.model / f'model_{model_number}.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
@@ -135,13 +144,13 @@ def synthetic_write(model_dir: str):
 
 def overwrite_section(data: np.ndarray,
                       section: str,
-                      fid: str):
+                      fid: Path):
     """Overwrite a section of a SWMM .inp file with new data.
 
     Args:
         data (np.ndarray): Data array to be written to the SWMM .inp file.
         section (str): Section of the SWMM .inp file to be overwritten.
-        fid (str): File path to the SWMM .inp file.
+        fid (Path): File path to the SWMM .inp file.
         
     Example:
         data = np.array([
@@ -243,8 +252,8 @@ def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
     file_path.write_text(updated_contents)
 
 def data_dict_to_inp(data_dict: dict[str, np.ndarray],
-                     base_input_file: str, 
-                     new_input_file: str, 
+                     base_input_file: Path, 
+                     new_input_file: Path, 
                      routing: Literal["KINWAVE", "DYNWAVE", "STEADY"] = "DYNWAVE"):
     """Write a SWMM .inp file from a dictionary of data arrays.
 
@@ -253,8 +262,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
             each key is a SWMM section and each value is a numpy array of
             data to be written to that section. The existing section is 
             overwritten
-        base_input_file (str): File path to the example/template .inp file.
-        new_input_file (str): File path to the new SWMM .inp file.
+        base_input_file (Path): File path to the example/template .inp file.
+        new_input_file (Path): File path to the new SWMM .inp file.
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
