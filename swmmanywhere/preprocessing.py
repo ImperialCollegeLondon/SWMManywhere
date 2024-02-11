@@ -130,9 +130,7 @@ def create_project_structure(bbox: tuple[float, float, float, float],
 
     # Create model directory
     addresses.model_number = next_directory('model', addresses.bbox)
-    if addresses.model.exists():
-        addresses.model_number +=1
-    addresses.model.mkdir(parents=True, exist_ok=False)
+    addresses.model.mkdir(parents=True, exist_ok=True)
 
     return addresses
 
