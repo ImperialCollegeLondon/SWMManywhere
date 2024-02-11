@@ -132,6 +132,8 @@ if __name__ == '__main__':
             addresses = preprocessing.create_project_structure(bbox, 
                                                                project, 
                                                                base_dir)
+            addresses.model_number = ix
+            addresses.model.mkdir(parents = True, exist_ok = True)
             params = get_full_parameters()
             params['topology_derivation'].weights = ['surface_slope',
                                                      'length',
