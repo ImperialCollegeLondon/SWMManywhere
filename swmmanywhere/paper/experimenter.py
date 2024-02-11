@@ -217,7 +217,8 @@ if __name__ == '__main__':
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
                                     **gb.get_group(ix).set_index(['group','param']).value.to_dict()}
-
-    fid_flooding = addresses.bbox / f'{jobid}_flooding.json'
+    results_fid = addresses.bbox / 'results'
+    results_fid.mkdir(parents = True, exist_ok = True)
+    fid_flooding = results_fid / f'{jobid}_flooding.json'
     with open(fid_flooding, 'w') as f:
         json.dump(flooding_results, f)
