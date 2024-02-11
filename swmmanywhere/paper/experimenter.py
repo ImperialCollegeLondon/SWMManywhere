@@ -99,7 +99,8 @@ if __name__ == '__main__':
         jobid = 1
         nproc = None
     bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
-    parameters_to_select = ['river_buffer_distance',
+    parameters_to_select = ['min_v',
+                            'max_v',
                             'outlet_length',
                             'surface_slope_scaling',
                             'elevation_scaling',
@@ -127,8 +128,9 @@ if __name__ == '__main__':
     flooding_results = {}
     if nproc is None:
         nproc = len(X)
-    for ix, params in enumerate(X):
+    for ix, params_ in gb:
         if ix % nproc == jobid:
+            flooding_results[ix] = ix
             addresses = preprocessing.create_project_structure(bbox, 
                                                                project, 
                                                                base_dir)
@@ -138,7 +140,7 @@ if __name__ == '__main__':
             params['topology_derivation'].weights = ['surface_slope',
                                                      'length',
                                                      'contributing_area']
-            for key, row in gb.get_group(ix).iterrows():
+            for key, row in params_.iterrows():
                 setattr(params[row['group']], row['param'], row['value'])
             addresses.model.mkdir(parents = True, exist_ok = True)
             G = load_graph(addresses.bbox / 'graph_sequence2.json')
