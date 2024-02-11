@@ -218,7 +218,7 @@ if __name__ == '__main__':
             pbias = (flooding - baseline_flooding) / baseline_flooding
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
-                                    **gb.get_group(ix).set_index(['group','param']).value.to_dict()}
+                                    **gb.get_group(ix).set_index('param').value.to_dict()}
     results_fid = addresses.bbox / 'results'
     results_fid.mkdir(parents = True, exist_ok = True)
     fid_flooding = results_fid / f'{jobid}_flooding.json'
