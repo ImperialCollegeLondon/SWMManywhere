@@ -715,7 +715,7 @@ class derive_topology(BaseGraphFunction,
             G.remove_node(u)
 
         # Check for negative cycles
-        if nx.negative_edge_cycle(G):
+        if nx.negative_edge_cycle(G, weight = 'weight'):
             raise ValueError('Graph contains negative cycle')
 
         # Initialize the dictionary with infinity for all nodes
