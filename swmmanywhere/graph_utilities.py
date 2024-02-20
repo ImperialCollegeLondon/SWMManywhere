@@ -519,16 +519,18 @@ class set_chahinan_angle(BaseGraphFunction,
         for u,v,d in G.edges(data=True):
             min_weight = float('inf')
             for node in G.successors(v):
-                if node != u:
-                    p1 = (G.nodes[u]['x'], G.nodes[u]['y'])
-                    p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
-                    p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
-                    angle = go.calculate_angle(p1,p2,p3)
-                    chahinan_weight = np.interp(angle,
-                                                [0, 90, 135, 180, 225, 270, 360],
-                                                [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
-                                                )
-                    min_weight = min(chahinan_weight, min_weight)
+                if node == u:
+                    continue
+                    
+                p1 = (G.nodes[u]['x'], G.nodes[u]['y'])
+                p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
+                p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
+                angle = go.calculate_angle(p1,p2,p3)
+                chahinan_weight = np.interp(angle,
+                                            [0, 90, 135, 180, 225, 270, 360],
+                                            [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
+                                            )
+                min_weight = min(chahinan_weight, min_weight)
             if min_weight == float('inf'):
                 min_weight = 0
             d['chahinan_angle'] = min_weight
