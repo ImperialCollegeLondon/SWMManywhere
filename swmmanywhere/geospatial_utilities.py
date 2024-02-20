@@ -340,12 +340,12 @@ def burn_shape_in_raster(geoms: list[sgeom.LineString],
                       nodata = src.nodata) as dest:
             dest.write(data, 1)
 
-def condition_dem(grid: "pysheds.sgrid.Grid", 
-                  dem: "pysheds.sview.Raster") -> "pysheds.sview.Raster":
+def condition_dem(grid: pysheds.sgrid.sGrid, 
+                  dem: pysheds.sview.Raster) -> pysheds.sview.Raster:
     """Condition a DEM with pysheds.
 
     Args:
-        grid (pysheds.sgrid.Grid): The grid object.
+        grid (pysheds.sgrid.sGrid): The grid object.
         dem (pysheds.sview.Raster): The input DEM.
 
     Returns:
@@ -358,13 +358,13 @@ def condition_dem(grid: "pysheds.sgrid.Grid",
 
     return inflated_dem
 
-def compute_flow_directions(grid: "pysheds.sgrid.Grid", 
-                            inflated_dem: "pysheds.sview.Raster") \
-                            -> tuple["pysheds.sview.Raster", tuple]:
+def compute_flow_directions(grid: pysheds.sgrid.sGrid, 
+                            inflated_dem: pysheds.sview.Raster) \
+                            -> tuple[pysheds.sview.Raster, tuple]:
     """Compute flow directions.
 
     Args:
-        grid (pysheds.sgrid.Grid): The grid object.
+        grid (pysheds.sgrid.sGrid): The grid object.
         inflated_dem (pysheds.sview.Raster): The input DEM.
 
     Returns:
@@ -375,13 +375,13 @@ def compute_flow_directions(grid: "pysheds.sgrid.Grid",
     fdir = grid.flowdir(inflated_dem, dirmap=dirmap)
     return fdir, dirmap
 
-def calculate_flow_accumulation(grid: "pysheds.sgrid.Grid", 
-                                fdir: "pysheds.sview.Raster", 
-                                dirmap: tuple) -> "pysheds.sview.Raster":
+def calculate_flow_accumulation(grid: pysheds.sgrid.sGrid, 
+                                fdir: pysheds.sview.Raster, 
+                                dirmap: tuple) -> pysheds.sview.Raster:
     """Calculate flow accumulation.
 
     Args:
-        grid (pysheds.sgrid.Grid): The grid object.
+        grid (pysheds.sgrid.sGrid): The grid object.
         fdir (pysheds.sview.Raster): Flow directions.
         dirmap (tuple): Direction mapping.
 
@@ -391,9 +391,9 @@ def calculate_flow_accumulation(grid: "pysheds.sgrid.Grid",
     acc = grid.accumulation(fdir, dirmap=dirmap)
     return acc
 
-def delineate_catchment(grid: "pysheds.sgrid.Grid",
-                        acc: "pysheds.sview.Raster",
-                        fdir: "pysheds.sview.Raster",
+def delineate_catchment(grid: pysheds.sgrid.sGrid,
+                        acc: pysheds.sview.Raster,
+                        fdir: pysheds.sview.Raster,
                         dirmap: tuple,
                         G: nx.Graph) -> gpd.GeoDataFrame:
     """Delineate catchments.
@@ -502,14 +502,14 @@ def attach_unconnected_subareas(polys_gdf: gpd.GeoDataFrame,
     return polys_gdf
 
 def calculate_slope(polys_gdf: gpd.GeoDataFrame, 
-                    grid: "pysheds.sgrid.Grid", 
+                    grid: pysheds.sgrid.sGrid, 
                     cell_slopes: np.ndarray) -> gpd.GeoDataFrame:
     """Calculate the average slope of each polygon.
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
             columns: 'geometry', 'area', and 'id'. 
-        grid (pysheds.sgrid.Grid): The grid object.
+        grid (pysheds.sgrid.sGrid): The grid object.
         cell_slopes (np.ndarray): The slopes of each cell in the grid.
     
     Returns:
