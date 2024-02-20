@@ -372,36 +372,36 @@ def compute_flow_directions(grid: pysheds.sgrid.sGrid,
         tuple: Direction mapping.
     """
     dirmap = (64, 128, 1, 2, 4, 8, 16, 32)
-    fdir = grid.flowdir(inflated_dem, dirmap=dirmap)
-    return fdir, dirmap
+    flow_dir = grid.flowdir(inflated_dem, dirmap=dirmap)
+    return flow_dir, dirmap
 
 def calculate_flow_accumulation(grid: pysheds.sgrid.sGrid, 
-                                fdir: pysheds.sview.Raster, 
+                                flow_dir: pysheds.sview.Raster, 
                                 dirmap: tuple) -> pysheds.sview.Raster:
     """Calculate flow accumulation.
 
     Args:
         grid (pysheds.sgrid.sGrid): The grid object.
-        fdir (pysheds.sview.Raster): Flow directions.
+        flow_dir (pysheds.sview.Raster): Flow directions.
         dirmap (tuple): Direction mapping.
 
     Returns:
         pysheds.sview.Raster: Flow accumulations.
     """
-    acc = grid.accumulation(fdir, dirmap=dirmap)
-    return acc
+    flow_acc = grid.accumulation(flow_dir, dirmap=dirmap)
+    return flow_acc
 
 def delineate_catchment(grid: pysheds.sgrid.sGrid,
-                        acc: pysheds.sview.Raster,
-                        fdir: pysheds.sview.Raster,
+                        flow_acc: pysheds.sview.Raster,
+                        flow_dir: pysheds.sview.Raster,
                         dirmap: tuple,
                         G: nx.Graph) -> gpd.GeoDataFrame:
     """Delineate catchments.
 
     Args:
         grid (pysheds.sgrid.Grid): The grid object.
-        acc (pysheds.sview.Raster): Flow accumulations.
-        fdir (pysheds.sview.Raster): Flow directions.
+        flow_acc (pysheds.sview.Raster): Flow accumulations.
+        flow_dir (pysheds.sview.Raster): Flow directions.
         dirmap (tuple): Direction mapping.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
     
@@ -416,12 +416,12 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         # Snap the node to the nearest grid cell
         x, y = data['x'], data['y']
         grid_ = deepcopy(grid)
-        x_snap, y_snap = grid_.snap_to_mask(acc > 5, (x, y))
+        x_snap, y_snap = grid_.snap_to_mask(flow_acc > 5, (x, y))
         
         # Delineate the catchment
         catch = grid_.catchment(x=x_snap, 
                                 y=y_snap, 
-                                fdir=fdir, 
+                                fdir=flow_dir, 
                                 dirmap=dirmap, 
                                 xytype='coordinate')
         grid_.clip_to(catch)
@@ -545,16 +545,16 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     inflated_dem = condition_dem(grid, dem)
 
     # Compute flow directions
-    fdir, dirmap = compute_flow_directions(grid, inflated_dem)
+    flow_dir, dirmap = compute_flow_directions(grid, inflated_dem)
 
     # Calculate slopes
-    cell_slopes = grid.cell_slopes(dem, fdir)
+    cell_slopes = grid.cell_slopes(dem, flow_dir)
 
     # Calculate flow accumulations
-    acc = calculate_flow_accumulation(grid, fdir, dirmap)
+    flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
 
     # Delineate catchments
-    polys = delineate_catchment(grid, acc, fdir, dirmap, G)
+    polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
 
     # Remove intersections
     result_polygons = remove_intersections(polys)
