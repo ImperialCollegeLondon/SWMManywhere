@@ -737,13 +737,15 @@ class derive_topology(BaseGraphFunction,
                 alt_dist = dist + edge_data['weight']
                 # If the alternative distance is shorter
 
-                if alt_dist < shortest_paths[neighbor]:
-                    # Update the shortest path length
-                    shortest_paths[neighbor] = alt_dist
-                    # Update the path
-                    paths[neighbor] = paths[node] + [neighbor]
-                    # Push the neighbor to the heap
-                    heappush(heap, (alt_dist, neighbor))
+                if alt_dist >= shortest_paths[neighbor]:
+                    continue
+                
+                # Update the shortest path length
+                shortest_paths[neighbor] = alt_dist
+                # Update the path
+                paths[neighbor] = paths[node] + [neighbor]
+                # Push the neighbor to the heap
+                heappush(heap, (alt_dist, neighbor))
 
         edges_to_keep = set()
         for path in paths.values():
