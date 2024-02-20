@@ -95,10 +95,10 @@ class BaseGraphFunction(ABC):
                               node_attributes: set) -> None:
         """Validate that the graph has the required attributes."""
         for attribute in self.required_edge_attributes:
-            assert attribute in edge_attributes, f"{attribute} not in attributes"
+            assert attribute in edge_attributes, f"{attribute} not in edge attributes"
             
         for attribute in self.required_node_attributes:
-            assert attribute in node_attributes, f"{attribute} not in attributes"
+            assert attribute in node_attributes, f"{attribute} not in node attributes"
             
 
     def add_graphfcn(self,
