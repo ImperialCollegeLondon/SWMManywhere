@@ -714,6 +714,10 @@ class derive_topology(BaseGraphFunction,
         for u in set(nodes_to_remove).union(isolated_nodes):
             G.remove_node(u)
 
+        # Check for negative cycles
+        if nx.negative_edge_cycle(G):
+            raise ValueError('Graph contains negative cycle')
+
         # Initialize the dictionary with infinity for all nodes
         shortest_paths = {node: float('inf') for node in G.nodes}
 
