@@ -409,7 +409,6 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', and 'id'. Sorted by area in descending order.
     """
-    #TODO - rather than using this mad list of dicts better to just use a gdf
     polys = []
     # Iterate over the nodes in the graph
     for id, data in tqdm(G.nodes(data=True), total=len(G.nodes)):
