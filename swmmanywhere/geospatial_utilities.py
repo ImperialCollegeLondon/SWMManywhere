@@ -468,13 +468,13 @@ def remove_zero_area_subareas(mp: sgeom.MultiPolygon,
     Returns:
         sgeom.MultiPolygon: A multipolygon with zero area subareas removed.
     """
-    if hasattr(mp, 'geoms'):
-        largest = max(mp.geoms, key=lambda x: x.area)
-        removed = [subarea for subarea in mp.geoms if subarea != largest]
-        removed_subareas.extend(removed)
-        return largest
-    else:
+    if not hasattr(mp, 'geoms'):
         return mp
+
+    largest = max(mp.geoms, key=lambda x: x.area)
+    removed = [subarea for subarea in mp.geoms if subarea != largest]
+    removed_subareas.extend(removed)
+    return largest
 
 def attach_unconnected_subareas(polys_gdf: gpd.GeoDataFrame, 
                                 unconnected_subareas: List[sgeom.Polygon]) \
