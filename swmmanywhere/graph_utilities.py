@@ -42,7 +42,11 @@ def load_graph(fid: Path) -> nx.Graph:
             line_string = shapely.LineString(shapely.wkt.loads(geometry_coords))
             data['geometry'] = line_string
     return G
-
+def _serialize_line_string(obj):
+    if isinstance(obj, shapely.LineString):
+        return obj.wkt
+    else:
+        return obj
 def save_graph(G: nx.Graph, 
                fid: Path) -> None:
     """Save a graph to a file.
@@ -52,15 +56,11 @@ def save_graph(G: nx.Graph,
         fid (Path): The path to the file
     """
     json_data = nx.node_link_data(G)
-    def serialize_line_string(obj):
-        if isinstance(obj, shapely.LineString):
-            return obj.wkt
-        else:
-            return obj
+    
     with open(fid, 'w') as file:
         json.dump(json_data, 
                   file,
-                  default = serialize_line_string)
+                  default = _serialize_line_string)
 
 
 class BaseGraphFunction(ABC):
