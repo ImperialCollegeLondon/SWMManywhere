@@ -59,13 +59,16 @@ def formulate_salib_problem(parameters_to_select = None):
     return problem
 
 def generate_samples(N = None,
-                     parameters_to_select = None):
+                     parameters_to_select = None,
+                     groups = False):
     """Generate samples for a sensitivity analysis.
 
     Args:
         N (int, optional): Number of samples to generate. Defaults to None.
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
+        groups (bool, optional): Whether to include the group names in the
+            output. Defaults to False.
 
     Returns:
         list: A list of dictionaries containing the parameter values.
@@ -77,17 +80,19 @@ def generate_samples(N = None,
     
     param_values = sobol.sample(problem, 
                                 N, 
-                                calc_second_order=True)
+                                calc_second_order=True,
+                                seed = 1)
     # attach names:
     X = []
     for ix, params in enumerate(param_values):
         for x,y,z in zip(problem['groups'],
                          problem['names'],
                          params):
-            X.append({'group' : x,
-                    'param' : y,
+            X.append({'param' : y,
                     'value' : z,
                     'iter' : ix})
+            if groups:
+                X[-1]['group'] = x
     return X
 
             
@@ -103,11 +108,9 @@ if __name__ == '__main__':
                             'max_v',
                             'outlet_length',
                             'surface_slope_scaling',
-                            'elevation_scaling',
                             'length_scaling',
                             'contributing_area_scaling',
                             'surface_slope_exponent',
-                            'elevation_exponent',
                             'length_exponent',
                             'contributing_area_exponent'
                             ]
