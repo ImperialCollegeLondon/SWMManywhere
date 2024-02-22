@@ -511,7 +511,39 @@ class set_surface_slope(BaseGraphFunction,
         # Set the 'surface_slope' attribute for all edges
         nx.set_edge_attributes(G, slope_dict, 'surface_slope')
         return G
+    
+@register_graphfcn
+class set_chahinian_slope(BaseGraphFunction,
+                          required_edge_attributes = ['surface_slope'],
+                          adds_edge_attributes = ['chahinian_slope']):
+    """set_chahinian_slope class."""
+    
+    
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Set the Chahinian slope for each edge.
 
+        This function sets the Chahinian slope for each edge. The Chahinian slope is
+        calculated from the surface slope and weighted according to the slope
+        (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
+        
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        for u,v,d in G.edges(data=True):
+            slope_pct = d['surface_slope'] * 100
+            chahinian_weight = np.interp(slope_pct,
+                                        [-1, 0.3, 0.7, 10],
+                                        [1, 0, 0, 1],
+                                        left = 1.0,
+                                        right = 1.0
+                                        )
+            d['chahinian_slope'] = chahinian_weight
+        return G
+    
 @register_graphfcn
 class set_chahinan_angle(BaseGraphFunction,
                          required_node_attributes = ['x','y'],
