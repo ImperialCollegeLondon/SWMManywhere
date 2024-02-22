@@ -22,12 +22,15 @@ from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import synthetic_write
 
 
-def formulate_salib_problem(parameters_to_select = None):
+def formulate_salib_problem(parameters_to_select = None,
+                            groups = True):
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
+        groups (bool, optional): Whether to include the group names in the
+            problem. Defaults to True.
 
     Returns:
         dict: A dictionary containing the problem formulation.
@@ -54,21 +57,21 @@ def formulate_salib_problem(parameters_to_select = None):
                                           par['maximum']])
                 problem['names'].append(key)
                 problem['dists'].append(dist)
-                problem['groups'].append(category)
+                if groups:
+                    problem['groups'].append(category)
     problem['num_vars'] = len(problem['names'])
     return problem
 
 def generate_samples(N = None,
                      parameters_to_select = None,
-                     groups = False):
+                     seed = 1):
     """Generate samples for a sensitivity analysis.
 
     Args:
         N (int, optional): Number of samples to generate. Defaults to None.
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
-        groups (bool, optional): Whether to include the group names in the
-            output. Defaults to False.
+        seed (int, optional): Random seed. Defaults to 1.
 
     Returns:
         list: A list of dictionaries containing the parameter values.
@@ -81,7 +84,7 @@ def generate_samples(N = None,
     param_values = sobol.sample(problem, 
                                 N, 
                                 calc_second_order=True,
-                                seed = 1)
+                                seed = seed)
     # attach names:
     X = []
     for ix, params in enumerate(param_values):
@@ -90,9 +93,8 @@ def generate_samples(N = None,
                          params):
             X.append({'param' : y,
                     'value' : z,
-                    'iter' : ix})
-            if groups:
-                X[-1]['group'] = x
+                    'iter' : ix,
+                    'group' : x})
     return X
             
 if __name__ == '__main__':
@@ -142,7 +144,7 @@ if __name__ == '__main__':
             addresses.model_number = ix
             addresses.model.mkdir(parents = True, exist_ok = True)
             params = get_full_parameters()
-            params['topology_derivation'].weights = ['surface_slope',
+            params['topology_derivation'].weights = ['chahinian_slope',
                                                      'length',
                                                      'contributing_area']
             for key, row in params_.iterrows():
