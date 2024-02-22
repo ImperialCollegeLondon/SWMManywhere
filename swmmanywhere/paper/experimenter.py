@@ -235,7 +235,7 @@ if __name__ == '__main__':
             
             #Simulated offline
             baseline_flooding = 31269000 / 2162462.1
-            pbias = (flooding - baseline_flooding) / baseline_flooding
+            pbias = (total_flooding - baseline_flooding) / baseline_flooding
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
                                     **params_.set_index('param').value.to_dict()}
