@@ -209,7 +209,7 @@ def test_pipe_by_pipe():
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     for ix, (u,d) in enumerate(G.nodes(data=True)):
         d['elevation'] = ix
-        d['contributing_area'] = ix
+        d['catchment_area'] = ix
     
     params = parameters.HydraulicDesign()
 

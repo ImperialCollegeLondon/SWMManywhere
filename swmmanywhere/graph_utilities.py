@@ -411,23 +411,36 @@ class calculate_contributing_area(BaseGraphFunction,
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
-        # RC
+        # RC (SWMM subcatchments)
         if addresses.building.suffix == '.parquet':
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
         subs_rc = go.derive_rc(subs_gdf, G, buildings)
 
-        # Write subs
+        # RC (upstream subcatchments)
+        subs_upstream = subs_gdf[['id','upstream_area','upstream_geometry']]
+        subs_upstream = subs_upstream.rename(columns = {'upstream_area':
+                                                        'area',
+                                                        'upstream_geometry':
+                                                        'geometry'})
+        subs_rc_upstream = go.derive_rc(subs_upstream, G, buildings)
+
+        # Write SWMM subs
         # TODO - could just attach subs to nodes where each node has a list of subs
-        subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
+        subs_rc.drop('upstream_geometry',
+                     axis = 1).to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()
+        imperv_lookup_upstream = subs_rc_upstream.set_index('id')\
+            .impervious_area.to_dict()
         
         # Set node attributes
+        nx.set_node_attributes(G, 0.0, 'catchment_area')
+        nx.set_node_attributes(G, imperv_lookup, 'catchment_area')
         nx.set_node_attributes(G, 0.0, 'contributing_area')
-        nx.set_node_attributes(G, imperv_lookup, 'contributing_area')
+        nx.set_node_attributes(G, imperv_lookup_upstream, 'contributing_area')
 
         # Prepare edge attributes
         edge_attributes = {edge: G.nodes[edge[0]]['contributing_area'] 
@@ -910,8 +923,10 @@ def process_successors(G: nx.Graph,
         # Find contributing area with ancestors
         # TODO - could do timearea here if i hated myself enough
         anc = nx.ancestors(G,node).union([node])
-        tot = sum([G.nodes[anc_node]['contributing_area'] for anc_node in anc])
-        
+        tot = sum([G.nodes[anc_node]['catchment_area'] for anc_node in anc])
+        ca = G.nodes[node]['contributing_area']
+        print(f'tot: {tot}, up: {ca}')
+        #TODO same as contributing_area?
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
         Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
         
@@ -932,7 +947,7 @@ def process_successors(G: nx.Graph,
 @register_graphfcn
 class pipe_by_pipe(BaseGraphFunction,
                    required_edge_attributes = ['length', 'elevation'],
-                   required_node_attributes = ['contributing_area', 'elevation'],
+                   required_node_attributes = ['catchment_area', 'elevation'],
                    adds_edge_attributes = ['diameter'],
                    adds_node_attributes = ['chamber_floor_elevation']):
     """pipe_by_pipe class."""

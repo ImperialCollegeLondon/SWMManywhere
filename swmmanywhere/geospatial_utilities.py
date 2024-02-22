@@ -598,6 +598,17 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
 
     # Calculate width
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
+
+    # Store whole catchment area
+    polys['upstream_area'] = polys.geometry.area
+    polys['upstream_geometry'] = polys.geometry
+    polys_gdf = pd.merge(polys_gdf,
+                            polys[['id', 
+                                   'upstream_area',
+                                   'upstream_geometry']],
+                            on='id',
+                            how='left')
+
     return polys_gdf
 
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
