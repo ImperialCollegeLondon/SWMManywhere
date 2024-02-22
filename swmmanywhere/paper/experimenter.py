@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pyswmm
 from SALib.sample import sobol
@@ -93,7 +94,6 @@ def generate_samples(N = None,
             if groups:
                 X[-1]['group'] = x
     return X
-
             
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -105,11 +105,13 @@ if __name__ == '__main__':
     bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
     parameters_to_select = ['min_v',
                             'max_v',
+                            'max_fr',
+                            'precipitation',
                             'outlet_length',
-                            'surface_slope_scaling',
+                            'chahinian_slope_scaling',
                             'length_scaling',
                             'contributing_area_scaling',
-                            'surface_slope_exponent',
+                            'chahinian_slope_exponent',
                             'length_exponent',
                             'contributing_area_exponent'
                             ]
@@ -122,6 +124,7 @@ if __name__ == '__main__':
 
     function_list = ['set_elevation',
                      'set_surface_slope',
+                     'set_chahinian_slope',
                      'set_chahinan_angle',
                      'calculate_weights',
                      'identify_outlets',
@@ -163,7 +166,6 @@ if __name__ == '__main__':
             subs_gdf = gpd.read_file(addresses.bbox / 'subcatchments.parquet')
             #TODO river nodes have catchments associated too..
             subs_gdf = subs_gdf.loc[subs_gdf.id.isin(nodes_gdf.id)]
-            subs_gdf['area'] *= 0.0001 # convert to ha
             synthetic_write(addresses,nodes_gdf,edges,subs_gdf)
 
             rain_fid = addresses.defs / 'storm.dat'
@@ -216,9 +218,21 @@ if __name__ == '__main__':
             results = pd.DataFrame(results)
             results.to_parquet(addresses.model / f'results_{ix}.gzip')
             area = subs_gdf.area.sum()
-            flooding = sum(results.loc[results.variable == 'flood',
-                                        'value'] > 0.0001) / nodes_gdf.shape[0]
-            baseline_flooding = 0.48364788935311914 # timesteps / len_nodes
+            flooding = results.loc[results.variable == 'flood']
+            flooding['duration'] = (flooding.date - \
+                                    flooding.date.min()).dt.total_seconds()
+            
+            def _f(x):
+                return np.trapz(x.value,x.duration)
+
+            total_flooding = flooding.groupby('object').apply(_f)
+            
+            total_flooding = total_flooding.sum()
+            #Litres per m2
+            total_flooding = total_flooding / subs_gdf.impervious_area.sum()
+            
+            #Simulated offline
+            baseline_flooding = 31269000 / 2162462.1
             pbias = (flooding - baseline_flooding) / baseline_flooding
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
@@ -226,4 +240,4 @@ if __name__ == '__main__':
     results_fid = addresses.bbox / 'results'
     results_fid.mkdir(parents = True, exist_ok = True)
     fid_flooding = results_fid / f'{jobid}_flooding.csv'
-+    pd.DataFrame(flooding_results).T.to_csv(fid_flooding)
+    pd.DataFrame(flooding_results).T.to_csv(fid_flooding)
