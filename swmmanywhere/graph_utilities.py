@@ -924,9 +924,7 @@ def process_successors(G: nx.Graph,
         # TODO - could do timearea here if i hated myself enough
         anc = nx.ancestors(G,node).union([node])
         tot = sum([G.nodes[anc_node]['catchment_area'] for anc_node in anc])
-        ca = G.nodes[node]['contributing_area']
-        print(f'tot: {tot}, up: {ca}')
-        #TODO same as contributing_area?
+
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
         Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
         
