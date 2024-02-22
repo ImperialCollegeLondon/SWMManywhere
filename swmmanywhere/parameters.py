@@ -62,7 +62,7 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
-    weights: list = Field(default = ['surface_slope',
+    weights: list = Field(default = ['chahinian_slope',
                                       'chahinan_angle',
                                       'length',
                                       'contributing_area'],
@@ -70,7 +70,7 @@ class TopologyDerivation(BaseModel):
                         unit = "-",
                         description = "Weights for topo derivation")
 
-    surface_slope_scaling: float = Field(default = 1,
+    chahinian_slope_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
@@ -94,7 +94,7 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Constant to apply to contributing area in topo derivation")
     
-    surface_slope_exponent: float = Field(default = 1,
+    chahinian_slope_exponent: float = Field(default = 1,
         le = 2,
         ge = -2,
         unit = "-",
@@ -133,7 +133,7 @@ class TopologyDerivation(BaseModel):
 # TODO move this to tests and run it if we're happy with this way of doing things
 class NewTopo(TopologyDerivation):
      """Demo for changing weights that should break the validator."""
-     weights: list = Field(default = ['surface_slope',
+     weights: list = Field(default = ['chahinian_slope',
                                       'chahinan_angle',
                                       'length',
                                       'contributing_area',
