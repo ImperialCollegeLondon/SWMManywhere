@@ -4,7 +4,6 @@
 
 @author: Barnaby Dobson
 """
-import json
 import shutil
 import sys
 from pathlib import Path
@@ -223,9 +222,8 @@ if __name__ == '__main__':
             pbias = (flooding - baseline_flooding) / baseline_flooding
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
-                                    **gb.get_group(ix).set_index('param').value.to_dict()}
+                                    **params_.set_index('param').value.to_dict()}
     results_fid = addresses.bbox / 'results'
     results_fid.mkdir(parents = True, exist_ok = True)
-    fid_flooding = results_fid / f'{jobid}_flooding.json'
-    with open(fid_flooding, 'w') as f:
-        json.dump(flooding_results, f)
+    fid_flooding = results_fid / f'{jobid}_flooding.csv'
++    pd.DataFrame(flooding_results).T.to_csv(fid_flooding)
