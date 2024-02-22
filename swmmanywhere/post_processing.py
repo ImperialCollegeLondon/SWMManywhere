@@ -79,7 +79,8 @@ def synthetic_write(addresses: FilePaths,
     subs['id'] = subs['id'].astype(str)
     subs['subcatchment'] = subs['id'] + '-sub'
     subs['rain_gage'] = 1 # TODO revise when revising storms
-    
+    subs['area'] *= 0.0001 # convert to ha
+
     # Edges
     edges['u'] = edges['u'].astype(str)
     edges['v'] = edges['v'].astype(str)
