@@ -93,7 +93,8 @@ def get_next_bbox_number(bbox: tuple[float, float, float, float],
 
 def create_project_structure(bbox: tuple[float, float, float, float],
                              project: str,
-                             base_dir: Path):
+                             base_dir: Path,
+                             model_number: None | int = None) -> parameters.FilePaths:
     """Create the project directory structure.
 
     Create the project, bbox, national, model and download directories within 
@@ -104,6 +105,7 @@ def create_project_structure(bbox: tuple[float, float, float, float],
             the format (minx, miny, maxx, maxy).
         project (str): Name of the project.
         base_dir (Path): Path to the base directory.
+        model_number (int, optional): Number of the model. Defaults to None.
 
     Returns:
         Addresses: Class containing the addresses of the directories.
@@ -130,7 +132,10 @@ def create_project_structure(bbox: tuple[float, float, float, float],
     addresses.download.mkdir(parents=True, exist_ok=True)
 
     # Create model directory
-    addresses.model_number = next_directory('model', addresses.bbox)
+    if model_number is None:
+        addresses.model_number = next_directory('model', addresses.bbox)
+    else:
+        addresses.model_number = model_number
     addresses.model.mkdir(parents=True, exist_ok=True)
 
     return addresses
