@@ -233,7 +233,11 @@ if __name__ == '__main__':
             total_flooding = total_flooding / subs_gdf.impervious_area.sum()
             
             #Simulated offline
-            baseline_flooding = 31269000 / 2162462.1
+            if project == 'demo':
+                baseline_flooding = 31269000 / 2162462.1
+            elif project == 'bellinge':
+                baseline_flooding = 37324 / 843095
+            
             pbias = (total_flooding - baseline_flooding) / baseline_flooding
             flooding_results[ix] = {'pbias' : pbias, 
                                     'iter' : ix,
