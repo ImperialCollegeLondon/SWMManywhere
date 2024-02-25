@@ -423,7 +423,12 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
                                 y=y_snap, 
                                 fdir=flow_dir, 
                                 dirmap=dirmap, 
-                                xytype='coordinate')
+                                xytype='coordinate',
+                                algorithm = 'recursive'
+                                )
+        # n.b. recursive algorithm is not recommended, but crashes with a seg 
+        # fault occasionally otherwise.
+
         grid_.clip_to(catch)
 
         # Polygonize the catchment
