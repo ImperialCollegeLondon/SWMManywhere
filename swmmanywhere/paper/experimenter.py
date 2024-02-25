@@ -105,9 +105,11 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         jobid = int(sys.argv[1])
         nproc = int(sys.argv[2])
+        project = sys.argv[3]
     else:
         jobid = 1
         nproc = None
+        project = 'demo'
     bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
     parameters_to_select = ['min_v',
                             'max_v',
@@ -129,7 +131,7 @@ if __name__ == '__main__':
     gb = X.groupby('iter')
     base_dir = Path(r'/rds/general/user/bdobson/ephemeral/swmmanywhere')
     # base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
-    project = 'demo'
+    # project = 'demo'
 
     function_list = ['assign_id',
                     'format_osmnx_lanes',
