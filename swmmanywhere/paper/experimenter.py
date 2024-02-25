@@ -110,7 +110,10 @@ if __name__ == '__main__':
         jobid = 1
         nproc = None
         project = 'demo'
-    bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
+    if project == 'demo':
+        bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
+    elif project == 'bellinge':
+        bbox = (10.23131,55.30225,  10.38378,55.38579)
     parameters_to_select = ['min_v',
                             'max_v',
                             'max_fr',
