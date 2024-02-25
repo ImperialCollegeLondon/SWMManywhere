@@ -156,7 +156,7 @@ if __name__ == '__main__':
             #TODO dropna because there are some duplicate edges...
             edges = gpd.read_file(addresses.model / 
                                   f'graph_{ix}_edges.geojson').dropna(subset=['diameter'])
-            subs_gdf = gpd.read_file(addresses.bbox / 'subcatchments.parquet')
+            subs_gdf = gpd.read_file(addresses.model / 'subcatchments.parquet')
             #TODO river nodes have catchments associated too..
             subs_gdf = subs_gdf.loc[subs_gdf.id.isin(nodes_gdf.id)]
             subs_gdf['area'] *= 0.0001 # convert to ha
