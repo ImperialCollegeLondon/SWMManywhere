@@ -22,15 +22,12 @@ from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import synthetic_write
 
 
-def formulate_salib_problem(parameters_to_select = None,
-                            groups = True):
+def formulate_salib_problem(parameters_to_select = None):
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
-        groups (bool, optional): Whether to include the group names in the
-            problem. Defaults to True.
 
     Returns:
         dict: A dictionary containing the problem formulation.
@@ -57,14 +54,14 @@ def formulate_salib_problem(parameters_to_select = None,
                                           par['maximum']])
                 problem['names'].append(key)
                 problem['dists'].append(dist)
-                if groups:
-                    problem['groups'].append(category)
+                problem['groups'].append(category)
     problem['num_vars'] = len(problem['names'])
     return problem
 
 def generate_samples(N = None,
                      parameters_to_select = None,
-                     seed = 1):
+                     seed = 1,
+                     groups = False):
     """Generate samples for a sensitivity analysis.
 
     Args:
@@ -72,6 +69,9 @@ def generate_samples(N = None,
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
         seed (int, optional): Random seed. Defaults to 1.
+        groups (bool, optional): Whether to include the group names in the
+            sampling (significantly changes how many samples are taken). 
+            Defaults to False.
 
     Returns:
         list: A list of dictionaries containing the parameter values.
@@ -80,8 +80,12 @@ def generate_samples(N = None,
     
     if N is None:
         N = 2 ** (problem['num_vars'] - 1) 
-    
-    param_values = sobol.sample(problem, 
+    if not groups:
+        problem_ = problem.copy()
+        del problem_['groups']
+    else:
+        problem_ = problem.copy()
+    param_values = sobol.sample(problem_, 
                                 N, 
                                 calc_second_order=True,
                                 seed = seed)
@@ -115,23 +119,31 @@ if __name__ == '__main__':
                             'contributing_area_scaling',
                             'chahinian_slope_exponent',
                             'length_exponent',
-                            'contributing_area_exponent'
+                            'contributing_area_exponent',
+                            'lane_width',
+                            'max_street_length'
                             ]
-    X = generate_samples(parameters_to_select = parameters_to_select)
+    X = generate_samples(parameters_to_select = parameters_to_select,
+                         N = 2**10)
     X = pd.DataFrame(X)
     gb = X.groupby('iter')
     base_dir = Path(r'/rds/general/user/bdobson/ephemeral/swmmanywhere')
     # base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
     project = 'demo'
 
-    function_list = ['set_elevation',
-                     'set_surface_slope',
-                     'set_chahinian_slope',
-                     'set_chahinan_angle',
-                     'calculate_weights',
-                     'identify_outlets',
-                     'derive_topology',
-                     'pipe_by_pipe']
+    function_list = ['assign_id',
+                    'format_osmnx_lanes',
+                    'double_directed',
+                    'split_long_edges',
+                    'calculate_contributing_area',
+                    'set_elevation',
+                    'set_surface_slope',
+                    'set_chahinian_slope',
+                    'set_chahinan_angle',
+                    'calculate_weights',
+                    'identify_outlets',
+                    'derive_topology',
+                    'pipe_by_pipe']
     flooding_results = {}
     if nproc is None:
         nproc = len(X)
@@ -149,7 +161,7 @@ if __name__ == '__main__':
             for key, row in params_.iterrows():
                 setattr(params[row['group']], row['param'], row['value'])
             addresses.model.mkdir(parents = True, exist_ok = True)
-            G = load_graph(addresses.bbox / 'graph_sequence2.json')
+            G = load_graph(addresses.bbox / 'base_graph.json')
             for fcn in function_list:
                 print(f'starting {fcn} for job {ix} on {jobid}')
                 G = getattr(gu, fcn)(G, 
@@ -238,8 +250,11 @@ if __name__ == '__main__':
             elif project == 'bellinge':
                 baseline_flooding = 37324 / 843095
             
+            maxflow = results.loc[results.variable == 'flow'].value.max()
+
             pbias = (total_flooding - baseline_flooding) / baseline_flooding
-            flooding_results[ix] = {'pbias' : pbias, 
+            flooding_results[ix] = {'pbias' : pbias,
+                                    'maxflow' : maxflow,
                                     'iter' : ix,
                                     **params_.set_index('param').value.to_dict()}
     results_fid = addresses.bbox / 'results'
