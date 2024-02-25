@@ -6,18 +6,18 @@
 import json
 import tempfile
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
-from typing import Callable, Hashable
+from typing import Any, Callable, Dict, Hashable, List, Optional
 
 import geopandas as gpd
 import networkx as nx
 import numpy as np
 import osmnx as ox
 import pandas as pd
-from shapely import geometry as sgeom
-from shapely import wkt
+import shapely
 from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
@@ -33,18 +33,20 @@ def load_graph(fid: Path) -> nx.Graph:
     Returns:
         G (nx.Graph): A graph
     """
-    # Define the custom decoding function    
-    with open(fid, 'r') as file:
-        json_data = json.load(file)
+    json_data = json.loads(fid.read_text())
 
     G = nx.node_link_graph(json_data,directed=True)
     for u, v, data in G.edges(data=True):
         if 'geometry' in data:
             geometry_coords = data['geometry']
-            line_string = sgeom.LineString(wkt.loads(geometry_coords))
+            line_string = shapely.LineString(shapely.wkt.loads(geometry_coords))
             data['geometry'] = line_string
     return G
-
+def _serialize_line_string(obj):
+    if isinstance(obj, shapely.LineString):
+        return obj.wkt
+    else:
+        return obj
 def save_graph(G: nx.Graph, 
                fid: Path) -> None:
     """Save a graph to a file.
@@ -54,35 +56,42 @@ def save_graph(G: nx.Graph,
         fid (Path): The path to the file
     """
     json_data = nx.node_link_data(G)
-    def serialize_line_string(obj):
-        if isinstance(obj, sgeom.LineString):
-            return obj.wkt
-        else:
-            return obj
+    
     with open(fid, 'w') as file:
         json.dump(json_data, 
                   file,
-                  default = serialize_line_string)
+                  default = _serialize_line_string)
 
 
 class BaseGraphFunction(ABC):
-    """Base class for graph functions."""
-
-    @abstractmethod
-    def __init__(self):
-        """Initialize the class.
-        
-        On a SWMManywhere project the intention is to iterate over a number of
-        graph functions. Each graph function may require certain attributes to
-        be present in the graph. Each graph function may add attributes to the
-        graph. This class provides a framework for graph functions to check
-        their requirements and additions a-priori when the list is provided.
-        """
-        #TODO just attribute name is fine - or type too...
-        self.required_edge_attributes = []
-        self.adds_edge_attributes = []
-        self.required_node_attributes = []
-        self.adds_node_attributes = []
+    """Base class for graph functions.
+    
+    On a SWMManywhere project the intention is to iterate over a number of
+    graph functions. Each graph function may require certain attributes to
+    be present in the graph. Each graph function may add attributes to the
+    graph. This class provides a framework for graph functions to check
+    their requirements and additions a-priori when the list is provided.
+    """
+    
+    required_edge_attributes: List[str] = list()
+    adds_edge_attributes: List[str] = list()
+    required_node_attributes: List[str] = list()
+    adds_node_attributes: List[str] = list()
+    def __init_subclass__(cls, 
+                          required_edge_attributes: Optional[List[str]] = None,
+                          adds_edge_attributes: Optional[List[str]] = None,
+                          required_node_attributes : Optional[List[str]] = None,
+                          adds_node_attributes : Optional[List[str]] = None
+                          ):
+        """Set the required and added attributes for the subclass."""
+        cls.required_edge_attributes = required_edge_attributes if \
+            required_edge_attributes else []
+        cls.adds_edge_attributes = adds_edge_attributes if \
+            adds_edge_attributes  else []
+        cls.required_node_attributes = required_node_attributes if \
+            required_node_attributes else []
+        cls.adds_node_attributes = adds_node_attributes if \
+            adds_node_attributes  else []
 
     @abstractmethod
     def __call__(self, 
@@ -97,12 +106,10 @@ class BaseGraphFunction(ABC):
                               node_attributes: set) -> None:
         """Validate that the graph has the required attributes."""
         for attribute in self.required_edge_attributes:
-            assert attribute in edge_attributes, "{0} not in attributes".format(
-                attribute)
+            assert attribute in edge_attributes, f"{attribute} not in edge attributes"
             
         for attribute in self.required_node_attributes:
-            assert attribute in node_attributes, "{0} not in attributes".format(
-                attribute)
+            assert attribute in node_attributes, f"{attribute} not in node attributes"
             
 
     def add_graphfcn(self,
@@ -140,13 +147,11 @@ def get_osmid_id(data: dict) -> Hashable:
     return id_
 
 @register_graphfcn
-class assign_id(BaseGraphFunction):
+class assign_id(BaseGraphFunction, 
+                required_edge_attributes = ['osmid'], 
+                adds_edge_attributes = ['id']
+                ):
     """assign_id class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['osmid']
-        self.adds_edge_attributes = ['id']
 
     def __call__(self,
                  G: nx.Graph, 
@@ -169,17 +174,12 @@ class assign_id(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class format_osmnx_lanes(BaseGraphFunction):
+class format_osmnx_lanes(BaseGraphFunction,
+                         required_edge_attributes = ['lanes'],
+                         adds_edge_attributes = ['width']):
     """format_osmnx_lanes class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        
-        # i.e., in osmnx format, i.e., empty for single lane, an int for a
-        # number of lanes or a list if the edge has multiple carriageways
-        self.required_edge_attributes = ['lanes']
-        
-        self.adds_edge_attributes = ['width']
+    # i.e., in osmnx format, i.e., empty for single lane, an int for a
+    # number of lanes or a list if the edge has multiple carriageways
 
     def __call__(self,
                  G: nx.Graph, 
@@ -207,12 +207,10 @@ class format_osmnx_lanes(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class double_directed(BaseGraphFunction):
+class double_directed(BaseGraphFunction,
+                      required_edge_attributes = ['id']):
     """double_directed class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['id']
+    
     def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
         """Create a 'double directed graph'.
 
@@ -241,18 +239,15 @@ class double_directed(BaseGraphFunction):
                 include = include == 'street'
             if ((v, u) not in G.edges) & include:
                 reverse_data = data.copy()
-                reverse_data['id'] = '{0}.reversed'.format(data['id'])
+                reverse_data['id'] = f"{data['id']}.reversed"
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
 
 @register_graphfcn
-class split_long_edges(BaseGraphFunction):
+class split_long_edges(BaseGraphFunction,
+                       required_edge_attributes = ['id', 'geometry', 'length']):
     """split_long_edges class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['id', 'geometry', 'length']
-
+    
     def __call__(self, 
                  G: nx.Graph, 
                  subcatchment_derivation: parameters.SubcatchmentDerivation, 
@@ -262,12 +257,8 @@ class split_long_edges(BaseGraphFunction):
         This function splits long edges into shorter edges. The edges are split
         into segments of length 'max_street_length'. The first and last segment
         are connected to the original nodes. Intermediate segments are connected
-        to newly created nodes.
-
-        Requires a graph with edges that have:
-            - 'geometry' (shapely LineString)
-            - 'length' (float)
-            - 'id' (str)
+        to newly created nodes. The 'geometry' of the original edge must be
+        a LineString.
         
         Args:
             G (nx.Graph): A graph
@@ -288,11 +279,11 @@ class split_long_edges(BaseGraphFunction):
         ll = 0
 
         def create_new_edge_data(line, data, id_):
-            new_line = sgeom.LineString(line)
+            new_line = shapely.LineString(line)
             new_data = data.copy()
             new_data['id'] = id_
             new_data['length'] = new_line.length
-            new_data['geometry'] =  sgeom.LineString([(x[0], x[1]) 
+            new_data['geometry'] =  shapely.LineString([(x[0], x[1]) 
                                                     for x in new_line.coords])
             return new_data
 
@@ -301,7 +292,7 @@ class split_long_edges(BaseGraphFunction):
             length = data['length']
             if ((u, v) not in edges_to_remove) & ((v, u) not in edges_to_remove):
                 if length > max_length:
-                    new_points = [sgeom.Point(x) 
+                    new_points = [shapely.Point(x) 
                                 for x in ox.utils_geo.interpolate_points(line, 
                                                                         max_length)]
                     if len(new_points) > 2:
@@ -310,12 +301,11 @@ class split_long_edges(BaseGraphFunction):
                             new_data = create_new_edge_data([start, 
                                                             end], 
                                                             data, 
-                                                            '{0}.{1}'.format(
-                                                                data['id'],ix))
+                                                            f"{data['id']}.{ix}")
                             if (v,u) in graph.edges:
                                 # Create reversed data
                                 data_r = graph.get_edge_data(v, u).copy()[0]
-                                id_ = '{0}.{1}'.format(data_r['id'],ix)
+                                id_ = f"{data_r['id']}.{ix}"
                                 new_data_r = create_new_edge_data([end, start], 
                                                                 data_r.copy(), 
                                                                 id_)
@@ -378,15 +368,12 @@ class split_long_edges(BaseGraphFunction):
         return graph
 
 @register_graphfcn
-class calculate_contributing_area(BaseGraphFunction):
+class calculate_contributing_area(BaseGraphFunction,
+                                required_edge_attributes = ['id', 'geometry', 'width'],
+                                adds_edge_attributes = ['contributing_area'],
+                                adds_node_attributes = ['contributing_area']):
     """calculate_contributing_area class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['id', 'geometry', 'width']
-        self.adds_edge_attributes = ['contributing_area']
-        self.adds_node_attributes = ['contributing_area']
-
+    
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
                          addresses: parameters.FilePaths,
@@ -424,39 +411,51 @@ class calculate_contributing_area(BaseGraphFunction):
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
-        # RC
+        # RC (SWMM subcatchments)
         if addresses.building.suffix == '.parquet':
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
         subs_rc = go.derive_rc(subs_gdf, G, buildings)
 
-        # Write subs
+        # RC (upstream subcatchments)
+        subs_upstream = subs_gdf[['id','upstream_area','upstream_geometry']]
+        subs_upstream = subs_upstream.rename(columns = {'upstream_area':
+                                                        'area',
+                                                        'upstream_geometry':
+                                                        'geometry'})
+        subs_rc_upstream = go.derive_rc(subs_upstream, G, buildings)
+
+        # Write SWMM subs
         # TODO - could just attach subs to nodes where each node has a list of subs
-        subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
+        subs_rc.drop('upstream_geometry',
+                     axis = 1).to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()
-        nx.set_node_attributes(G, imperv_lookup, 'contributing_area')
-        for u, d in G.nodes(data=True):
-            if 'contributing_area' not in d.keys():
-                d['contributing_area'] = 0.0
-        for u,v,d in G.edges(data=True):
-            if u in imperv_lookup.keys():
-                d['contributing_area'] = imperv_lookup[u]
-            else:
-                d['contributing_area'] = 0.0
+        imperv_lookup_upstream = subs_rc_upstream.set_index('id')\
+            .impervious_area.to_dict()
+        
+        # Set node attributes
+        nx.set_node_attributes(G, 0.0, 'catchment_area')
+        nx.set_node_attributes(G, imperv_lookup, 'catchment_area')
+        nx.set_node_attributes(G, 0.0, 'contributing_area')
+        nx.set_node_attributes(G, imperv_lookup_upstream, 'contributing_area')
+
+        # Prepare edge attributes
+        edge_attributes = {edge: G.nodes[edge[0]]['contributing_area'] 
+                           for edge in G.edges}
+
+        # Set edge attributes
+        nx.set_edge_attributes(G, edge_attributes, 'contributing_area')
         return G
 
 @register_graphfcn
-class set_elevation(BaseGraphFunction):
+class set_elevation(BaseGraphFunction,
+                    required_node_attributes = ['x', 'y'],
+                    adds_node_attributes = ['elevation']):
     """set_elevation class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_node_attributes = ['x', 'y']
-        self.adds_node_attributes = ['elevation']
-
+    
     def __call__(self, G: nx.Graph, 
                   addresses: parameters.FilePaths,
                   **kwargs) -> nx.Graph:
@@ -484,13 +483,10 @@ class set_elevation(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class set_surface_slope(BaseGraphFunction):
+class set_surface_slope(BaseGraphFunction,
+                        required_node_attributes = ['elevation'],
+                        adds_edge_attributes = ['surface_slope']):
     """set_surface_slope class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_node_attributes = ['elevation']
-        self.adds_edge_attributes = ['surface_slope']
 
     def __call__(self, G: nx.Graph,
                       **kwargs) -> nx.Graph:
@@ -507,19 +503,52 @@ class set_surface_slope(BaseGraphFunction):
             G (nx.Graph): A graph
         """
         G = G.copy()
-        for u,v,d in G.edges(data=True):
-            slope = (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) / d['length']
-            d['surface_slope'] = slope
-        return G
+        # Compute the slope for each edge
+        slope_dict = {(u, v, k): (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) 
+                        / d['length'] for u, v, k, d in G.edges(data=True,
+                                                                keys=True)}
 
+        # Set the 'surface_slope' attribute for all edges
+        nx.set_edge_attributes(G, slope_dict, 'surface_slope')
+        return G
+    
 @register_graphfcn
-class set_chahinan_angle(BaseGraphFunction):
+class set_chahinian_slope(BaseGraphFunction,
+                          required_edge_attributes = ['surface_slope'],
+                          adds_edge_attributes = ['chahinian_slope']):
+    """set_chahinian_slope class."""
+    
+    
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Set the Chahinian slope for each edge.
+
+        This function sets the Chahinian slope for each edge. The Chahinian slope is
+        calculated from the surface slope and weighted according to the slope
+        (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
+        
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        for u,v,d in G.edges(data=True):
+            slope_pct = d['surface_slope'] * 100
+            chahinian_weight = np.interp(slope_pct,
+                                        [-1, 0.3, 0.7, 10],
+                                        [1, 0, 0, 1],
+                                        left = 1.0,
+                                        right = 1.0
+                                        )
+            d['chahinian_slope'] = chahinian_weight
+        return G
+    
+@register_graphfcn
+class set_chahinan_angle(BaseGraphFunction,
+                         required_node_attributes = ['x','y'],
+                         adds_edge_attributes = ['chahinan_angle']):
     """set_chahinan_angle class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_node_attributes = ['x','y']
-        self.adds_edge_attributes = ['chahinan_angle']
 
     def __call__(self, G: nx.Graph, 
                        **kwargs) -> nx.Graph:
@@ -542,31 +571,31 @@ class set_chahinan_angle(BaseGraphFunction):
         for u,v,d in G.edges(data=True):
             min_weight = float('inf')
             for node in G.successors(v):
-                if node != u:
-                    p1 = (G.nodes[u]['x'], G.nodes[u]['y'])
-                    p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
-                    p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
-                    angle = go.calculate_angle(p1,p2,p3)
-                    chahinan_weight = np.interp(angle,
-                                                [0, 90, 135, 180, 225, 270, 360],
-                                                [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
-                                                )
-                    min_weight = min(chahinan_weight, min_weight)
+                if node == u:
+                    continue
+                    
+                p1 = (G.nodes[u]['x'], G.nodes[u]['y'])
+                p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
+                p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
+                angle = go.calculate_angle(p1,p2,p3)
+                chahinan_weight = np.interp(angle,
+                                            [0, 90, 135, 180, 225, 270, 360],
+                                            [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
+                                            )
+                min_weight = min(chahinan_weight, min_weight)
             if min_weight == float('inf'):
                 min_weight = 0
             d['chahinan_angle'] = min_weight
         return G
 
 @register_graphfcn
-class calculate_weights(BaseGraphFunction):
+class calculate_weights(BaseGraphFunction,
+                        required_edge_attributes = 
+                        parameters.TopologyDerivation().weights,
+                        adds_edge_attributes = ['weight']):
     """calculate_weights class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        # TODO.. I guess if someone defines their own weights, this will need 
-        # to change, will want an automatic way to do that...
-        self.required_attributes = parameters.TopologyDerivation().weights
-        self.adds_edge_attributes = ['weight']
+    # TODO.. I guess if someone defines their own weights, this will need 
+    # to change, will want an automatic way to do that...
 
     def __call__(self, G: nx.Graph, 
                        topology_derivation: parameters.TopologyDerivation,
@@ -586,15 +615,13 @@ class calculate_weights(BaseGraphFunction):
             G (nx.Graph): A graph
         """
         # Calculate bounds to normalise between
-        bounds = {}
-        for weight in topology_derivation.weights:
-            bounds[weight] = [np.Inf, -np.Inf]
+        bounds: Dict[Any, List[float]] = defaultdict(lambda: [np.Inf, -np.Inf])
 
-        for u, v, d in G.edges(data=True):
-            for attr, bds in bounds.items():
-                bds[0] = min(bds[0], d[attr])
-                bds[1] = max(bds[1], d[attr])
-        
+        for (u, v, d), w in product(G.edges(data=True), 
+                                    topology_derivation.weights):
+            bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf))
+            bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
+
         G = G.copy()
         for u, v, d in G.edges(data=True):
             total_weight = 0
@@ -612,13 +639,10 @@ class calculate_weights(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class identify_outlets(BaseGraphFunction):
+class identify_outlets(BaseGraphFunction,
+                       required_edge_attributes = ['length', 'edge_type'],
+                       required_node_attributes = ['x', 'y']):
     """identify_outlets class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['length', 'edge_type']
-        self.required_node_attributes = ['x', 'y']
 
     def __call__(self, G: nx.Graph,
                      outlet_derivation: parameters.OutletDerivation,
@@ -627,14 +651,6 @@ class identify_outlets(BaseGraphFunction):
 
         This function identifies outlets in a combined river-street graph. An
         outlet is a node that is connected to a river and a street. 
-        
-        # TODO an automatic way to handle something like this? maybe 
-        # required_graph_attributes = ['outlets'] or something
-
-        Adds new edges to represent outlets with the attributes:
-            - 'edge_type' ('outlet')
-            - 'length' (float)
-            - 'id' (str)
 
         Args:
             G (nx.Graph): A graph
@@ -651,8 +667,8 @@ class identify_outlets(BaseGraphFunction):
 
         # Get the points for each river and street node
         for u, v, d in G.edges(data=True):
-            upoint = sgeom.Point(G.nodes[u]['x'], G.nodes[u]['y'])
-            vpoint = sgeom.Point(G.nodes[v]['x'], G.nodes[v]['y'])
+            upoint = shapely.Point(G.nodes[u]['x'], G.nodes[u]['y'])
+            vpoint = shapely.Point(G.nodes[v]['x'], G.nodes[v]['y'])
             if d['edge_type'] == 'river':
                 river_points[u] = upoint
                 river_points[v] = vpoint
@@ -674,7 +690,7 @@ class identify_outlets(BaseGraphFunction):
             G_.add_edge(street_id, river_id,
                         **{'length' : outlet_derivation.outlet_length,
                         'edge_type' : 'outlet',
-                        'geometry' : sgeom.LineString([street_points[street_id],
+                        'geometry' : shapely.LineString([street_points[street_id],
                                                     river_points[river_id]]),
                         'id' : f'{street_id}-{river_id}-outlet'})
         
@@ -713,14 +729,12 @@ class identify_outlets(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class derive_topology(BaseGraphFunction):
+class derive_topology(BaseGraphFunction,
+                      required_edge_attributes = ['edge_type', # 'rivers' and 'streets'
+                                                  'weight'],
+                      adds_node_attributes = ['outlet', 'shortest_path']):
     """derive_topology class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        # both 'rivers' and 'streets' in 'edge_type'
-        self.required_edge_attributes = ['edge_type', 'weight'] 
-        self.adds_node_attributes = ['outlet', 'shortest_path']
+    
 
     def __call__(self, G: nx.Graph,
                     **kwargs) -> nx.Graph:
@@ -758,6 +772,10 @@ class derive_topology(BaseGraphFunction):
         for u in set(nodes_to_remove).union(isolated_nodes):
             G.remove_node(u)
 
+        # Check for negative cycles
+        if nx.negative_edge_cycle(G, weight = 'weight'):
+            raise ValueError('Graph contains negative cycle')
+
         # Initialize the dictionary with infinity for all nodes
         shortest_paths = {node: float('inf') for node in G.nodes}
 
@@ -781,13 +799,15 @@ class derive_topology(BaseGraphFunction):
                 alt_dist = dist + edge_data['weight']
                 # If the alternative distance is shorter
 
-                if alt_dist < shortest_paths[neighbor]:
-                    # Update the shortest path length
-                    shortest_paths[neighbor] = alt_dist
-                    # Update the path
-                    paths[neighbor] = paths[node] + [neighbor]
-                    # Push the neighbor to the heap
-                    heappush(heap, (alt_dist, neighbor))
+                if alt_dist >= shortest_paths[neighbor]:
+                    continue
+                
+                # Update the shortest path length
+                shortest_paths[neighbor] = alt_dist
+                # Update the path
+                paths[neighbor] = paths[node] + [neighbor]
+                # Push the neighbor to the heap
+                heappush(heap, (alt_dist, neighbor))
 
         edges_to_keep = set()
         for path in paths.values():
@@ -935,8 +955,8 @@ def process_successors(G: nx.Graph,
         # Find contributing area with ancestors
         # TODO - could do timearea here if i hated myself enough
         anc = nx.ancestors(G,node).union([node])
-        tot = sum([G.nodes[anc_node]['contributing_area'] for anc_node in anc])
-        
+        tot = sum([G.nodes[anc_node]['catchment_area'] for anc_node in anc])
+
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
         Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
         
@@ -955,16 +975,13 @@ def process_successors(G: nx.Graph,
                 to derive topology''')
 
 @register_graphfcn
-class pipe_by_pipe(BaseGraphFunction):
+class pipe_by_pipe(BaseGraphFunction,
+                   required_edge_attributes = ['length', 'elevation'],
+                   required_node_attributes = ['catchment_area', 'elevation'],
+                   adds_edge_attributes = ['diameter'],
+                   adds_node_attributes = ['chamber_floor_elevation']):
     """pipe_by_pipe class."""
-    def __init__(self):
-        """Initialize the class."""
-        super().__init__()
-        self.required_edge_attributes = ['length', 'elevation']
-        self.required_node_attributes = ['contributing_area', 'elevation']
-        self.adds_edge_attributes = ['diameter']
-        self.adds_node_attributes = ['chamber_floor_elevation']
-        # If doing required_graph_attributes - it would be something like 'dendritic'
+    # If doing required_graph_attributes - it would be something like 'dendritic'
 
     def __call__(self, 
                  G: nx.Graph, 

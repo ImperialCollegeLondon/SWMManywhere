@@ -79,7 +79,8 @@ def synthetic_write(addresses: FilePaths,
     subs['id'] = subs['id'].astype(str)
     subs['subcatchment'] = subs['id'] + '-sub'
     subs['rain_gage'] = 1 # TODO revise when revising storms
-    
+    subs['area'] *= 0.0001 # convert to ha
+
     # Edges
     edges['u'] = edges['u'].astype(str)
     edges['v'] = edges['v'].astype(str)
@@ -113,7 +114,7 @@ def synthetic_write(addresses: FilePaths,
     # TODO automatically match units to storm.csv?
     event = {'name' : '1',
              'unit' : 'mm',
-             'interval' : '01:00',
+             'interval' : '00:05',
              'fid' : 'storm.dat' # overwritten at runtime
                                  }
 

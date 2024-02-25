@@ -4,12 +4,12 @@
 
 @author: Barnaby Dobson
 """
-import json
 import shutil
 import sys
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pyswmm
 from SALib.sample import sobol
@@ -59,13 +59,19 @@ def formulate_salib_problem(parameters_to_select = None):
     return problem
 
 def generate_samples(N = None,
-                     parameters_to_select = None):
+                     parameters_to_select = None,
+                     seed = 1,
+                     groups = False):
     """Generate samples for a sensitivity analysis.
 
     Args:
         N (int, optional): Number of samples to generate. Defaults to None.
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis. Defaults to None.
+        seed (int, optional): Random seed. Defaults to 1.
+        groups (bool, optional): Whether to include the group names in the
+            sampling (significantly changes how many samples are taken). 
+            Defaults to False.
 
     Returns:
         list: A list of dictionaries containing the parameter values.
@@ -74,74 +80,93 @@ def generate_samples(N = None,
     
     if N is None:
         N = 2 ** (problem['num_vars'] - 1) 
-    
-    param_values = sobol.sample(problem, 
+    if not groups:
+        problem_ = problem.copy()
+        del problem_['groups']
+    else:
+        problem_ = problem.copy()
+    param_values = sobol.sample(problem_, 
                                 N, 
-                                calc_second_order=True)
+                                calc_second_order=True,
+                                seed = seed)
     # attach names:
     X = []
     for ix, params in enumerate(param_values):
         for x,y,z in zip(problem['groups'],
                          problem['names'],
                          params):
-            X.append({'group' : x,
-                    'param' : y,
+            X.append({'param' : y,
                     'value' : z,
-                    'iter' : ix})
+                    'iter' : ix,
+                    'group' : x})
     return X
-
             
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         jobid = int(sys.argv[1])
         nproc = int(sys.argv[2])
+        project = sys.argv[3]
     else:
         jobid = 1
         nproc = None
-    bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
-    parameters_to_select = ['river_buffer_distance',
+        project = 'demo'
+    if project == 'demo':
+        bbox = (0.04020,51.55759,0.09825591114207548,51.62050)
+    elif project == 'bellinge':
+        bbox = (10.23131,55.30225,  10.38378,55.38579)
+    parameters_to_select = ['min_v',
+                            'max_v',
+                            'max_fr',
+                            'precipitation',
                             'outlet_length',
-                            'surface_slope_scaling',
-                            'elevation_scaling',
+                            'chahinian_slope_scaling',
                             'length_scaling',
                             'contributing_area_scaling',
-                            'surface_slope_exponent',
-                            'elevation_exponent',
+                            'chahinian_slope_exponent',
                             'length_exponent',
-                            'contributing_area_exponent'
+                            'contributing_area_exponent',
+                            'lane_width',
+                            'max_street_length'
                             ]
-    X = generate_samples(parameters_to_select = parameters_to_select)
+    X = generate_samples(parameters_to_select = parameters_to_select,
+                         N = 2**10)
     X = pd.DataFrame(X)
     gb = X.groupby('iter')
     base_dir = Path(r'/rds/general/user/bdobson/ephemeral/swmmanywhere')
     # base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
-    project = 'demo'
+    # project = 'demo'
 
-    function_list = ['set_elevation',
-                     'set_surface_slope',
-                     'set_chahinan_angle',
-                     'calculate_weights',
-                     'identify_outlets',
-                     'derive_topology',
-                     'pipe_by_pipe']
+    function_list = ['assign_id',
+                    'format_osmnx_lanes',
+                    'double_directed',
+                    'split_long_edges',
+                    'calculate_contributing_area',
+                    'set_elevation',
+                    'set_surface_slope',
+                    'set_chahinian_slope',
+                    'set_chahinan_angle',
+                    'calculate_weights',
+                    'identify_outlets',
+                    'derive_topology',
+                    'pipe_by_pipe']
     flooding_results = {}
     if nproc is None:
         nproc = len(X)
-    for ix, params in enumerate(X):
+    for ix, params_ in gb:
         if ix % nproc == jobid:
+            flooding_results[ix] = ix
             addresses = preprocessing.create_project_structure(bbox, 
                                                                project, 
-                                                               base_dir)
-            addresses.model_number = ix
-            addresses.model.mkdir(parents = True, exist_ok = True)
+                                                               base_dir,
+                                                               model_number = ix)
             params = get_full_parameters()
-            params['topology_derivation'].weights = ['surface_slope',
+            params['topology_derivation'].weights = ['chahinian_slope',
                                                      'length',
                                                      'contributing_area']
-            for key, row in gb.get_group(ix).iterrows():
+            for key, row in params_.iterrows():
                 setattr(params[row['group']], row['param'], row['value'])
             addresses.model.mkdir(parents = True, exist_ok = True)
-            G = load_graph(addresses.bbox / 'graph_sequence2.json')
+            G = load_graph(addresses.bbox / 'base_graph.json')
             for fcn in function_list:
                 print(f'starting {fcn} for job {ix} on {jobid}')
                 G = getattr(gu, fcn)(G, 
@@ -159,7 +184,6 @@ if __name__ == '__main__':
             subs_gdf = gpd.read_file(addresses.model / 'subcatchments.parquet')
             #TODO river nodes have catchments associated too..
             subs_gdf = subs_gdf.loc[subs_gdf.id.isin(nodes_gdf.id)]
-            subs_gdf['area'] *= 0.0001 # convert to ha
             synthetic_write(addresses,nodes_gdf,edges,subs_gdf)
 
             rain_fid = addresses.defs / 'storm.dat'
@@ -212,15 +236,33 @@ if __name__ == '__main__':
             results = pd.DataFrame(results)
             results.to_parquet(addresses.model / f'results_{ix}.gzip')
             area = subs_gdf.area.sum()
-            flooding = sum(results.loc[results.variable == 'flood',
-                                        'value'] > 0.0001) / nodes_gdf.shape[0]
-            baseline_flooding = 0.48364788935311914 # timesteps / len_nodes
-            pbias = (flooding - baseline_flooding) / baseline_flooding
-            flooding_results[ix] = {'pbias' : pbias, 
+            flooding = results.loc[results.variable == 'flood']
+            flooding['duration'] = (flooding.date - \
+                                    flooding.date.min()).dt.total_seconds()
+            
+            def _f(x):
+                return np.trapz(x.value,x.duration)
+
+            total_flooding = flooding.groupby('object').apply(_f)
+            
+            total_flooding = total_flooding.sum()
+            #Litres per m2
+            total_flooding = total_flooding / subs_gdf.impervious_area.sum()
+            
+            #Simulated offline
+            if project == 'demo':
+                baseline_flooding = 31269000 / 2162462.1
+            elif project == 'bellinge':
+                baseline_flooding = 37324 / 843095
+            
+            maxflow = results.loc[results.variable == 'flow'].value.max()
+
+            pbias = (total_flooding - baseline_flooding) / baseline_flooding
+            flooding_results[ix] = {'pbias' : pbias,
+                                    'maxflow' : maxflow,
                                     'iter' : ix,
-                                    **gb.get_group(ix).set_index('param').value.to_dict()}
+                                    **params_.set_index('param').value.to_dict()}
     results_fid = addresses.bbox / 'results'
     results_fid.mkdir(parents = True, exist_ok = True)
-    fid_flooding = results_fid / f'{jobid}_flooding.json'
-    with open(fid_flooding, 'w') as f:
-        json.dump(flooding_results, f)
+    fid_flooding = results_fid / f'{jobid}_flooding.csv'
+    pd.DataFrame(flooding_results).T.to_csv(fid_flooding)

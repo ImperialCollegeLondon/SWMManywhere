@@ -27,7 +27,7 @@ SUBCATCHMENTS:
                 /0, /empty]
 SUBAREAS:
   columns: [Name, N-Imperv, N-Perv, S-Imperv, S-Perv, PctZero, RouteTo, PctRouted]
-  iwcolumns: [subcatchment, /1, /0, /0, /0, /0, /OUTLET, /0]
+  iwcolumns: [subcatchment, /0, /0, /0, /0, /0, /OUTLET, /0]
 XSECTIONS: 
   columns: [Link, Shape, Geom1, Geom2, Geom3, Geom4, Barrels, XX]
   iwcolumns: [id, /CIRCULAR, diameter, /0, /0, /0, /1, /*]
