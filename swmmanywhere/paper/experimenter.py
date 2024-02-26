@@ -7,7 +7,9 @@
 import shutil
 import sys
 from pathlib import Path
-
+import os
+os.environ['NUMBA_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
 import geopandas as gpd
 import numpy as np
 import pandas as pd
