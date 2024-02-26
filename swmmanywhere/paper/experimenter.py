@@ -131,7 +131,7 @@ if __name__ == '__main__':
                             'max_street_length'
                             ]
     X = generate_samples(parameters_to_select = parameters_to_select,
-                         N = 2**10)
+                         N = 2**9)
     X = pd.DataFrame(X)
     gb = X.groupby('iter')
     base_dir = Path(r'/rds/general/user/bdobson/ephemeral/swmmanywhere')
