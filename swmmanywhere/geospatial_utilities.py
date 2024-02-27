@@ -652,9 +652,14 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     result = gpd.overlay(lines_gdf[['geometry']], 
                          building_footprints[['geometry']], 
                          how='union')
-    result = gpd.overlay(polys_gdf, result)
+    try:
+        result_ = gpd.overlay(polys_gdf, result)
+        dissolved_result = result_.dissolve(by='id').reset_index()
+    except Exception:
+        result_ = result.dissolve()
+        result_ = gpd.overlay(polys_gdf, result_)
+        dissolved_result = result_.dissolve(by='id').reset_index()
 
-    dissolved_result = result.dissolve(by='id').reset_index()
     dissolved_result['impervious_area'] = dissolved_result.geometry.area
     polys_gdf = pd.merge(polys_gdf, 
                             dissolved_result[['id','impervious_area']], 
