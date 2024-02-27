@@ -652,7 +652,6 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     result = gpd.overlay(lines_gdf[['geometry']], 
                          building_footprints[['geometry']], 
                          how='union')
-    result = result.dissolve()
     result = gpd.overlay(polys_gdf, result)
 
     dissolved_result = result.dissolve(by='id').reset_index()

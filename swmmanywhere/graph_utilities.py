@@ -418,16 +418,37 @@ class calculate_contributing_area(BaseGraphFunction,
             buildings = gpd.read_file(addresses.building)
         subs_rc = go.derive_rc(subs_gdf, G, buildings)
 
-        # RC (upstream subcatchments)
+        # RC (upstream subcatchments - i.e., normal hydrological catchment)
         subs_upstream = subs_gdf[['id','upstream_area','upstream_geometry']]
         subs_upstream = subs_upstream.rename(columns = {'upstream_area':
                                                         'area',
                                                         'upstream_geometry':
                                                         'geometry'})
-        subs_rc_upstream = go.derive_rc(subs_upstream, G, buildings)
+        
+        # Classify catchments by upstream catchments (this
+        # is quicker and more robust than recalculating the RC)
+        subs_upstream_ = subs_upstream[['id','geometry']].copy()
+
+        # Buffer upstream catchments to contain the SWMM catchments
+        # must be less than resolution
+        subs_upstream_['geometry'] = subs_upstream.buffer(1) 
+
+        # Join
+        subs_rc_upstream = subs_upstream_.sjoin(subs_rc[['id',
+                                                        'geometry',
+                                                        'impervious_area']],
+                                                op='contains')
+        
+        # Aggregate
+        subs_rc_upstream = subs_rc_upstream.groupby('id_left').impervious_area.sum()
+        subs_rc_upstream.index = subs_rc_upstream.index.rename('id')
+        subs_rc_upstream = pd.merge(subs_upstream, 
+                                    subs_rc_upstream.reset_index(),
+                                    on = 'id')
+        subs_rc_upstream['rc'] = subs_rc_upstream.impervious_area /\
+              subs_rc_upstream.area
 
         # Write SWMM subs
-        # TODO - could just attach subs to nodes where each node has a list of subs
         subs_rc.drop('upstream_geometry',
                      axis = 1).to_file(addresses.subcatchments, driver='GeoJSON')
 
