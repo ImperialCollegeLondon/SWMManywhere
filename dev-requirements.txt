@@ -4,6 +4,10 @@
 #
 #    pip-compile --extra=dev --output-file=dev-requirements.txt
 #
+aenum==3.1.11
+    # via
+    #   pyswmm
+    #   swmm-toolkit
 affine==2.4.0
     # via
     #   pysheds
@@ -69,7 +73,7 @@ distlib==0.3.8
     # via virtualenv
 fastparquet==2023.10.1
     # via swmmanywhere (pyproject.toml)
-filelock==3.12.4
+filelock==3.13.1
     # via
     #   pytest-mypy
     #   virtualenv
@@ -104,11 +108,13 @@ imageio==2.33.1
     # via scikit-image
 iniconfig==2.0.0
     # via pytest
+julian==0.14
+    # via pyswmm
 kiwisolver==1.4.5
     # via matplotlib
 lazy-loader==0.3
     # via scikit-image
-llvmlite==0.41.1
+llvmlite==0.42.0
     # via numba
 matplotlib==3.8.2
     # via
@@ -164,6 +170,7 @@ packaging==23.2
     #   fastparquet
     #   geopandas
     #   matplotlib
+    #   pyswmm
     #   pytest
     #   rioxarray
     #   scikit-image
@@ -209,6 +216,8 @@ pyproject-hooks==1.0.0
     # via build
 pysheds==0.3.5
     # via swmmanywhere (pyproject.toml)
+pyswmm==1.5.1
+    # via swmmanywhere (pyproject.toml)
 pytest==7.4.4
     # via
     #   pytest-cov
@@ -248,7 +257,7 @@ salib==1.4.7
     # via swmmanywhere (pyproject.toml)
 scikit-image==0.22.0
     # via pysheds
-scipy==1.11.4
+scipy==1.12.0
     # via
     #   pysheds
     #   salib
@@ -270,7 +279,9 @@ snkit==1.9.0
     # via swmmanywhere (pyproject.toml)
 snuggs==1.4.7
     # via rasterio
-tifffile==2023.12.9
+swmm-toolkit==0.15.3
+    # via pyswmm
+tifffile==2024.1.30
     # via scikit-image
 tqdm==4.66.1
     # via

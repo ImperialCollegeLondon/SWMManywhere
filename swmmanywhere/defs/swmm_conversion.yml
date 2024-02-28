@@ -1,0 +1,54 @@
+# Adapted from SWMMIO: https://github.com/pyswmm/swmmio/tree/master
+# 'columns' gives the names and order of input of data that SWMM expects
+# 'iwcolumns' gives that names of columns in our dataframes that match with the
+#   corresponding values in 'columns'
+# /<value> in 'iwcolumns' sets a default value for that column
+CONDUITS: 
+  columns: [Name, InletNode, OutletNode, Length, Roughness, InOffset, OutOffset, InitFlow, MaxFlow]
+  iwcolumns: [id, u, v, length, roughness, /0, /0, /0, capacity]
+INFILTRATION: 
+  columns: [Subcatchment, Suction, HydCon, IMDmax, ]
+  iwcolumns: [subcatchment, /0, /0, /0, /0, /0]
+JUNCTIONS: 
+  columns: [Name, InvertElev, MaxDepth, InitDepth, SurchargeDepth, PondedArea]
+  iwcolumns: [id, chamber_floor_elevation, max_depth, /0, surcharge_depth, flooded_area]
+OUTFALLS: 
+  columns: [Name, InvertElev, OutfallType, StageOrTimeseries, TideGate, RouteTo]
+  iwcolumns: [id, chamber_floor_elevation, /FREE, / , /NO, /*]
+STORAGE:
+  columns: [Name, InvertElev, MaxD, InitDepth, StorageCurve, Coefficient, Exponent,
+              Constant, EvapFrac, SuctionHead, Conductivity, InitialDeficit]
+  iwcolumns: [id, chamber_floor_elevation, max_depth, /0, /FUNCTIONAL, /0, /0,
+              manhole_area, /0, /0, /0, /0]
+SUBCATCHMENTS: 
+  columns: [Name, Raingage, Outlet, Area, PercImperv, Width, PercSlope,
+                CurbLength, SnowPack]
+  iwcolumns: [subcatchment, rain_gage, id, area, rc, width, slope,
+                /0, /empty]
+SUBAREAS:
+  columns: [Name, N-Imperv, N-Perv, S-Imperv, S-Perv, PctZero, RouteTo, PctRouted]
+  iwcolumns: [subcatchment, /1, /0, /0, /0, /0, /OUTLET, /0]
+XSECTIONS: 
+  columns: [Link, Shape, Geom1, Geom2, Geom3, Geom4, Barrels, XX]
+  iwcolumns: [id, /CIRCULAR, diameter, /0, /0, /0, /1, /*]
+COORDINATES: 
+  columns: [Name, X, Y]
+  iwcolumns: [id, x, y]
+VERTICES: 
+  columns: [Name, X, Y]
+  columns: [id, x, y]
+Polygons: 
+  columns: [Name, X, Y]
+  iwcolumns: [subcatchment, x, y]
+POLYGONS: 
+  columns: [Name, X, Y]
+  iwcolumns: [subcatchment, x, y]
+MAP: 
+  columns: [Param, x1, y1, x2, y2]
+  iwcolumns: [/DIMENSIONS, x1, y1, x2, y2]
+RAINGAGES:
+  columns: [Name,Format,Interval,SCF,Source,Filename,StationID,Unit]
+  iwcolumns: [name,/INTENSITY,interval,/1,/FILE,fid,/1,unit]
+SYMBOLS: 
+  columns: [Gage, X, Y]
+  iwcolumns: [name, x, y]
