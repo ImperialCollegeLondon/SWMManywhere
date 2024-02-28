@@ -193,7 +193,7 @@ pip-tools==7.3.0
     # via swmmanywhere (pyproject.toml)
 platformdirs==3.11.0
     # via virtualenv
-pluggy==1.3.0
+pluggy==1.4.0
     # via pytest
 pre-commit==3.6.0
     # via swmmanywhere (pyproject.toml)
