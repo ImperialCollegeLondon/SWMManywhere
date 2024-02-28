@@ -27,6 +27,7 @@ dependencies = [ # TODO definitely don't need all of these
                 "osmnx",
                 "pandas",
                 "pyarrow",
+                "pydantic",
                 "pysheds",
                 "pyswmm",
                 "PyYAML",

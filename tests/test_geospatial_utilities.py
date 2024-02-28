@@ -4,9 +4,10 @@
 @author: Barney
 """
 
-import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import geopandas as gpd
 import networkx as nx
 import numpy as np
 import rasterio as rst
@@ -14,7 +15,13 @@ from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
+from swmmanywhere import graph_utilities as ge
 
+
+def load_street_network():
+    """Load a street network."""
+    G = ge.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    return G
 
 def test_interp_with_nans():
     """Test the interp_interp_with_nans function."""
@@ -62,10 +69,12 @@ def test_interpolate_points_on_raster(mock_rst_open):
     y = [0.25, 0.75]
 
     # Call the function
-    result = go.interpolate_points_on_raster(x, y, 'fake_path')
+    result = go.interpolate_points_on_raster(x, 
+                                             y, 
+                                             Path('fake_path'))
 
-    # [3,2] feels unintuitive but it's because rasters measure from the top
-    assert result == [3.0, 2.0]
+    # [2.75, 2.25] feels unintuitive but it's because rasters measure from the top
+    assert result == [2.75, 2.25]
 
 def test_get_utm():
     """Test the get_utm_epsg function."""
@@ -94,29 +103,27 @@ def create_raster(fid):
 def test_reproject_raster():
     """Test the reproject_raster function."""
     # Create a mock raster file
-    fid = 'test.tif'
+    fid = Path('test.tif')
     try:
         create_raster(fid)
 
         # Define the input parameters
         target_crs = 'EPSG:32630'
-        new_fid = 'test_reprojected.tif'
+        new_fid = Path('test_reprojected.tif')
 
         # Call the function
         go.reproject_raster(target_crs, fid)
 
         # Check if the reprojected file exists
-        assert os.path.exists(new_fid)
+        assert new_fid.exists()
 
         # Check if the reprojected file has the correct CRS
         with rst.open(new_fid) as src:
             assert src.crs.to_string() == target_crs
     finally:
         # Regardless of test outcome, delete the temp file
-        if os.path.exists(fid):
-            os.remove(fid)
-        if os.path.exists(new_fid):
-            os.remove(new_fid)
+        fid.unlink(missing_ok=True)
+        new_fid.unlink(missing_ok=True)
 
 
 def almost_equal(a, b, tol=1e-6):
@@ -190,8 +197,8 @@ def test_burn_shape_in_raster():
 
     # Define the input parameters
     depth = 1.0
-    raster_fid = 'input.tif'
-    new_raster_fid = 'output.tif'
+    raster_fid = Path('input.tif')
+    new_raster_fid = Path('output.tif')
     try:
         create_raster(raster_fid)
         
@@ -207,7 +214,105 @@ def test_burn_shape_in_raster():
             assert (data != data_).any()
     finally:
         # Regardless of test outcome, delete the temp file
-        if os.path.exists(raster_fid):
-            os.remove(raster_fid)
-        if os.path.exists(new_raster_fid):
-            os.remove(new_raster_fid)
+        raster_fid.unlink(missing_ok=True)
+        new_raster_fid.unlink(missing_ok=True)
+        
+def test_derive_subcatchments():
+    """Test the derive_subcatchments function."""
+    G = load_street_network()
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    
+    polys = go.derive_subcatchments(G, elev_fid)
+    assert 'slope' in polys.columns
+    assert 'area' in polys.columns
+    assert 'geometry' in polys.columns
+    assert 'id' in polys.columns
+    assert polys.shape[0] > 0
+    assert polys.dropna().shape == polys.shape
+    assert polys.crs == G.graph['crs']
+
+
+def test_derive_rc():
+    """Test the derive_rc function."""
+    G = load_street_network()
+    crs = G.graph['crs']
+    eg_bldg = sgeom.Polygon([(700291,5709928), 
+                       (700331,5709927),
+                       (700321,5709896), 
+                       (700293,5709900),
+                       (700291,5709928)])
+    buildings = gpd.GeoDataFrame(geometry = [eg_bldg],
+                                 crs = crs)
+    subs = [sgeom.Polygon([(700262, 5709928),
+                            (700262, 5709883),
+                            (700351, 5709883),
+                            (700351, 5709906),
+                            (700306, 5709906),
+                            (700306, 5709928),
+                            (700262, 5709928)]),
+            sgeom.Polygon([(700306, 5709928),
+                            (700284, 5709928),
+                            (700284, 5709950),
+                            (700374, 5709950),
+                            (700374, 5709906),
+                            (700351, 5709906),
+                            (700306, 5709906),
+                            (700306, 5709928)]),
+            sgeom.Polygon([(700351, 5709883),
+                            (700351, 5709906),
+                            (700374, 5709906),
+                            (700374, 5709883),
+                            (700396, 5709883),
+                            (700396, 5709816),
+                            (700329, 5709816),
+                            (700329, 5709838),
+                            (700329, 5709883),
+                            (700351, 5709883)])]
+
+    subs = gpd.GeoDataFrame(data = {'id' : [107733,
+                                            1696030874,
+                                            6277683849]
+                                            },
+                                    geometry = subs,
+                                    crs = crs)
+    subs['area'] = subs.geometry.area
+
+    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    assert subs_rc.loc[6277683849,'impervious_area'] == 0
+    assert subs_rc.loc[107733,'impervious_area'] > 0
+    for u,v,d in G.edges(data=True):
+        d['width'] = 10
+
+    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    assert subs_rc.loc[6277683849,'impervious_area'] > 0
+    assert subs_rc.loc[6277683849,'rc'] > 0
+    assert subs_rc.rc.max() <= 100
+
+    for u,v,d in G.edges(data=True):
+        d['width'] = 0
+
+def test_calculate_angle():
+    """Test the calculate_angle function."""
+    # Test with points forming a right angle
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (1, 1)
+    assert go.calculate_angle(point1, point2, point3) == 90
+
+    # Test with points forming a straight line
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (2, 0)
+    assert go.calculate_angle(point1, point2, point3) == 180
+
+    # Test with points forming an angle of 45 degrees
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (0, 1)
+    assert almost_equal(go.calculate_angle(point1, point2, point3), 45)
+
+    # Test with points forming an angle of 0 degrees
+    point1 = (0, 0)
+    point2 = (1, 0)
+    point3 = (0, 0)
+    assert go.calculate_angle(point1, point2, point3) == 0

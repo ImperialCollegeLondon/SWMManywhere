@@ -12,6 +12,8 @@ affine==2.4.0
     # via
     #   pysheds
     #   rasterio
+annotated-types==0.6.0
+    # via pydantic
 attrs==23.2.0
     # via
     #   fiona
@@ -157,6 +159,10 @@ pillow==10.2.0
     #   scikit-image
 pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
+pydantic==2.5.3
+    # via swmmanywhere (pyproject.toml)
+pydantic-core==2.14.6
+    # via pydantic
 pyparsing==3.1.1
     # via
     #   matplotlib
@@ -223,6 +229,10 @@ tqdm==4.66.1
     # via
     #   cdsapi
     #   swmmanywhere (pyproject.toml)
+typing-extensions==4.9.0
+    # via
+    #   pydantic
+    #   pydantic-core
 tzdata==2023.4
     # via pandas
 urllib3==2.1.0
