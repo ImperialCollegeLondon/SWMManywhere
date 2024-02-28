@@ -11,8 +11,8 @@ def test_version():
 
 def test_run():
     """Test the run function."""
-    model = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
-          'basic_drainage_all_bits.inp'
+    demo_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
+    model =  demo_dir / 'basic_drainage_all_bits.inp'
     storevars = ['flooding','flow','runoff','depth']
     results = swmmanywhere.run(model,
                                reporting_iters = 50,
@@ -30,3 +30,6 @@ def test_run():
                                duration = 10000,
                                storevars = storevars)
     assert results_.shape[0] < results.shape[0]
+
+    model.with_suffix('.out').unlink()
+    model.with_suffix('.rpt').unlink()
