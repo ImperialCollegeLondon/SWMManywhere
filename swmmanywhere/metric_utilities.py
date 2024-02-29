@@ -96,12 +96,88 @@ class kstest_betweenness(BaseMetric):
     def __call__(self, 
                  synthetic_G: nx.Graph,
                  real_G: nx.Graph,
+                 real_subs: gpd.GeoDataFrame,
+                 real_results: pd.DataFrame,
                  *args,
                  **kwargs) -> float:
         """Run the evaluated metric."""
-        syn_betweenness = nx.betweenness_centrality(synthetic_G)
-        real_betweenness = nx.betweenness_centrality(real_G)
+        # Identify synthetic outlet and subgraph
+        sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+        
+        # Identify real outlet and subgraph
+        sg_real, _ = dominant_outlet(real_G, real_results)
+
+        syn_betweenness = nx.betweenness_centrality(sg_syn)
+        real_betweenness = nx.betweenness_centrality(sg_real)
 
         #TODO does it make more sense to use statistic or pvalue?
         return stats.ks_2samp(list(syn_betweenness.values()),
                               list(real_betweenness.values())).statistic
+
+def best_outlet_match(synthetic_G: nx.Graph,
+                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int]:
+    """Best outlet match.
+    
+    Identify the outlet with the most nodes within the real_subs and return the
+    subgraph of the synthetic graph of nodes that drain to that outlet.
+
+    Args:
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+
+    Returns:
+        nx.Graph: The subgraph of the synthetic graph for the outlet with the 
+            most nodes within the real_subs.
+        int: The id of the outlet.
+    """
+    # Identify which nodes fall within real_subs
+    nodes_df = pd.DataFrame([d for x,d in synthetic_G.nodes(data=True)],
+                             index = synthetic_G.nodes)
+    nodes_gdf = gpd.GeoDataFrame(nodes_df, 
+                                 geometry=gpd.points_from_xy(nodes_df.x, 
+                                                             nodes_df.y),
+                                 crs = synthetic_G.graph['crs'])
+    nodes_joined = nodes_gdf.sjoin(real_subs, 
+                                   how="right", 
+                                   predicate="intersects")
+
+    # Select the most common outlet
+    outlet = nodes_joined.outlet.value_counts().idxmax()
+
+    # Subselect the matching graph
+    outlet_nodes = [n for n, d in synthetic_G.nodes(data=True) 
+                    if d['outlet'] == outlet]
+    return synthetic_G.subgraph(outlet_nodes), outlet
+
+def dominant_outlet(G: nx.Graph,
+                    results: pd.DataFrame) -> tuple[nx.Graph,int]:
+    """Dominant outlet.
+
+    Identify the outlet with highest flow along it and return the
+    subgraph of the graph of nodes that drain to that outlet.
+
+    Args:
+        G (nx.Graph): The graph.
+        results (pd.DataFrame): The results, which include a 'flow' and 'id' 
+            column.
+
+    Returns:
+        nx.Graph: The subgraph of nodes/arcs that the reach max flow outlet
+        int: The id of the outlet.
+    """
+    # Identify outlets of the graph
+    outlets = [n for n, outdegree in G.out_degree() 
+               if outdegree == 0]
+    outlet_arcs = [d['id'] for u,v,d in G.edges(data=True) 
+                   if v in outlets]
+    
+    # Identify the outlet with the highest flow
+    outlet_flows = results.loc[(results.variable == 'flow') &
+                               (results.object.isin(outlet_arcs))]
+    max_outlet_arc = outlet_flows.groupby('object').value.mean().idxmax()
+    max_outlet = [v for u,v,d in G.edges(data=True) 
+                  if d['id'] == max_outlet_arc][0]
+    
+    # Subselect the matching graph
+    sg = G.subgraph(nx.ancestors(G, max_outlet) | {max_outlet})
+    return sg, max_outlet
