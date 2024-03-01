@@ -692,6 +692,49 @@ def calculate_angle(point1: tuple[float,float],
 
     return angle_degrees
 
+def nodes_to_features(G: nx.Graph):
+    """Convert a graph to a GeoJSON node feature collection.
+
+    Args:
+        G (nx.Graph): The input graph.
+
+    Returns:
+        dict: A GeoJSON feature collection.
+    """
+    features = []
+    for node, data in G.nodes(data=True):
+        feature = {
+            'type': 'Feature',
+            'geometry': sgeom.mapping(sgeom.Point(data['x'], data['y'])),
+            'properties': {'id': node, **data}
+        }
+        features.append(feature)
+    return features
+
+def edges_to_features(G: nx.Graph):
+    """Convert a graph to a GeoJSON edge feature collection.
+
+    Args:
+        G (nx.Graph): The input graph.
+
+    Returns:
+        dict: A GeoJSON feature collection.
+    """
+    features = []
+    for u, v, data in G.edges(data=True):
+        if 'geometry' not in data:
+            geom = None
+        else: 
+            geom = sgeom.mapping(data['geometry'])
+            del data['geometry']
+        feature = {
+            'type': 'Feature',
+            'geometry': geom,
+            'properties': {'u': u, 'v': v, **data}
+        }
+        features.append(feature)
+    return features
+
 def graph_to_geojson(graph: nx.Graph, 
                      fid: Path, 
                      crs: str):
@@ -703,39 +746,20 @@ def graph_to_geojson(graph: nx.Graph,
         crs (str): The CRS of the graph.
     """
     graph = graph.copy()
-    for iterable, label in zip([graph.nodes(data=True), 
-                                graph.edges(data=True)],
-                               ['nodes', 'edges']):
-        geojson_features = []
-        for item_ in iterable:
-            if label == 'nodes':
-                data = item_[1]
-                data['geometry'] = sgeom.Point(data['x'], data['y'])
-                name_data = {'id' : item_[0]}
-            else:
-                data = item_[2]
-                name_data = {'u' : item_[0] , 
-                             'v' : item_[1]}
-            if 'geometry' in data:
-                geometry = sgeom.mapping(data['geometry'])
-                data_ = data.copy()
-                del data_['geometry']
-                feature = {
-                    'type': 'Feature',
-                    'geometry': geometry,
-                    'properties': {**data_, **name_data}
-                }
-                geojson_features.append(feature)
+    nodes = nodes_to_features(graph)
+    edges = edges_to_features(graph)
+    
+    for iterable, label in zip([nodes, edges], ['nodes', 'edges']):
         geojson = {
             'type': 'FeatureCollection',
-            'features': geojson_features,
+            'features' : iterable,
             'crs' : {
                 'type': 'name',
                 'properties': {
                     'name': "urn:ogc:def:crs:{0}".format(crs.replace(':', '::'))
                 }
             }
-        }
+            }
         fid_ = fid.with_stem(fid.stem + f'_{label}').with_suffix('.geojson')
 
         with fid_.open('w') as output_file:
