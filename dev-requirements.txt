@@ -83,7 +83,7 @@ fiona==1.9.5
     #   swmmanywhere (pyproject.toml)
 fonttools==4.47.2
     # via matplotlib
-fsspec==2023.12.2
+fsspec==2024.2.0
     # via fastparquet
 geographiclib==2.0
     # via geopy
