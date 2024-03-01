@@ -31,8 +31,7 @@ def next_directory(keyword: str, directory: Path) -> int:
     Returns:
         int: Next directory number.
     """
-    existing_dirs = [int(d.name.split("_")[-1]) for d in directory.iterdir() 
-                     if d.name.startswith(f"{keyword}_")]
+    existing_dirs = [int(d.name.split("_")[-1]) for d in directory.glob(f"{keyword}_*"))]
     next_dir_number = 1 if not existing_dirs else max(existing_dirs) + 1
     return next_dir_number
 
