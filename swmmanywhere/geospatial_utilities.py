@@ -608,8 +608,13 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
               G: nx.Graph,
               building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Derive the RC of each subcatchment.
+    """Derive the Runoff Coefficient (RC) of each subcatchment.
 
+    The runoff coefficient is the ratio of impervious area to total area. The
+    impervious area is calculated by overlaying the subcatchments with building
+    footprints and all edges in G buffered by their width parameter (i.e., to
+    calculate road area).
+    
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
