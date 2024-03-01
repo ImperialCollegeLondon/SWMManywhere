@@ -31,7 +31,8 @@ def next_directory(keyword: str, directory: Path) -> int:
     Returns:
         int: Next directory number.
     """
-    existing_dirs = [int(d.name.split("_")[-1]) for d in directory.glob(f"{keyword}_*"))]
+    existing_dirs = [int(d.name.split("_")[-1]) 
+                     for d in directory.glob(f"{keyword}_*")]
     return 1 if not existing_dirs else max(existing_dirs) + 1
 
 def check_bboxes(bbox: tuple[float, float, float, float],
