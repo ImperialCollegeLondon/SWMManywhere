@@ -12,13 +12,12 @@ from pydantic import BaseModel, Field, model_validator
 
 def get_full_parameters():
     """Get the full set of parameters."""
-    full_parameters = {
+    return {
         "subcatchment_derivation": SubcatchmentDerivation(),
         "outlet_derivation": OutletDerivation(),
         "topology_derivation": TopologyDerivation(),
         "hydraulic_design": HydraulicDesign()
     }
-    return full_parameters
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
