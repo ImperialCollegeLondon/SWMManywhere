@@ -195,7 +195,7 @@ platformdirs==3.11.0
     # via virtualenv
 pluggy==1.4.0
     # via pytest
-pre-commit==3.6.0
+pre-commit==3.6.2
     # via swmmanywhere (pyproject.toml)
 pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
