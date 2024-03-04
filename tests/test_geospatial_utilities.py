@@ -4,6 +4,7 @@
 @author: Barney
 """
 
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -370,3 +371,17 @@ def test_remove_intersections():
     targets['area'] = targets.geometry.area
     assert polys_.set_index('id')[['area']].equals(
         targets.set_index('id')[['area']])
+
+def test_graph_to_geojson():
+    """Test the graph_to_geojson function."""
+    G = load_street_network()
+    crs = G.graph['crs']
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        go.graph_to_geojson(G, temp_path / 'graph.geojson', crs)
+        gdf = gpd.read_file(temp_path / 'graph_nodes.geojson')
+        assert gdf.crs == crs
+        assert gdf.shape[0] == len(G.nodes)
+
+        gdf = gpd.read_file(temp_path / 'graph_edges.geojson')
+        assert gdf.shape[0] == len(G.edges)
