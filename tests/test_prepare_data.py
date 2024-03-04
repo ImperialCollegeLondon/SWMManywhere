@@ -5,7 +5,8 @@
 """
 
 # import pytest
-import os
+import tempfile
+from pathlib import Path
 
 import geopandas as gpd
 import rasterio
@@ -40,26 +41,21 @@ def test_building_downloader():
     # Coordinates for small country (VAT)
     x = 7.41839
     y = 43.73205
-    temp_fid = 'temp.parquet'
-    # Download
-    response = downloaders.download_buildings(temp_fid, x,y)
-    # Check response
-    assert response == 200
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.parquet'
+        # Download
+        response = downloaders.download_buildings(temp_fid, x,y)
+        # Check response
+        assert response == 200
 
-    # Check file exists
-    assert os.path.exists(temp_fid), "Buildings data file not found after download."
-
-    try: 
+        # Check file exists
+        assert temp_fid.exists(), "Buildings data file not found after download."
+        
         # Load data
         gdf = gpd.read_parquet(temp_fid)
 
         # Make sure has some rows
         assert gdf.shape[0] > 0
-
-    finally:
-        # Regardless of test outcome, delete the temp file
-        if os.path.exists(temp_fid):
-            os.remove(temp_fid)
 
 def test_street_downloader():
     """Check streets are downloaded and a specific point in the graph."""
@@ -84,18 +80,18 @@ def test_elevation_downloader():
 
     bbox = (-0.17929,51.49638, -0.17383,51.49846)
 
-    temp_fid = 'temp.tif'    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.tif'
+        
+        # Download
+        response = downloaders.download_elevation(temp_fid, bbox, test_api_key)
 
-    # Download
-    response = downloaders.download_elevation(temp_fid, bbox, test_api_key)
+        # Check response
+        assert response == 200
+        
+        # Check response
+        assert temp_fid.exists(), "Elevation data file not found after download."
 
-    # Check response
-    assert response == 200
-    
-    # Check response
-    assert os.path.exists(temp_fid), "Elevation data file not found after download."
-
-    try: 
         # Load data
         with rasterio.open(temp_fid) as src:
             data = src.read(1)  # Reading the first band as an example
@@ -106,8 +102,3 @@ def test_elevation_downloader():
         # Test some property of data (not sure if they may change this 
         # data)
         assert data.max().max() > 25, "Elevation data should be higher."
-
-    finally:
-        # Regardless of test outcome, delete the temp file
-        if os.path.exists(temp_fid):
-            os.remove(temp_fid)

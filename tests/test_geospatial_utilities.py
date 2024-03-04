@@ -4,6 +4,7 @@
 @author: Barney
 """
 
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -316,3 +317,71 @@ def test_calculate_angle():
     point2 = (1, 0)
     point3 = (0, 0)
     assert go.calculate_angle(point1, point2, point3) == 0
+
+def test_remove_intersections():
+    """Test the remove_intersections function."""
+    square1 = {'id' : 's1',
+               'geometry' : sgeom.Polygon([(0, 0), 
+                                           (1, 0), 
+                                           (1, 1), 
+                                           (0, 1)])}
+    square2 = {'id' : 's2',
+                'geometry' : sgeom.Polygon([(0, 0), 
+                                             (0.5, 0), 
+                                             (0.5, 0.5), 
+                                             (0, 0.5)])}
+    square3 = {'id' : 's3',
+                'geometry' : sgeom.Polygon([(0.25, 0.25), 
+                                             (0.5, 0.25), 
+                                             (0.5, 0.5), 
+                                             (0.25, 0.5)])}
+    square4 = {'id' : 's4',
+                'geometry' : sgeom.Polygon([(0.75, 0.75),
+                                             (1, 0.75),
+                                             (1, 1),
+                                             (0.75, 1)])
+                                             }
+    polys = gpd.GeoDataFrame([square1, square2, square3, square4])
+
+    target1 = {'id' : 's1',
+               'geometry' : sgeom.Polygon([(1.0, 0.0),
+                                            (0.5, 0.0),
+                                            (0.5, 0.25),
+                                            (0.5, 0.5),
+                                            (0.25, 0.5),
+                                            (0.0, 0.5),
+                                            (0.0, 1.0),
+                                            (0.75, 1.0),
+                                            (0.75, 0.75),
+                                            (1.0, 0.75),
+                                            (1.0, 0.0)])}
+    target2 = {'id' : 's2',
+                'geometry' : sgeom.Polygon([(0.5,0),
+                            (0,0),
+                            (0,0.5),
+                            (0.25,0.5),
+                            (0.25,0.25),
+                            (0.5,0.25),
+                            (0.5,0)])}
+    targets = gpd.GeoDataFrame([target1, target2, square3, square4])
+
+    polys_ = go.remove_intersections(polys)
+    
+    polys_['area'] = polys_.geometry.area
+    targets['area'] = targets.geometry.area
+    assert polys_.set_index('id')[['area']].equals(
+        targets.set_index('id')[['area']])
+
+def test_graph_to_geojson():
+    """Test the graph_to_geojson function."""
+    G = load_street_network()
+    crs = G.graph['crs']
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        go.graph_to_geojson(G, temp_path / 'graph.geojson', crs)
+        gdf = gpd.read_file(temp_path / 'graph_nodes.geojson')
+        assert gdf.crs == crs
+        assert gdf.shape[0] == len(G.nodes)
+
+        gdf = gpd.read_file(temp_path / 'graph_edges.geojson')
+        assert gdf.shape[0] == len(G.edges)
