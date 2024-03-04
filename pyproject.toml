@@ -1,6 +1,9 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+  "setuptools-scm",
+]
 
 [tool.setuptools.packages.find]
 exclude = ["htmlcov"] # Exclude the coverage report file from setuptools package finder
@@ -13,44 +16,50 @@ authors = [
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
 ]
 requires-python = ">=3.10"
-dependencies = [ # TODO definitely don't need all of these
-                "cdsapi",
-                "fastparquet",
-                "fiona",
-                "geopandas",
-                "geopy",
-                "GitPython",
-                "matplotlib",
-                "netcdf4",
-                "networkx",
-                "numpy",
-                "osmnx",
-                "pandas",
-                "pyarrow",
-                "pydantic",
-                "pysheds",
-                "pyswmm",
-                "PyYAML",
-                "rasterio",
-                "rioxarray",
-                "SALib",
-                "SciPy",
-                "shapely",
-                "snkit",
-                "tqdm",
-                "xarray"
-                ]
-
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  # TODO definitely don't need all of these
+  "cdsapi",
+  "fastparquet",
+  "fiona",
+  "geopandas",
+  "geopy",
+  "GitPython",
+  "matplotlib",
+  "netcdf4",
+  "networkx",
+  "numpy",
+  "osmnx",
+  "pandas",
+  "pyarrow",
+  "pydantic",
+  "pysheds",
+  "pyswmm",
+  "PyYAML",
+  "rasterio",
+  "rioxarray",
+  "SALib",
+  "SciPy",
+  "shapely",
+  "snkit",
+  "tqdm",
+  "xarray",
+]
 [project.optional-dependencies]
 dev = [
-    "ruff",
-    "mypy",
-    "pip-tools",
-    "pre-commit",
-    "pytest",
-    "pytest-cov",
-    "pytest-mypy",
-    "pytest-mock"
+  "mypy",
+  "pip-tools",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-mypy",
+  "ruff",
 ]
 
 [tool.mypy]
@@ -76,3 +85,7 @@ select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
 [tool.ruff.pydocstyle]
 convention = "google"
+
+[tool.codespell]
+skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
+ignore-words-list = "gage,gages"

@@ -243,7 +243,7 @@ class double_directed(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        #TODO the geometry is left as is currently - should be reveresed, however
+        #TODO the geometry is left as is currently - should be reversed, however
         # in original osmnx geometry there are some incorrectly directed ones
         # someone with more patience might check start and end Points to check
         # which direction the line should be going in...
@@ -791,7 +791,7 @@ class derive_topology(BaseGraphFunction,
             for i in range(len(path) - 1):
                 edges_to_keep.add((path[i+1], path[i]))
 
-        # Remvoe edges not on paths
+        # Remove edges not on paths
         new_graph = G.copy()
         for u,v in G.edges():
             if (u,v) not in edges_to_keep:

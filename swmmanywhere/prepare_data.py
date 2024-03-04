@@ -71,7 +71,7 @@ def download_buildings(file_address: Path,
         y (float): Latitude.
     
     Returns:
-        status_code (int): Reponse status code
+        status_code (int): Response status code
     """
     # Get three letter ISO code
     iso_country_code = get_country(x, y)[3]
@@ -147,7 +147,7 @@ def download_elevation(fid: Path,
             Defaults to '<your_api_key>'.
 
     Returns:
-        status_code (int): Reponse status code
+        status_code (int): Response status code
 
     Raises:
         requests.exceptions.RequestException: If there is an error in the API 

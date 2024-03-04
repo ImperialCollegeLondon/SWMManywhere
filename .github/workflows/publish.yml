@@ -7,7 +7,7 @@ jobs:
   # publish:
   #   runs-on: ubuntu-latest
   #   needs: test
-  #   # The following steps to build a Docker image and publish to the GitHub container registry on release. Alternatively, can replace with other publising steps (ie. publishing to PyPI, deploying documentation etc.)
+  #   # The following steps to build a Docker image and publish to the GitHub container registry on release. Alternatively, can replace with other publishing steps (ie. publishing to PyPI, deploying documentation etc.)
   #   steps:
   #     - name: Login to GitHub Container Registry
   #       uses: docker/login-action@v3

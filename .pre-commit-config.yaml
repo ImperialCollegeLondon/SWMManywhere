@@ -20,3 +20,17 @@ repos:
     hooks:
       - id: markdownlint
         args: ["--disable", "MD013", "--"]
+        
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+    - id: codespell
+      name: Check common misspellings in text files with codespell.
+      additional_dependencies:
+      - tomli
+
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: 1.7.0
+    hooks:
+    - id: pyproject-fmt
+      name: Apply a consistent format to pyproject.toml
