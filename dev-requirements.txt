@@ -83,7 +83,7 @@ fiona==1.9.5
     #   swmmanywhere (pyproject.toml)
 fonttools==4.47.2
     # via matplotlib
-fsspec==2023.12.2
+fsspec==2024.2.0
     # via fastparquet
 geographiclib==2.0
     # via geopy
@@ -195,7 +195,7 @@ platformdirs==3.11.0
     # via virtualenv
 pluggy==1.4.0
     # via pytest
-pre-commit==3.6.0
+pre-commit==3.6.2
     # via swmmanywhere (pyproject.toml)
 pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
@@ -292,7 +292,7 @@ typing-extensions==4.9.0
     #   mypy
     #   pydantic
     #   pydantic-core
-tzdata==2023.4
+tzdata==2024.1
     # via pandas
 urllib3==2.1.0
     # via requests
