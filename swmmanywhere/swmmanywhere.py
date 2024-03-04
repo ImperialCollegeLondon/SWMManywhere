@@ -41,7 +41,8 @@ def run(model: Path,
 
         results_list = []
         for var, info in variables.items():
-            if var in storevars:
+            if var not in storevars:
+                continue
                 # Rather than calling eg Nodes or Links, only call them if they
                 # are needed for storevars because they carry a significant 
                 # overhead
