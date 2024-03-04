@@ -20,6 +20,7 @@ dependencies = [ # TODO definitely don't need all of these
                 "geopandas",
                 "geopy",
                 "GitPython",
+                "loguru",
                 "matplotlib",
                 "netcdf4",
                 "networkx",

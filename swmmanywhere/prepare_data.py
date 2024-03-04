@@ -18,7 +18,9 @@ import xarray as xr
 import yaml
 from geopy.geocoders import Nominatim
 
-# Some minor comment (to remove)
+from swmmanywhere.utils import logger
+
+logger = logger.get_logger()
 
 def get_country(x: float, 
                 y: float) -> dict[int, str]:
@@ -85,9 +87,9 @@ def download_buildings(file_address: Path,
         # Save data to the specified file address
         with file_address.open("wb") as file:
             file.write(response.content)
-        print(f"Data downloaded and saved to {file_address}")
+        logger.info(f"Data downloaded and saved to {file_address}")
     else:
-        print(f"Error downloading data. Status code: {response.status_code}")
+        logger.error(f"Error downloading data. Status code: {response.status_code}")
     return response.status_code
 
 def download_street(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
@@ -176,10 +178,10 @@ def download_elevation(fid: Path,
         with fid.open('wb') as rast_file:
             shutil.copyfileobj(r.raw, rast_file)
             
-        print('Elevation data downloaded successfully.')
+        logger.info('Elevation data downloaded successfully.')
 
     except requests.exceptions.RequestException as e:
-        print(f'Error downloading elevation data: {e}')
+        logger.error(f'Error downloading elevation data: {e}')
     
     return r.status_code
 

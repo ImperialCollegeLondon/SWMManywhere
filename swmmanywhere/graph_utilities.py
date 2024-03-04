@@ -22,6 +22,7 @@ from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
+from swmmanywhere.utils import logger
 
 
 def load_graph(fid: Path) -> nx.Graph:
@@ -940,7 +941,7 @@ def process_successors(G: nx.Graph,
         edge_diams[(node,ds_node,0)] = diam
         chamber_floor[ds_node] = surface_elevations[ds_node] - depth
         if ix > 0:
-            print('''a node has multiple successors, 
+            logger.warning('''a node has multiple successors, 
                 not sure how that can happen if using shortest path
                 to derive topology''')
 
