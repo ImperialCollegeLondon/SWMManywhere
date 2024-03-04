@@ -426,7 +426,7 @@ class calculate_contributing_area(BaseGraphFunction,
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
-        # RC
+        # Calculate runoff coefficient (RC)
         if addresses.building.suffix == '.parquet':
             buildings = gpd.read_parquet(addresses.building)
         else:
