@@ -20,7 +20,6 @@ from geopy.geocoders import Nominatim
 
 from swmmanywhere.utils import logger
 
-logger = logger.get_logger()
 
 def get_country(x: float, 
                 y: float) -> dict[int, str]:
