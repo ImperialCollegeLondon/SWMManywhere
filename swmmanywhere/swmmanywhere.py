@@ -41,14 +41,15 @@ def run(model: Path,
 
         results_list = []
         for var, info in variables.items():
-            if var in storevars:
-                # Rather than calling eg Nodes or Links, only call them if they
-                # are needed for storevars because they carry a significant 
-                # overhead
-                pobjs = info['class'](sim)
-                results_list += [{'object': x, 
-                                'variable': var, 
-                                'id': info['id']} for x in pobjs]
+            if var not in storevars:
+                continue
+            # Rather than calling eg Nodes or Links, only call them if they
+            # are needed for storevars because they carry a significant 
+            # overhead
+            pobjs = info['class'](sim)
+            results_list += [{'object': x, 
+                            'variable': var, 
+                            'id': info['id']} for x in pobjs]
         
         # Iterate the model
         results = []
