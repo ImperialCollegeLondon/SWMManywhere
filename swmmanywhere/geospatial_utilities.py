@@ -595,11 +595,8 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     result_polygons = remove_intersections(polys)
 
     # Convert to GeoDataFrame
-    polys_gdf = (
-        result_polygons
-        .dropna(subset=['geometry'])
-        [lambda df: ~df['geometry'].is_empty]
-    )
+    polys_gdf = result_polygons.dropna(subset=['geometry'])
+    polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
 
     # Remove zero area subareas and attach to nearest polygon
     removed_subareas: List[sgeom.Polygon] = [] # needed for mypy
