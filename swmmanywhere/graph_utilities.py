@@ -45,8 +45,7 @@ def load_graph(fid: Path) -> nx.Graph:
 def _serialize_line_string(obj):
     if isinstance(obj, shapely.LineString):
         return obj.wkt
-    else:
-        return obj
+    return obj
 def save_graph(G: nx.Graph, 
                fid: Path) -> None:
     """Save a graph to a file.
@@ -57,7 +56,7 @@ def save_graph(G: nx.Graph,
     """
     json_data = nx.node_link_data(G)
     
-    with open(fid, 'w') as file:
+    with fid.open('w') as file:
         json.dump(json_data, 
                   file,
                   default = _serialize_line_string)
@@ -73,10 +72,10 @@ class BaseGraphFunction(ABC):
     their requirements and additions a-priori when the list is provided.
     """
     
-    required_edge_attributes: List[str] = list()
-    adds_edge_attributes: List[str] = list()
-    required_node_attributes: List[str] = list()
-    adds_node_attributes: List[str] = list()
+    required_edge_attributes: List[str] = []
+    adds_edge_attributes: List[str] = []
+    required_node_attributes: List[str] = []
+    adds_node_attributes: List[str] = []
     def __init_subclass__(cls, 
                           required_edge_attributes: Optional[List[str]] = None,
                           adds_edge_attributes: Optional[List[str]] = None,
@@ -84,14 +83,10 @@ class BaseGraphFunction(ABC):
                           adds_node_attributes : Optional[List[str]] = None
                           ):
         """Set the required and added attributes for the subclass."""
-        cls.required_edge_attributes = required_edge_attributes if \
-            required_edge_attributes else []
-        cls.adds_edge_attributes = adds_edge_attributes if \
-            adds_edge_attributes  else []
-        cls.required_node_attributes = required_node_attributes if \
-            required_node_attributes else []
-        cls.adds_node_attributes = adds_node_attributes if \
-            adds_node_attributes  else []
+        cls.required_edge_attributes = required_edge_attributes or []
+        cls.adds_edge_attributes = adds_edge_attributes or []
+        cls.required_node_attributes = required_node_attributes or []
+        cls.adds_node_attributes = adds_node_attributes or []
 
     @abstractmethod
     def __call__(self, 
@@ -734,8 +729,7 @@ class derive_topology(BaseGraphFunction,
                 if d['edge_type'] == 'outlet':
                     nodes_to_remove.append(v)
                 else:
-                    nodes_to_remove.append(u)
-                    nodes_to_remove.append(v)
+                    nodes_to_remove.extend((u,v))
 
         isolated_nodes = list(nx.isolates(G))
 
@@ -779,7 +773,7 @@ class derive_topology(BaseGraphFunction,
                 # Push the neighbor to the heap
                 heappush(heap, (alt_dist, neighbor))
 
-        edges_to_keep = set()
+        edges_to_keep: set = set() # no clue why mypy wants me to do this..
         for path in paths.values():
             # Assign outlet
             outlet = path[0]
@@ -788,9 +782,8 @@ class derive_topology(BaseGraphFunction,
                 G.nodes[node]['shortest_path'] = shortest_paths[node]
 
             # Store path
-            for i in range(len(path) - 1):
-                edges_to_keep.add((path[i+1], path[i]))
-
+            edges_to_keep.update(zip(path[1:], path[:-1]))
+            
         # Remove edges not on paths
         new_graph = G.copy()
         for u,v in G.edges():
