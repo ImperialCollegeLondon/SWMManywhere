@@ -1,6 +1,5 @@
 import difflib
 import filecmp
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -130,50 +129,41 @@ def generate_data_dict():
 def test_synthetic_write():
     """Test the synthetic_write function."""
     data_dict = generate_data_dict()    
-    model_dir = tempfile.mkdtemp('_1')
-    try:
+    with tempfile.TemporaryDirectory() as model_dir:
+        model_dir = Path(model_dir)
+        model_dir = model_dir / 'model_1'
+        model_dir.mkdir()
         # Write the model with synthetic_write
         nodes = gpd.GeoDataFrame(data_dict['nodes'])
         nodes.geometry = gpd.points_from_xy(nodes.x, nodes.y)
-        nodes.to_file(
-            os.path.join(
-                model_dir, 
-                'pipe_by_pipe_nodes.geojson'))
+        nodes.to_file(model_dir / 'pipe_by_pipe_nodes.geojson')
         nodes = nodes.set_index('id')
         edges = gpd.GeoDataFrame(pd.DataFrame(data_dict['conduits']).iloc[[0]])
         edges.geometry = [sgeom.LineString([nodes.loc[u,'geometry'],
                                             nodes.loc[v,'geometry']]) 
                           for u,v in zip(edges.u, edges.v)]
-        edges.to_file(
-            os.path.join(
-                model_dir,
-                'pipe_by_pipe_edges.geojson'))
+        edges.to_file(model_dir / 'pipe_by_pipe_edges.geojson')
         subs = data_dict['subs'].copy()
         subs['subcatchment'] = ['node1']
-        subs.to_file(os.path.join(model_dir, 
-                                                'subcatchments.geojson'))
+        subs.to_file(model_dir / 'subcatchments.geojson')
         stt.synthetic_write(model_dir)
 
         # Write the model with data_dict_to_inp
-        comparison_file = os.path.join(model_dir, "model_base.inp")
-        template_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
+        comparison_file = model_dir / "model_base.inp"
+        template_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
+            'basic_drainage_all_bits.inp'
         stt.data_dict_to_inp(stt.format_to_swmm_dict(**data_dict),
                              template_fid,
                              comparison_file)
         
         # Compare
-        new_input_file = os.path.join(model_dir, "model_1.inp")
+        new_input_file = model_dir / "model_1.inp"
         are_files_identical = filecmp.cmp(new_input_file,
                                            comparison_file, 
                                            shallow=False)
         if not are_files_identical:
-            with open(new_input_file, 
-                      'r') as file1, open(comparison_file, 
-                                          'r') as file2:
+            with new_input_file.open('r') as file1,\
+                comparison_file.open('r') as file2:
                 diff = difflib.unified_diff(
                     file1.readlines(),
                     file2.readlines(),
@@ -182,9 +172,6 @@ def test_synthetic_write():
                 )
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"
-    finally:
-        pass
-        # shutil.rmtree(model_dir)
 
 def test_format_to_swmm_dict():
     """Test the format_format_to_swmm_dict function.

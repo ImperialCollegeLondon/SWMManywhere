@@ -4,7 +4,6 @@
 @author: Barnaby Dobson
 """
 
-import os
 import shutil
 from pathlib import Path
 from typing import cast
@@ -36,20 +35,17 @@ def get_country(x: float,
             Example: {2: 'GB', 3: 'GBR'}
     """
     # Get the directory of the current module
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(__file__).parent
     
     # TODO use 'load_yaml_from_defs'
     # Create the path to iso_converter.yml
-    iso_path = os.path.join(current_dir, 
-                            "defs", 
-                            "iso_converter.yml")
-
-
+    iso_path = current_dir / "defs" / "iso_converter.yml"
+    
     # Initialize geolocator
     geolocator = Nominatim(user_agent="get_iso")
 
     # Load ISO code mapping from YAML file
-    with open(iso_path, "r") as file:
+    with iso_path.open("r") as file:
         data = yaml.safe_load(file)
 
     # Get country ISO code from coordinates
