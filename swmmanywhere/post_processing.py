@@ -135,13 +135,13 @@ def synthetic_write(model_dir: str):
 
 def overwrite_section(data: np.ndarray,
                       section: str,
-                      fid: str):
+                      fid: str | Path):
     """Overwrite a section of a SWMM .inp file with new data.
 
     Args:
         data (np.ndarray): Data array to be written to the SWMM .inp file.
         section (str): Section of the SWMM .inp file to be overwritten.
-        fid (str): File path to the SWMM .inp file.
+        fid (str | Path): File path to the SWMM .inp file.
         
     Example:
         data = np.array([
@@ -193,7 +193,7 @@ def overwrite_section(data: np.ndarray,
             # Calculate the space counts by taking the length of each match
             space_counts = [len(x) + len(y) 
                             for x, y in zip(matches, example_line.split())]
-            if len(space_counts) == 0:
+            if not space_counts:
                 if data.shape[0] != 0:
                     print('no template for data?')
                 continue
@@ -229,7 +229,7 @@ def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
             The new flow routing method to be used. Available options are:
             ``KINWAVE``, ``DYNWAVE``, or ``STEADY``.
     """
-    if routing_method.upper() not in ["KINWAVE", "DYNWAVE", "STEADY"]:
+    if routing_method.upper() not in ("KINWAVE", "DYNWAVE", "STEADY"):
         raise ValueError(
             "routing_method must be one of 'KINWAVE', 'DYNWAVE', or 'STEADY'."
         )
@@ -243,8 +243,8 @@ def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
     file_path.write_text(updated_contents)
 
 def data_dict_to_inp(data_dict: dict[str, np.ndarray],
-                     base_input_file: str, 
-                     new_input_file: str, 
+                     base_input_file: str | Path, 
+                     new_input_file: str | Path, 
                      routing: Literal["KINWAVE", "DYNWAVE", "STEADY"] = "DYNWAVE"):
     """Write a SWMM .inp file from a dictionary of data arrays.
 
@@ -253,8 +253,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
             each key is a SWMM section and each value is a numpy array of
             data to be written to that section. The existing section is 
             overwritten
-        base_input_file (str): File path to the example/template .inp file.
-        new_input_file (str): File path to the new SWMM .inp file.
+        base_input_file (str | Path): File path to the example/template .inp file.
+        new_input_file (str | Path): File path to the new SWMM .inp file.
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """

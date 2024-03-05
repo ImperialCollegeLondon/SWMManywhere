@@ -54,8 +54,10 @@ def get_country(x: float,
 
     # Get country ISO code from coordinates
     location = geolocator.reverse(f"{y}, {x}", exactly_one=True)
-    iso_country_code = location.raw.get("address", {}).get("country_code")
-    iso_country_code = iso_country_code.upper()
+    iso_country_code = (
+        location.raw.get("address", {}).get("country_code")
+        .upper()
+    )
 
     # Return a dictionary with the two and three letter ISO codes
     return {2: iso_country_code, 3: data.get(iso_country_code, '')}
@@ -234,6 +236,6 @@ def download_precipitation(bbox: tuple[float, float, float, float],
         
     
     # Delete nc file
-    os.remove('download.nc')
+    Path('download.nc').unlink()
 
     return df

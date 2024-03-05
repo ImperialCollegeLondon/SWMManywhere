@@ -56,7 +56,7 @@ def check_bboxes(bbox: tuple[float, float, float, float],
     # Iterate over info files
     for info_fid in info_fids:
         # Read bounding_box_info.json
-        with open(info_fid, 'r') as info_file:
+        with info_fid.open('r') as info_file:
             bounding_info = json.load(info_file)
         # Check if the bounding box coordinates match
         if Counter(bounding_info.get("bbox")) == Counter(bbox):
@@ -87,8 +87,7 @@ def get_next_bbox_number(bbox: tuple[float, float, float, float],
     bbox_number = check_bboxes(bbox, data_dir)
     if not bbox_number:
         return next_directory('bbox', data_dir)
-    else:
-        return bbox_number
+    return bbox_number
 
 def create_project_structure(bbox: tuple[float, float, float, float],
                              project: str,
@@ -166,11 +165,8 @@ def prepare_precipitation(bbox: tuple[float, float, float, float],
                                                     api_keys['cds_username'],
                                                     api_keys['cds_api_key'])
     precip = precip.reset_index()
-    precip = go.reproject_df(precip,
-                                source_crs, 
-                                target_crs)
-    write_df(precip, 
-                addresses.precipitation)
+    precip = go.reproject_df(precip, source_crs, target_crs)
+    write_df(precip, addresses.precipitation)
     
 def prepare_elvation(bbox: tuple[float, float, float, float],
                     addresses: parameters.FilePaths,

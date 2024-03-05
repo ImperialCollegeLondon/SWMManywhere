@@ -229,10 +229,10 @@ class FilePaths:
         """
         if property_name in self.__dict__.keys():
              return self.__dict__[property_name]
-        else:
-            return self._generate_path(self.project_name, 
-                                       getattr(self, location),
-                                       property_name)
+        
+        return self._generate_path(self.project_name, 
+                                    getattr(self, location),
+                                    property_name)
 
     def _generate_project(self):
         return self._generate_path(self.project_name)

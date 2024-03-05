@@ -89,3 +89,6 @@ convention = "google"
 [tool.codespell]
 skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"
+
+[tool.refurb]
+ignore = [184]
