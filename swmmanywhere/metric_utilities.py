@@ -3,7 +3,7 @@
 
 @author: Barnaby Dobson
 """
-from abc import ABC, abstractmethod
+from inspect import signature
 from typing import Callable
 
 import geopandas as gpd
@@ -13,25 +13,33 @@ import pandas as pd
 from scipy import stats
 
 
-class BaseMetric(ABC):
-    """Base metric class."""
-    @abstractmethod
-    def __call__(self, 
-                 *args,
-                 **kwargs) -> float:
-        """Run the evaluated metric."""
-        return 0
-
 class MetricRegistry(dict): 
     """Registry object.""" 
     
-    def register(self, cls):
+    def register(self, func: Callable) -> Callable:
         """Register a metric."""
-        if cls.__name__ in self:
-            raise ValueError(f"{cls.__name__} already in the metric registry!")
+        if func.__name__ in self:
+            raise ValueError(f"{func.__name__} already in the metric registry!")
 
-        self[cls.__name__] = cls()
-        return cls
+        allowable_params = {"synthetic_results": pd.DataFrame,
+                            "real_results": pd.DataFrame,
+                            "synthetic_subs": gpd.GeoDataFrame,
+                            "real_subs": gpd.GeoDataFrame,
+                            "synthetic_G": nx.Graph,
+                            "real_G": nx.Graph}
+
+        sig = signature(func)
+        for param, obj in sig.parameters.items():
+            if param == 'kwargs':
+                continue
+            if param not in allowable_params.keys():
+                raise ValueError(f"{param} of {func.__name__} not allowed.")
+            if obj.annotation != allowable_params[param]:
+                raise ValueError(f"""{param} of {func.__name__} should be of
+                                 type {allowable_params[param]}, not 
+                                 {obj.__class__}.""")
+        self[func.__name__] = func
+        return func
 
     def __getattr__(self, name):
         """Get a metric from the graphfcn dict."""
@@ -43,18 +51,6 @@ class MetricRegistry(dict):
 
 metrics = MetricRegistry()
 
-def register_metric(cls) -> Callable:
-    """Register a metric.
-
-    Args:
-        cls (Callable): A class that inherits from BaseMetric
-
-    Returns:
-        cls (Callable): The same class
-    """
-    metrics.register(cls)
-    return cls
-
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
@@ -63,15 +59,12 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
-@register_metric
-class bias_flood_depth(BaseMetric):
-    """Bias flood depth."""
-    def __call__(self, 
+@metrics.register
+def bias_flood_depth(
                  synthetic_results: pd.DataFrame,
                  real_results: pd.DataFrame,
                  synthetic_subs: gpd.GeoDataFrame,
                  real_subs: gpd.GeoDataFrame,
-                 *args,
                  **kwargs) -> float:
         """Run the evaluated metric."""
         
@@ -90,13 +83,10 @@ class bias_flood_depth(BaseMetric):
 
         return (syn_tot - real_tot) / real_tot
 
-@register_metric
-class kstest_betweenness(BaseMetric):
-    """KS two sided of betweenness distribution."""
-    def __call__(self, 
+@metrics.register
+def kstest_betweenness( 
                  synthetic_G: nx.Graph,
                  real_G: nx.Graph,
-                 *args,
                  **kwargs) -> float:
         """Run the evaluated metric."""
         syn_betweenness = nx.betweenness_centrality(synthetic_G)
