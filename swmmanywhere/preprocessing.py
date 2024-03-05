@@ -16,7 +16,7 @@ import pandas as pd
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as gu
 from swmmanywhere import parameters, prepare_data
-from swmmanywhere.utils import logger
+from swmmanywhere.logging import logger
 
 
 def next_directory(keyword: str, directory: Path) -> int:

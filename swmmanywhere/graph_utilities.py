@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
-from swmmanywhere.utils import logger
+from swmmanywhere.logging import logger
 
 
 def load_graph(fid: Path) -> nx.Graph:
