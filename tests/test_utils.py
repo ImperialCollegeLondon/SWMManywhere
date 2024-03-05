@@ -6,7 +6,7 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from swmmanywhere.utils import logger
+from swmmanywhere.logging import logger
 
 
 def test_logger():
@@ -44,7 +44,7 @@ def test_logger_disable():
 
 def test_logger_reimport():
     """Reimport logger to check that changes from disable are persistent."""
-    from swmmanywhere.utils import logger
+    from swmmanywhere.logging import logger
     with NamedTemporaryFile(suffix='.log',
                             mode = 'w+b',
                             delete=False) as temp_file:    
