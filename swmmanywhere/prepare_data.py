@@ -18,7 +18,7 @@ import xarray as xr
 import yaml
 from geopy.geocoders import Nominatim
 
-from swmmanywhere.utils import logger
+from swmmanywhere.logging import logger
 
 
 def get_country(x: float, 
