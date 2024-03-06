@@ -59,43 +59,6 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
-@metrics.register
-def bias_flood_depth(
-                 synthetic_results: pd.DataFrame,
-                 real_results: pd.DataFrame,
-                 synthetic_subs: gpd.GeoDataFrame,
-                 real_subs: gpd.GeoDataFrame,
-                 **kwargs) -> float:
-        """Run the evaluated metric."""
-        
-        def _f(x):
-            return np.trapz(x.value,x.duration)
-
-        syn_flooding = extract_var(synthetic_results,
-                                    'flooding').groupby('object').apply(_f)
-        syn_area = synthetic_subs.impervious_area.sum()
-        syn_tot = syn_flooding.sum() / syn_area
-
-        real_flooding = extract_var(real_results,
-                                    'flooding').groupby('object').apply(_f)
-        real_area = real_subs.impervious_area.sum()
-        real_tot = real_flooding.sum() / real_area
-
-        return (syn_tot - real_tot) / real_tot
-
-@metrics.register
-def kstest_betweenness( 
-                 synthetic_G: nx.Graph,
-                 real_G: nx.Graph,
-                 **kwargs) -> float:
-        """KS two sided of betweenness distribution."""
-        syn_betweenness = nx.betweenness_centrality(synthetic_G)
-        real_betweenness = nx.betweenness_centrality(real_G)
-        
-        #TODO does it make more sense to use statistic or pvalue?
-        return stats.ks_2samp(list(syn_betweenness.values()),
-                                list(real_betweenness.values())).statistic
-
 def align_calc_nse(synthetic_results: pd.DataFrame, 
                   real_results: pd.DataFrame, 
                   variable: str, 
@@ -129,61 +92,6 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
 
     # Calculate NSE
     return nse(df.value_real, df.value_syn)
-
-@metrics.register
-def outlet_nse_flow(synthetic_G: nx.Graph,
-                  synthetic_results: pd.DataFrame,
-                  real_G: nx.Graph,
-                  real_results: pd.DataFrame,
-                  real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
-    """Outlet NSE flow.
-
-    Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
-    is measured as the total flow of all arcs that drain to the 'dominant'
-    outlet node. The dominant outlet node of the 'real' network is calculated by
-    dominant_outlet, while the dominant outlet node of the 'synthetic' network
-    is calculated by best_outlet_match.
-    """
-    # Identify synthetic and real arcs that flow into the best outlet node
-    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
-    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
-                if v == syn_outlet]
-    _, real_outlet = dominant_outlet(real_G, real_results)
-    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
-                if v == real_outlet]
-    
-    return align_calc_nse(synthetic_results, 
-                         real_results, 
-                         'flow', 
-                         syn_arc, 
-                         real_arc)
-
-
-@metrics.register
-def outlet_nse_flooding(synthetic_G: nx.Graph,
-                  synthetic_results: pd.DataFrame,
-                  real_G: nx.Graph,
-                  real_results: pd.DataFrame,
-                  real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
-    """Outlet NSE flooding.
-    
-    Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
-    flooding is the total volume of flooded water across all nodes that drain
-    to the 'dominant' outlet node. The dominant outlet node of the 'real' 
-    network is calculated by dominant_outlet, while the dominant outlet node of
-    the 'synthetic' network is calculated by best_outlet_match.
-    """
-    # Identify synthetic and real outlet arcs
-    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
-    sg_real, _ = dominant_outlet(real_G, real_results)
-    
-    return align_calc_nse(synthetic_results, 
-                         real_results, 
-                         'flooding', 
-                         list(sg_syn.nodes),
-                         list(sg_real.nodes))
 
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
@@ -259,3 +167,95 @@ def dominant_outlet(G: nx.Graph,
     # Subselect the matching graph
     sg = G.subgraph(nx.ancestors(G, max_outlet) | {max_outlet})
     return sg, max_outlet
+
+@metrics.register
+def bias_flood_depth(
+                 synthetic_results: pd.DataFrame,
+                 real_results: pd.DataFrame,
+                 synthetic_subs: gpd.GeoDataFrame,
+                 real_subs: gpd.GeoDataFrame,
+                 **kwargs) -> float:
+        """Run the evaluated metric."""
+        
+        def _f(x):
+            return np.trapz(x.value,x.duration)
+
+        syn_flooding = extract_var(synthetic_results,
+                                    'flooding').groupby('object').apply(_f)
+        syn_area = synthetic_subs.impervious_area.sum()
+        syn_tot = syn_flooding.sum() / syn_area
+
+        real_flooding = extract_var(real_results,
+                                    'flooding').groupby('object').apply(_f)
+        real_area = real_subs.impervious_area.sum()
+        real_tot = real_flooding.sum() / real_area
+
+        return (syn_tot - real_tot) / real_tot
+
+@metrics.register
+def kstest_betweenness( 
+                 synthetic_G: nx.Graph,
+                 real_G: nx.Graph,
+                 **kwargs) -> float:
+        """KS two sided of betweenness distribution."""
+        syn_betweenness = nx.betweenness_centrality(synthetic_G)
+        real_betweenness = nx.betweenness_centrality(real_G)
+        
+        #TODO does it make more sense to use statistic or pvalue?
+        return stats.ks_2samp(list(syn_betweenness.values()),
+                                list(real_betweenness.values())).statistic
+
+@metrics.register
+def outlet_nse_flow(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet NSE flow.
+
+    Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
+    is measured as the total flow of all arcs that drain to the 'dominant'
+    outlet node. The dominant outlet node of the 'real' network is calculated by
+    dominant_outlet, while the dominant outlet node of the 'synthetic' network
+    is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real arcs that flow into the best outlet node
+    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
+                if v == syn_outlet]
+    _, real_outlet = dominant_outlet(real_G, real_results)
+    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
+                if v == real_outlet]
+    
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flow', 
+                         syn_arc, 
+                         real_arc)
+
+
+@metrics.register
+def outlet_nse_flooding(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet NSE flooding.
+    
+    Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
+    flooding is the total volume of flooded water across all nodes that drain
+    to the 'dominant' outlet node. The dominant outlet node of the 'real' 
+    network is calculated by dominant_outlet, while the dominant outlet node of
+    the 'synthetic' network is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flooding', 
+                         list(sg_syn.nodes),
+                         list(sg_real.nodes))
