@@ -93,7 +93,7 @@ def test_best_outlet_match():
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     subs = get_subs()
     
-    sg, outlet = mu.metrics.best_outlet_match(synthetic_G = G, 
+    sg, outlet = mu.best_outlet_match(synthetic_G = G, 
                                      real_subs = subs)
     outlets = nx.get_node_attributes(sg, 'outlet')
     assert len(set(outlets.values())) == 1
