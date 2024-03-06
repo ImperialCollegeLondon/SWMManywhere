@@ -113,7 +113,7 @@ def synthetic_write(model_dir: Path):
     
     # New input file
     model_number = model_dir.name.split('_')[-1]
-    new_input_file = model_dir / 'model_{0}.inp'.format(model_number)
+    new_input_file = model_dir / f'model_{model_number}.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
@@ -246,8 +246,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
             each key is a SWMM section and each value is a numpy array of
             data to be written to that section. The existing section is 
             overwritten
-        base_input_file (str | Path): File path to the example/template .inp file.
-        new_input_file (str | Path): File path to the new SWMM .inp file.
+        base_input_file (Path): File path to the example/template .inp file.
+        new_input_file (Path): File path to the new SWMM .inp file.
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
