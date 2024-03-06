@@ -95,7 +95,41 @@ def kstest_betweenness(
         #TODO does it make more sense to use statistic or pvalue?
         return stats.ks_2samp(list(syn_betweenness.values()),
                                 list(real_betweenness.values())).statistic
-    
+
+def align_calc_nse(synthetic_results: pd.DataFrame, 
+                  real_results: pd.DataFrame, 
+                  variable: str, 
+                  syn_ids: list,
+                  real_ids: list) -> float:
+    """Align and calculate NSE.
+
+    Align the synthetic and real data and calculate the Nash-Sutcliffe
+    efficiency (NSE) of the variable over time. In cases where the synthetic
+    data is does not overlap the real data, the value is interpolated.
+    """
+    # Extract data
+    syn_data = extract_var(synthetic_results, variable)
+    syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
+    syn_data = syn_data.groupby('date').value.sum().reset_index()
+
+    real_data = extract_var(real_results, variable)
+    real_data = real_data.loc[real_data.object.isin(real_ids)]
+    real_data = real_data.groupby('date').value.sum().reset_index()
+
+    # Align data
+    df = pd.merge(syn_data, 
+                  real_data, 
+                  on='date', 
+                  suffixes=('_syn', '_real'), 
+                  how='outer').sort_values(by='date')
+
+    # Interpolate to time in real data
+    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
+    df = df.dropna(subset=['value_real'])
+
+    # Calculate NSE
+    return nse(df.value_real, df.value_syn)
+
 @metrics.register
 def outlet_nse_flow(synthetic_G: nx.Graph,
                   synthetic_results: pd.DataFrame,
@@ -119,29 +153,12 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
     real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
                 if v == real_outlet]
     
-    # Extract flow data
-    syn_flow = synthetic_results.loc[(synthetic_results.variable == 'flow') &
-                                    (synthetic_results.object.isin(syn_arc))]
-    syn_flow = syn_flow.groupby('date').value.sum().reset_index()
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flow', 
+                         syn_arc, 
+                         real_arc)
 
-    real_flow = real_results.loc[(real_results.variable == 'flow') &
-                                    (real_results.object.isin(real_arc))]
-    real_flow = real_flow.groupby('date').value.sum().reset_index()
-
-    # Align data
-    df = pd.merge(syn_flow, 
-                    real_flow, 
-                    on = 'date', 
-                    suffixes = ('_syn','_real'),
-                    how = 'outer')
-    df = df.sort_values(by='date')
-
-    # Interpolate to time in real data
-    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
-    df = df.dropna(subset = 'value_real')
-
-    # Calculate NSE
-    return nse(df.value_real, df.value_syn)
 
 @metrics.register
 def outlet_nse_flooding(synthetic_G: nx.Graph,
@@ -162,31 +179,11 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
     sg_real, _ = dominant_outlet(real_G, real_results)
     
-    # Extract flooding data
-    syn_flood = synthetic_results.loc[(synthetic_results.variable == 'flooding') &
-                                    synthetic_results.object.isin(sg_syn.nodes)]
-    
-    real_flood = real_results.loc[(real_results.variable == 'flooding') &
-                                    real_results.object.isin(sg_real.nodes)]
-    
-    # Aggregate to total flooding over network
-    syn_flood = syn_flood.groupby('date').value.sum().reset_index()
-    real_flood = real_flood.groupby('date').value.sum().reset_index()
-
-    # Align data
-    df = pd.merge(syn_flood, 
-                    real_flood, 
-                    on = 'date', 
-                    suffixes = ('_syn','_real'),
-                    how = 'outer')
-    df = df.sort_values(by='date')
-
-    # Interpolate to time in real data
-    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
-    df = df.dropna(subset='value_real')
-
-    # Calculate NSE
-    return nse(df.value_real, df.value_syn)
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flooding', 
+                         list(sg_syn.nodes),
+                         list(sg_real.nodes))
 
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
@@ -212,13 +209,15 @@ def best_outlet_match(synthetic_G: nx.Graph,
     # Identify which nodes fall within real_subs
     nodes_df = pd.DataFrame([d for x,d in synthetic_G.nodes(data=True)],
                              index = synthetic_G.nodes)
-    nodes_gdf = gpd.GeoDataFrame(nodes_df, 
-                                 geometry=gpd.points_from_xy(nodes_df.x, 
-                                                             nodes_df.y),
-                                 crs = synthetic_G.graph['crs'])
-    nodes_joined = nodes_gdf.sjoin(real_subs, 
-                                   how="right", 
-                                   predicate="intersects")
+    nodes_joined = (
+        gpd.GeoDataFrame(nodes_df, 
+                         geometry=gpd.points_from_xy(nodes_df.x, 
+                                                    nodes_df.y),
+                         crs = synthetic_G.graph['crs'])
+        .sjoin(real_subs, 
+               how="right", 
+               predicate="intersects")
+    )
 
     # Select the most common outlet
     outlet = nodes_joined.outlet.value_counts().idxmax()
