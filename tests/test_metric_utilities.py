@@ -77,43 +77,27 @@ def test_bias_flood_depth():
                               real_subs = real_subs)
     assert np.isclose(val, -0.29523809523809524)
 
+def test_kstest_betweenness():
+    """Test the kstest_betweenness metric."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    val = mu.metrics.kstest_betweenness(synthetic_G = G, real_G = G)
+    assert val == 0.0
+
+    G_ = G.copy()
+    G_.remove_node(list(G.nodes)[0])
+    val = mu.metrics.kstest_betweenness(synthetic_G = G_, real_G = G)
+    assert np.isclose(val, 0.286231884057971)
+
 def test_best_outlet_match():
     """Test the best_outlet_match and ks_betweenness."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     subs = get_subs()
     
-    sg, outlet = mu.best_outlet_match(synthetic_G = G, 
+    sg, outlet = mu.metrics.best_outlet_match(synthetic_G = G, 
                                      real_subs = subs)
     outlets = nx.get_node_attributes(sg, 'outlet')
     assert len(set(outlets.values())) == 1
     assert outlet == 12354833
-
-    results = pd.DataFrame([{'object' : 4253560,
-                             'variable' : 'flow',
-                             'value' : 10},
-                            {'object' : '',
-                             'variable' : 'flow',
-                             'value' : 5}])
-
-    val = mu.metrics.kstest_betweenness(synthetic_G = G, 
-                                 real_G = G, 
-                                 real_subs = subs,
-                                 real_results = results)
-    
-    assert val == 0.0
-
-    # Move the outlet up one node
-    G_ = G.copy()
-    nx.set_node_attributes(G_,
-                           list(G_.in_edges(outlet))[0][0],
-                           'outlet')
-    G_.remove_node(outlet)
-
-    val = mu.metrics.kstest_betweenness(synthetic_G = G_,
-                                real_G = G,
-                                real_subs = subs,
-                                real_results = results)
-    assert val == 0.4
 
 def test_nse():
     """Test the nse metric."""
