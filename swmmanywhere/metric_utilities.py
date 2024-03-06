@@ -84,22 +84,14 @@ def bias_flood_depth(
         return (syn_tot - real_tot) / real_tot
 
 @metrics.register
-def kstest_betweenness(
-                synthetic_G: nx.Graph,
-                real_G: nx.Graph,
-                real_subs: gpd.GeoDataFrame,
-                real_results: pd.DataFrame,
-                **kwargs) -> float:
+def kstest_betweenness( 
+                 synthetic_G: nx.Graph,
+                 real_G: nx.Graph,
+                 **kwargs) -> float:
     """KS two sided of betweenness distribution."""
-    # Identify synthetic outlet and subgraph
-    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    syn_betweenness = nx.betweenness_centrality(synthetic_G)
+    real_betweenness = nx.betweenness_centrality(real_G)
     
-    # Identify real outlet and subgraph
-    sg_real, _ = dominant_outlet(real_G, real_results)
-
-    syn_betweenness = nx.betweenness_centrality(sg_syn)
-    real_betweenness = nx.betweenness_centrality(sg_real)
-
     #TODO does it make more sense to use statistic or pvalue?
     return stats.ks_2samp(list(syn_betweenness.values()),
                             list(real_betweenness.values())).statistic
