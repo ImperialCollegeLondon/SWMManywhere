@@ -53,5 +53,5 @@ def new_add(sink, **kwargs):
     # Call the original add method with the updated kwargs
     return original_add(sink, **kwargs)
 
-# Replace the logger's add method with your new function
+# Replace the logger's add method with new_add
 logger.add = new_add
