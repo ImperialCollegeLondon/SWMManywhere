@@ -113,7 +113,7 @@ def synthetic_write(model_dir: Path):
     
     # New input file
     model_number = model_dir.name.split('_')[-1]
-    new_input_file = model_dir / 'model_{0}.inp'.format(model_number)
+    new_input_file = model_dir / f'model_{model_number}.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
