@@ -6,8 +6,10 @@ such as reprojecting coordinates and handling raster data.
 
 @author: Barnaby Dobson
 """
+import itertools
 import json
 import math
+import operator
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -248,8 +250,9 @@ def reproject_graph(G: nx.Graph,
     # Convert and add edges with 'geometry' property
     for u, v, data in G_new.edges(data=True):
         if 'geometry' in data.keys():
-            data['geometry'] = sgeom.LineString(transformer.transform(x, y) 
-                                      for x, y in data['geometry'].coords)
+            data['geometry'] = sgeom.LineString(
+                itertools.starmap(transformer.transform,
+                                  data['geometry'].coords))
         else:
             data['geometry'] = sgeom.LineString([[G_new.nodes[u]['x'],
                                         G_new.nodes[u]['y']],
@@ -440,7 +443,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         polys.append({'id': id, 
                       'geometry': catchment_polygon,
                       'area': catchment_polygon.area})
-    polys = sorted(polys, key=lambda d: d['area'], reverse=True)
+    polys.sort(key=operator.itemgetter("area"), reverse=True)
     return gpd.GeoDataFrame(polys, crs = grid.crs)
 
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -461,9 +464,11 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     result_polygons = polys.copy()
     
     # Sort the polygons by area (smallest first)
-    result_polygons['area'] = result_polygons.geometry.area
-    result_polygons = result_polygons.sort_values('area', ascending=True)
-    result_polygons = result_polygons.reset_index(drop=True)
+    result_polygons = (
+        result_polygons.assign(area=result_polygons.geometry.area)
+        .sort_values('area', ascending=True)
+        .reset_index(drop=True)
+    )
 
     # Store the area of 'trimmed' polygons into a combined geometry, starting
     # with the smallest area polygon
@@ -480,8 +485,10 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     
     # Sort the polygons by area (largest first) - this is just to conform to
     # the unit test and is not strictly essential
-    result_polygons = result_polygons.sort_values('area', ascending=False)
-    result_polygons = result_polygons.drop('area', axis=1)
+    result_polygons = (
+        result_polygons.sort_values('area', ascending=False)
+        .drop('area', axis=1)
+    )
 
     return result_polygons
 
@@ -592,7 +599,7 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
 
     # Remove zero area subareas and attach to nearest polygon
-    removed_subareas: List[sgeom.Polygon] = list() # needed for mypy
+    removed_subareas: List[sgeom.Polygon] = [] # needed for mypy
     def remove_(mp): return remove_zero_area_subareas(mp, removed_subareas)
     polys_gdf['geometry'] = polys_gdf['geometry'].apply(remove_)
     polys_gdf = attach_unconnected_subareas(polys_gdf, removed_subareas)
@@ -614,7 +621,7 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     impervious area is calculated by overlaying the subcatchments with building
     footprints and all edges in G buffered by their width parameter (i.e., to
     calculate road area).
-    
+
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
@@ -632,12 +639,15 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     ## Format as swmm type catchments 
 
     # TODO think harder about lane widths (am I double counting here?)
-    lines = []
-    for u, v, x in G.edges(data=True):
-        lines.append({'geometry' : x['geometry'].buffer(x['width'], 
-                                                                cap_style = 2, 
-                                                                join_style=2),
-                            'id' : x['id']})
+    lines = [
+        {
+            'geometry': x['geometry'].buffer(x['width'], 
+                                             cap_style=2, 
+                                             join_style=2),
+            'id': x['id']
+        }
+        for u, v, x in G.edges(data=True)
+    ]
     lines_df = pd.DataFrame(lines)
     lines_gdf = gpd.GeoDataFrame(lines_df, 
                                 geometry=lines_df.geometry,

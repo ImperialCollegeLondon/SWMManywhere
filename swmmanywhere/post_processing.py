@@ -6,7 +6,6 @@ files.
 
 @author: Barnaby Dobson
 """
-import os
 import re
 import shutil
 from pathlib import Path
@@ -18,7 +17,7 @@ import pandas as pd
 import yaml
 
 
-def synthetic_write(model_dir: str):
+def synthetic_write(model_dir: Path):
     """Load synthetic data and write to SWMM input file.
 
     Loads nodes, edges and subcatchments from synthetic data, assumes that 
@@ -35,12 +34,9 @@ def synthetic_write(model_dir: str):
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_nodes.geojson'))
-    edges = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_edges.geojson'))
-    subs = gpd.read_file(os.path.join(model_dir, 
-                                       'subcatchments.geojson'))
+    nodes = gpd.read_file(model_dir / 'pipe_by_pipe_nodes.geojson')
+    edges = gpd.read_file(model_dir / 'pipe_by_pipe_edges.geojson')
+    subs = gpd.read_file(model_dir / 'subcatchments.geojson')
     
     # Extract SWMM relevant data
     edges = edges[['u','v','diameter','length']]
@@ -112,14 +108,12 @@ def synthetic_write(model_dir: str):
                }
 
     # Template SWMM input file
-    existing_input_file = os.path.join(os.path.dirname(__file__),
-                                    'defs',
-                                    'basic_drainage_all_bits.inp')
+    existing_input_file = Path(__file__).parent / 'defs' /\
+          'basic_drainage_all_bits.inp'
     
     # New input file
-    model_number = model_dir.split('_')[-1]
-    new_input_file = os.path.join(model_dir, 
-                                  'model_{0}.inp'.format(model_number))
+    model_number = model_dir.name.split('_')[-1]
+    new_input_file = model_dir / f'model_{model_number}.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
@@ -135,13 +129,13 @@ def synthetic_write(model_dir: str):
 
 def overwrite_section(data: np.ndarray,
                       section: str,
-                      fid: str):
+                      fid: Path):
     """Overwrite a section of a SWMM .inp file with new data.
 
     Args:
         data (np.ndarray): Data array to be written to the SWMM .inp file.
         section (str): Section of the SWMM .inp file to be overwritten.
-        fid (str): File path to the SWMM .inp file.
+        fid (Path): File path to the SWMM .inp file.
         
     Example:
         data = np.array([
@@ -153,14 +147,14 @@ def overwrite_section(data: np.ndarray,
         overwrite_section(data, section, fid)
     """
     # Read the existing SWMM .inp file
-    with open(fid, 'r') as infile:
+    with fid.open('r') as infile:
         lines = infile.readlines()
     
     # Create a flag to indicate whether we are within the target section
     within_target_section = False
     
     # Iterate through the lines and make modifications as needed
-    with open(fid, 'w') as outfile:
+    with fid.open('w') as outfile:
         for ix, line in enumerate(lines):
             if line.strip() != section and re.search(r'\[.*?\]', line):
                 within_target_section = False
@@ -193,7 +187,7 @@ def overwrite_section(data: np.ndarray,
             # Calculate the space counts by taking the length of each match
             space_counts = [len(x) + len(y) 
                             for x, y in zip(matches, example_line.split())]
-            if len(space_counts) == 0:
+            if not space_counts:
                 if data.shape[0] != 0:
                     print('no template for data?')
                 continue
@@ -219,21 +213,20 @@ def overwrite_section(data: np.ndarray,
             outfile.write('\n')
 
 def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
-                        file_path: str | Path)-> None:
+                        file_path: Path)-> None:
     """Replace the flow routing method in a SWMM inp file with a new method, in-place.
     
     Args:
-        file_path : str or Path
+        file_path : Path
             Path to the SWMM inp file to be modified.
         routing_method : {"KINWAVE", "DYNWAVE", "STEADY"}
             The new flow routing method to be used. Available options are:
             ``KINWAVE``, ``DYNWAVE``, or ``STEADY``.
     """
-    if routing_method.upper() not in ["KINWAVE", "DYNWAVE", "STEADY"]:
+    if routing_method.upper() not in ("KINWAVE", "DYNWAVE", "STEADY"):
         raise ValueError(
             "routing_method must be one of 'KINWAVE', 'DYNWAVE', or 'STEADY'."
         )
-    file_path = Path(file_path)
     updated_contents = re.sub(
         r'^FLOW_ROUTING\s+.*$',
         f'FLOW_ROUTING {routing_method.upper()}',
@@ -243,8 +236,8 @@ def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
     file_path.write_text(updated_contents)
 
 def data_dict_to_inp(data_dict: dict[str, np.ndarray],
-                     base_input_file: str, 
-                     new_input_file: str, 
+                     base_input_file: Path, 
+                     new_input_file: Path, 
                      routing: Literal["KINWAVE", "DYNWAVE", "STEADY"] = "DYNWAVE"):
     """Write a SWMM .inp file from a dictionary of data arrays.
 
@@ -253,8 +246,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
             each key is a SWMM section and each value is a numpy array of
             data to be written to that section. The existing section is 
             overwritten
-        base_input_file (str): File path to the example/template .inp file.
-        new_input_file (str): File path to the new SWMM .inp file.
+        base_input_file (Path): File path to the example/template .inp file.
+        new_input_file (Path): File path to the new SWMM .inp file.
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
@@ -380,17 +373,14 @@ def format_to_swmm_dict(nodes,
         ...                                    symbol)
     """
     # Get the directory of the current module
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(__file__).parent
     
     # TODO use 'load_yaml_from_defs'
     # Create the path to iso_converter.yml
-    iso_path = os.path.join(current_dir,
-                            "defs", 
-                            "swmm_conversion.yml")
-
+    iso_path = current_dir / "defs" / "swmm_conversion.yml"
 
     # Load conversion mapping from YAML file
-    with open(iso_path, "r") as file:
+    with iso_path.open("r") as file:
         conversion_dict = yaml.safe_load(file)
 
     ## Create nodes, coordinates and map dimensions
