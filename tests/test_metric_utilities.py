@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from swmmanywhere.graph_utilities import load_graph
@@ -35,7 +36,7 @@ def test_bias_flood_depth():
                               real_results = real_results,
                               synthetic_subs = synthetic_subs,
                               real_subs = real_subs)
-    assert val == -0.29523809523809524
+    assert np.isclose(val, -0.29523809523809524)
 
 def test_kstest_betweenness():
     """Test the kstest_betweenness metric."""
@@ -46,4 +47,4 @@ def test_kstest_betweenness():
     G_ = G.copy()
     G_.remove_node(list(G.nodes)[0])
     val = sm.kstest_betweenness(synthetic_G = G_, real_G = G)
-    assert val == 0.286231884057971
+    assert np.isclose(val, 0.286231884057971)
