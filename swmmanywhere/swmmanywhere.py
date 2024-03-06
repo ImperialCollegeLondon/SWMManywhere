@@ -54,7 +54,7 @@ def run(model: Path,
         # Iterate the model
         results = []
         t_ = sim.current_time
-        ind = 0
+        ind = 0 # this index does something
         while ((sim.current_time - t_).total_seconds() <= duration) & \
             (sim.current_time < sim.end_time) & (not sim._terminate_request):
             
