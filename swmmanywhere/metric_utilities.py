@@ -3,7 +3,7 @@
 
 @author: Barnaby Dobson
 """
-from abc import ABC, abstractmethod
+from inspect import signature
 from typing import Callable
 
 import geopandas as gpd
@@ -13,25 +13,33 @@ import pandas as pd
 from scipy import stats
 
 
-class BaseMetric(ABC):
-    """Base metric class."""
-    @abstractmethod
-    def __call__(self, 
-                 *args,
-                 **kwargs) -> float:
-        """Run the evaluated metric."""
-        return 0
-
 class MetricRegistry(dict): 
     """Registry object.""" 
     
-    def register(self, cls):
+    def register(self, func: Callable) -> Callable:
         """Register a metric."""
-        if cls.__name__ in self:
-            raise ValueError(f"{cls.__name__} already in the metric registry!")
+        if func.__name__ in self:
+            raise ValueError(f"{func.__name__} already in the metric registry!")
 
-        self[cls.__name__] = cls()
-        return cls
+        allowable_params = {"synthetic_results": pd.DataFrame,
+                            "real_results": pd.DataFrame,
+                            "synthetic_subs": gpd.GeoDataFrame,
+                            "real_subs": gpd.GeoDataFrame,
+                            "synthetic_G": nx.Graph,
+                            "real_G": nx.Graph}
+
+        sig = signature(func)
+        for param, obj in sig.parameters.items():
+            if param == 'kwargs':
+                continue
+            if param not in allowable_params:
+                raise ValueError(f"{param} of {func.__name__} not allowed.")
+            if obj.annotation != allowable_params[param]:
+                raise ValueError(f"""{param} of {func.__name__} should be of
+                                 type {allowable_params[param]}, not 
+                                 {obj.__class__}.""")
+        self[func.__name__] = func
+        return func
 
     def __getattr__(self, name):
         """Get a metric from the graphfcn dict."""
@@ -43,18 +51,6 @@ class MetricRegistry(dict):
 
 metrics = MetricRegistry()
 
-def register_metric(cls) -> Callable:
-    """Register a metric.
-
-    Args:
-        cls (Callable): A class that inherits from BaseMetric
-
-    Returns:
-        cls (Callable): The same class
-    """
-    metrics.register(cls)
-    return cls
-
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
@@ -63,15 +59,12 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
-@register_metric
-class bias_flood_depth(BaseMetric):
-    """Bias flood depth."""
-    def __call__(self, 
+@metrics.register
+def bias_flood_depth(
                  synthetic_results: pd.DataFrame,
                  real_results: pd.DataFrame,
                  synthetic_subs: gpd.GeoDataFrame,
                  real_subs: gpd.GeoDataFrame,
-                 *args,
                  **kwargs) -> float:
         """Run the evaluated metric."""
         
@@ -90,32 +83,34 @@ class bias_flood_depth(BaseMetric):
 
         return (syn_tot - real_tot) / real_tot
 
-@register_metric
-class kstest_betweenness(BaseMetric):
+@metrics.register
+def kstest_betweenness(
+                synthetic_G: nx.Graph,
+                real_G: nx.Graph,
+                real_subs: gpd.GeoDataFrame,
+                real_results: pd.DataFrame,
+                **kwargs) -> float:
     """KS two sided of betweenness distribution."""
-    def __call__(self, 
-                 synthetic_G: nx.Graph,
-                 real_G: nx.Graph,
-                 real_subs: gpd.GeoDataFrame,
-                 real_results: pd.DataFrame,
-                 *args,
-                 **kwargs) -> float:
-        """Run the evaluated metric."""
-        # Identify synthetic outlet and subgraph
-        sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
-        
-        # Identify real outlet and subgraph
-        sg_real, _ = dominant_outlet(real_G, real_results)
-
-        syn_betweenness = nx.betweenness_centrality(sg_syn)
-        real_betweenness = nx.betweenness_centrality(sg_real)
-
-        #TODO does it make more sense to use statistic or pvalue?
-        return stats.ks_2samp(list(syn_betweenness.values()),
-                              list(real_betweenness.values())).statistic
+    # Identify synthetic outlet and subgraph
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
     
-@register_metric
-class outlet_nse_flow(BaseMetric):
+    # Identify real outlet and subgraph
+    sg_real, _ = dominant_outlet(real_G, real_results)
+
+    syn_betweenness = nx.betweenness_centrality(sg_syn)
+    real_betweenness = nx.betweenness_centrality(sg_real)
+
+    #TODO does it make more sense to use statistic or pvalue?
+    return stats.ks_2samp(list(syn_betweenness.values()),
+                            list(real_betweenness.values())).statistic
+    
+@metrics.register
+def outlet_nse_flow(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
     """Outlet NSE flow.
 
     Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
@@ -124,49 +119,45 @@ class outlet_nse_flow(BaseMetric):
     dominant_outlet, while the dominant outlet node of the 'synthetic' network
     is calculated by best_outlet_match.
     """
-    def __call__(self,
-                  synthetic_G: nx.Graph,
+    # Identify synthetic and real arcs that flow into the best outlet node
+    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
+                if v == syn_outlet]
+    _, real_outlet = dominant_outlet(real_G, real_results)
+    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
+                if v == real_outlet]
+    
+    # Extract flow data
+    syn_flow = synthetic_results.loc[(synthetic_results.variable == 'flow') &
+                                    (synthetic_results.object.isin(syn_arc))]
+    syn_flow = syn_flow.groupby('date').value.sum().reset_index()
+
+    real_flow = real_results.loc[(real_results.variable == 'flow') &
+                                    (real_results.object.isin(real_arc))]
+    real_flow = real_flow.groupby('date').value.sum().reset_index()
+
+    # Align data
+    df = pd.merge(syn_flow, 
+                    real_flow, 
+                    on = 'date', 
+                    suffixes = ('_syn','_real'),
+                    how = 'outer')
+    df = df.sort_values(by='date')
+
+    # Interpolate to time in real data
+    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
+    df = df.dropna(subset = 'value_real')
+
+    # Calculate NSE
+    return nse(df.value_real, df.value_syn)
+
+@metrics.register
+def outlet_nse_flooding(synthetic_G: nx.Graph,
                   synthetic_results: pd.DataFrame,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  *args,
                   **kwargs) -> float:
-        """Run the evaluated metric."""
-        # Identify synthetic and real arcs that flow into the best outlet node
-        _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
-        syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
-                   if v == syn_outlet]
-        _, real_outlet = dominant_outlet(real_G, real_results)
-        real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
-                    if v == real_outlet]
-        
-        # Extract flow data
-        syn_flow = synthetic_results.loc[(synthetic_results.variable == 'flow') &
-                                        (synthetic_results.object.isin(syn_arc))]
-        syn_flow = syn_flow.groupby('date').value.sum().reset_index()
-
-        real_flow = real_results.loc[(real_results.variable == 'flow') &
-                                        (real_results.object.isin(real_arc))]
-        real_flow = real_flow.groupby('date').value.sum().reset_index()
-
-        # Align data
-        df = pd.merge(syn_flow, 
-                      real_flow, 
-                      on = 'date', 
-                      suffixes = ('_syn','_real'),
-                      how = 'outer')
-        df = df.sort_values(by='date')
-
-        # Interpolate to time in real data
-        df['value_syn'] = df.set_index('date').value_syn.interpolate().values
-        df = df.dropna(subset = 'value_real')
-
-        # Calculate NSE
-        return nse(df.value_real, df.value_syn)
-
-@register_metric
-class outlet_nse_flooding(BaseMetric):
     """Outlet NSE flooding.
     
     Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
@@ -175,44 +166,35 @@ class outlet_nse_flooding(BaseMetric):
     network is calculated by dominant_outlet, while the dominant outlet node of
     the 'synthetic' network is calculated by best_outlet_match.
     """
-    def __call__(self,
-                  synthetic_G: nx.Graph,
-                  synthetic_results: pd.DataFrame,
-                  real_G: nx.Graph,
-                  real_results: pd.DataFrame,
-                  real_subs: gpd.GeoDataFrame,
-                  *args,
-                  **kwargs) -> float:
-        """Run the evaluated metric."""
-        # Identify synthetic and real outlet arcs
-        sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
-        sg_real, _ = dominant_outlet(real_G, real_results)
-        
-        # Extract flooding data
-        syn_flood = synthetic_results.loc[(synthetic_results.variable == 'flooding') &
-                                        synthetic_results.object.isin(sg_syn.nodes)]
-        
-        real_flood = real_results.loc[(real_results.variable == 'flooding') &
-                                        real_results.object.isin(sg_real.nodes)]
-        
-        # Aggregate to total flooding over network
-        syn_flood = syn_flood.groupby('date').value.sum().reset_index()
-        real_flood = real_flood.groupby('date').value.sum().reset_index()
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    # Extract flooding data
+    syn_flood = synthetic_results.loc[(synthetic_results.variable == 'flooding') &
+                                    synthetic_results.object.isin(sg_syn.nodes)]
+    
+    real_flood = real_results.loc[(real_results.variable == 'flooding') &
+                                    real_results.object.isin(sg_real.nodes)]
+    
+    # Aggregate to total flooding over network
+    syn_flood = syn_flood.groupby('date').value.sum().reset_index()
+    real_flood = real_flood.groupby('date').value.sum().reset_index()
 
-        # Align data
-        df = pd.merge(syn_flood, 
-                      real_flood, 
-                      on = 'date', 
-                      suffixes = ('_syn','_real'),
-                      how = 'outer')
-        df = df.sort_values(by='date')
+    # Align data
+    df = pd.merge(syn_flood, 
+                    real_flood, 
+                    on = 'date', 
+                    suffixes = ('_syn','_real'),
+                    how = 'outer')
+    df = df.sort_values(by='date')
 
-        # Interpolate to time in real data
-        df['value_syn'] = df.set_index('date').value_syn.interpolate().values
-        df = df.dropna(subset='value_real')
+    # Interpolate to time in real data
+    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
+    df = df.dropna(subset='value_real')
 
-        # Calculate NSE
-        return nse(df.value_real, df.value_syn)
+    # Calculate NSE
+    return nse(df.value_real, df.value_syn)
 
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
