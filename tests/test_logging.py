@@ -3,6 +3,7 @@
 
 @author: Barney
 """
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -11,7 +12,7 @@ from swmmanywhere.logging import logger
 
 def test_logger():
     """Test logger."""
-    logger.enable('swmmanywhere')
+    os.environ["SWMMANYWHERE_VERBOSE"] = "true"
     assert logger is not None
     logger.test_logger()
     logger.debug("This is a debug message.")
@@ -35,7 +36,7 @@ def test_logger_disable():
                             mode = 'w+b',
                             delete=False) as temp_file:
         fid = Path(temp_file.name)
-        logger.disable('swmmanywhere')
+        os.environ["SWMMANYWHERE_VERBOSE"] = "false"
         logger.add(fid)
         logger.test_logger()
         assert temp_file.read() == b""
@@ -52,5 +53,18 @@ def test_logger_reimport():
         logger.add(fid)
         logger.test_logger()
         assert temp_file.read() == b""
+        logger.remove()
+    fid.unlink()
+
+def test_logger_again():
+    """Test the logger after these changes to make sure still works."""
+    os.environ["SWMMANYWHERE_VERBOSE"] = "true"
+    with NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:    
+        fid = Path(temp_file.name)
+        logger.add(fid)
+        logger.test_logger()
+        assert temp_file.read() != b""
         logger.remove()
     fid.unlink()
