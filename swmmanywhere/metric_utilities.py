@@ -88,13 +88,13 @@ def kstest_betweenness(
                  synthetic_G: nx.Graph,
                  real_G: nx.Graph,
                  **kwargs) -> float:
-    """KS two sided of betweenness distribution."""
-    syn_betweenness = nx.betweenness_centrality(synthetic_G)
-    real_betweenness = nx.betweenness_centrality(real_G)
-    
-    #TODO does it make more sense to use statistic or pvalue?
-    return stats.ks_2samp(list(syn_betweenness.values()),
-                            list(real_betweenness.values())).statistic
+        """KS two sided of betweenness distribution."""
+        syn_betweenness = nx.betweenness_centrality(synthetic_G)
+        real_betweenness = nx.betweenness_centrality(real_G)
+        
+        #TODO does it make more sense to use statistic or pvalue?
+        return stats.ks_2samp(list(syn_betweenness.values()),
+                                list(real_betweenness.values())).statistic
     
 @metrics.register
 def outlet_nse_flow(synthetic_G: nx.Graph,
