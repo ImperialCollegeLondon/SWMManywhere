@@ -773,7 +773,7 @@ class derive_topology(BaseGraphFunction,
                 # Push the neighbor to the heap
                 heappush(heap, (alt_dist, neighbor))
 
-        edges_to_keep: set = set() # no clue why mypy wants me to do this..
+        edges_to_keep: set = set()
         for path in paths.values():
             # Assign outlet
             outlet = path[0]
