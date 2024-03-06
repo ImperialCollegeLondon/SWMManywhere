@@ -154,6 +154,7 @@ if __name__ == '__main__':
     flooding_results = {}
     if nproc is None:
         nproc = len(X)
+    # Loop over all parameters 
     for ix, params_ in gb:
         if ix % nproc == jobid:
             flooding_results[ix] = ix
