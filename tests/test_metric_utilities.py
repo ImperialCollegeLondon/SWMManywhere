@@ -75,7 +75,7 @@ def test_bias_flood_depth():
                               real_results = real_results,
                               synthetic_subs = synthetic_subs,
                               real_subs = real_subs)
-    assert val == -0.29523809523809524
+    assert np.isclose(val, -0.29523809523809524)
 
 def test_best_outlet_match():
     """Test the best_outlet_match and ks_betweenness."""
