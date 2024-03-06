@@ -4,7 +4,6 @@
 @author: Barnaby Dobson
 """
 
-import os
 import shutil
 from pathlib import Path
 from typing import cast
@@ -36,26 +35,25 @@ def get_country(x: float,
             Example: {2: 'GB', 3: 'GBR'}
     """
     # Get the directory of the current module
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(__file__).parent
     
     # TODO use 'load_yaml_from_defs'
     # Create the path to iso_converter.yml
-    iso_path = os.path.join(current_dir, 
-                            "defs", 
-                            "iso_converter.yml")
-
-
+    iso_path = current_dir / "defs" / "iso_converter.yml"
+    
     # Initialize geolocator
     geolocator = Nominatim(user_agent="get_iso")
 
     # Load ISO code mapping from YAML file
-    with open(iso_path, "r") as file:
+    with iso_path.open("r") as file:
         data = yaml.safe_load(file)
 
     # Get country ISO code from coordinates
     location = geolocator.reverse(f"{y}, {x}", exactly_one=True)
-    iso_country_code = location.raw.get("address", {}).get("country_code")
-    iso_country_code = iso_country_code.upper()
+    iso_country_code = (
+        location.raw.get("address", {}).get("country_code")
+        .upper()
+    )
 
     # Return a dictionary with the two and three letter ISO codes
     return {2: iso_country_code, 3: data.get(iso_country_code, '')}
@@ -71,7 +69,7 @@ def download_buildings(file_address: Path,
         y (float): Latitude.
     
     Returns:
-        status_code (int): Reponse status code
+        status_code (int): Response status code
     """
     # Get three letter ISO code
     iso_country_code = get_country(x, y)[3]
@@ -147,7 +145,7 @@ def download_elevation(fid: Path,
             Defaults to '<your_api_key>'.
 
     Returns:
-        status_code (int): Reponse status code
+        status_code (int): Response status code
 
     Raises:
         requests.exceptions.RequestException: If there is an error in the API 
@@ -234,6 +232,6 @@ def download_precipitation(bbox: tuple[float, float, float, float],
         
     
     # Delete nc file
-    os.remove('download.nc')
+    Path('download.nc').unlink()
 
     return df
