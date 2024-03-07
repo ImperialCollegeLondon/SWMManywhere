@@ -153,7 +153,7 @@ def best_outlet_match(synthetic_G: nx.Graph,
                          crs = synthetic_G.graph['crs'])
         .sjoin(real_subs, 
                how="right", 
-               predicate="intersects")
+               predicate="within")
     )
 
     # Select the most common outlet
