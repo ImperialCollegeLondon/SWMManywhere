@@ -71,28 +71,62 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     efficiency (NSE) of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
+    # Format dates
+    synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
+    real_results['date'] = pd.to_datetime(real_results['date'])
+
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
     syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
-    syn_data = syn_data.groupby('date').value.sum().reset_index()
+    syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
     real_data = real_data.loc[real_data.object.isin(real_ids)]
-    real_data = real_data.groupby('date').value.sum().reset_index()
-
+    real_data = real_data.groupby('date').value.sum()
+    
     # Align data
     df = pd.merge(syn_data, 
                   real_data, 
-                  on='date', 
+                  left_index = True,
+                  right_index = True,
                   suffixes=('_syn', '_real'), 
-                  how='outer').sort_values(by='date')
+                  how='outer').sort_index()
 
     # Interpolate to time in real data
-    df['value_syn'] = df.set_index('date').value_syn.interpolate().values
+    df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
     # Calculate NSE
     return nse(df.value_real, df.value_syn)
+
+def create_subgraph(G: nx.Graph,
+                    nodes: list) -> nx.Graph:
+    """Create a subgraph.
+    
+    Create a subgraph of G based on the nodes list. Taken from networkx 
+    documentation: https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.subgraph.html
+    
+    Args:
+        G (nx.Graph): The original graph.
+        nodes (list): The list of nodes to include in the subgraph.
+
+    Returns:
+        nx.Graph: The subgraph.
+    """
+    # Create a subgraph SG based on a (possibly multigraph) G
+    SG = G.__class__()
+    SG.add_nodes_from((n, G.nodes[n]) for n in nodes)
+    if SG.is_multigraph():
+        SG.add_edges_from((n, nbr, key, d)
+            for n, nbrs in G.adj.items() if n in nodes
+            for nbr, keydict in nbrs.items() if nbr in nodes
+            for key, d in keydict.items())
+    else:
+        SG.add_edges_from((n, nbr, d)
+            for n, nbrs in G.adj.items() if n in nodes
+            for nbr, d in nbrs.items() if nbr in nodes)
+    SG.graph.update(G.graph)
+    return SG
 
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
@@ -125,7 +159,7 @@ def best_outlet_match(synthetic_G: nx.Graph,
                          crs = synthetic_G.graph['crs'])
         .sjoin(real_subs, 
                how="right", 
-               predicate="intersects")
+               predicate="within")
     )
 
     # Select the most common outlet
@@ -134,10 +168,11 @@ def best_outlet_match(synthetic_G: nx.Graph,
     # Subselect the matching graph
     outlet_nodes = [n for n, d in synthetic_G.nodes(data=True) 
                     if d['outlet'] == outlet]
-    return synthetic_G.subgraph(outlet_nodes), outlet
+    sg = create_subgraph(synthetic_G,outlet_nodes)
+    return sg, outlet
 
-def dominant_outlet(G: nx.Graph,
-                    results: pd.DataFrame) -> tuple[nx.Graph,int]:
+def dominant_outlet(G: nx.DiGraph,
+                    results: pd.DataFrame) -> tuple[nx.DiGraph,int]:
     """Dominant outlet.
 
     Identify the outlet with highest flow along it and return the
@@ -166,7 +201,7 @@ def dominant_outlet(G: nx.Graph,
                   if d['id'] == max_outlet_arc][0]
     
     # Subselect the matching graph
-    sg = G.subgraph(nx.ancestors(G, max_outlet) | {max_outlet})
+    sg = create_subgraph(G, nx.ancestors(G, max_outlet) | {max_outlet})
     return sg, max_outlet
 
 def nc_compare(G1, G2, funcname, **kw):
