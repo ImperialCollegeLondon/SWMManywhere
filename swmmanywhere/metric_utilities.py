@@ -135,8 +135,8 @@ def best_outlet_match(synthetic_G: nx.Graph,
                     if d['outlet'] == outlet]
     return synthetic_G.subgraph(outlet_nodes), outlet
 
-def dominant_outlet(G: nx.Graph,
-                    results: pd.DataFrame) -> tuple[nx.Graph,int]:
+def dominant_outlet(G: nx.DiGraph,
+                    results: pd.DataFrame) -> tuple[nx.DiGraph,int]:
     """Dominant outlet.
 
     Identify the outlet with highest flow along it and return the
