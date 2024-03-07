@@ -125,13 +125,13 @@ def test_set_elevation_and_slope():
             assert 'surface_slope' in data.keys()
             assert math.isfinite(data['surface_slope'])
 
-def test_chahinan_angle():
-    """Test the chahinan_angle function."""
+def test_chahinian_angle():
+    """Test the chahinian_angle function."""
     G, _ = load_street_network()
-    G = gu.set_chahinan_angle(G)
+    G = gu.set_chahinian_angle(G)
     for u, v, data in G.edges(data=True):
-        assert 'chahinan_angle' in data.keys()
-        assert math.isfinite(data['chahinan_angle'])
+        assert 'chahinian_angle' in data.keys()
+        assert math.isfinite(data['chahinian_angle'])
 
 def test_calculate_weights():
     """Test the calculate_weights function."""

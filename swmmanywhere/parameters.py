@@ -62,7 +62,7 @@ class OutletDerivation(BaseModel):
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
     weights: list = Field(default = ['surface_slope',
-                                      'chahinan_angle',
+                                      'chahinian_angle',
                                       'length',
                                       'contributing_area'],
                         min_items = 1,
@@ -75,11 +75,11 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Constant to apply to surface slope in topo derivation")
     
-    chahinan_angle_scaling: float = Field(default = 1,
+    chahinian_angle_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
-        description = "Constant to apply to chahinan angle in topo derivation")
+        description = "Constant to apply to chahinian angle in topo derivation")
     
     length_scaling: float = Field(default = 1,
         le = 1,
@@ -99,11 +99,11 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Exponent to apply to surface slope in topo derivation")
     
-    chahinan_angle_exponent: float = Field(default = 1,
+    chahinian_angle_exponent: float = Field(default = 1,
         le = 2,
         ge = -2,
         unit = "-",
-        description = "Exponent to apply to chahinan angle in topo derivation")
+        description = "Exponent to apply to chahinian angle in topo derivation")
 
     length_exponent: float = Field(default = 1,
         le = 2,
@@ -133,7 +133,7 @@ class TopologyDerivation(BaseModel):
 class NewTopo(TopologyDerivation):
      """Demo for changing weights that should break the validator."""
      weights: list = Field(default = ['surface_slope',
-                                      'chahinan_angle',
+                                      'chahinian_angle',
                                       'length',
                                       'contributing_area',
                                 'test'],

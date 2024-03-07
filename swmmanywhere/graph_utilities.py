@@ -509,18 +509,18 @@ class set_surface_slope(BaseGraphFunction,
         # Set the 'surface_slope' attribute for all edges
         nx.set_edge_attributes(G, slope_dict, 'surface_slope')
         return G
-
+    
 @register_graphfcn
-class set_chahinan_angle(BaseGraphFunction,
+class set_chahinian_angle(BaseGraphFunction,
                          required_node_attributes = ['x','y'],
-                         adds_edge_attributes = ['chahinan_angle']):
-    """set_chahinan_angle class."""
+                         adds_edge_attributes = ['chahinian_angle']):
+    """set_chahinian_angle class."""
 
     def __call__(self, G: nx.Graph, 
                        **kwargs) -> nx.Graph:
-        """Set the Chahinan angle for each edge.
+        """Set the Chahinian angle for each edge.
 
-        This function sets the Chahinan angle for each edge. The Chahinan angle is
+        This function sets the Chahinian angle for each edge. The Chahinian angle is
         calculated from the geometry of the edge and weighted according to the 
         angle (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
 
@@ -544,14 +544,14 @@ class set_chahinan_angle(BaseGraphFunction,
                 p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
                 p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
                 angle = go.calculate_angle(p1,p2,p3)
-                chahinan_weight = np.interp(angle,
+                chahinian_weight = np.interp(angle,
                                             [0, 90, 135, 180, 225, 270, 360],
                                             [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
                                             )
-                min_weight = min(chahinan_weight, min_weight)
+                min_weight = min(chahinian_weight, min_weight)
             if min_weight == float('inf'):
                 min_weight = 0
-            d['chahinan_angle'] = min_weight
+            d['chahinian_angle'] = min_weight
         return G
 
 @register_graphfcn
