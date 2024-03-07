@@ -11,9 +11,7 @@ import loguru
 
 def dynamic_filter(record):
     """A dynamic filter."""
-    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
-        return True
-    return False
+    return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
 
 def get_logger() -> loguru.logger:
     """Get a logger."""
