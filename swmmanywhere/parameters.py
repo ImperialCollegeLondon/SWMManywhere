@@ -12,13 +12,12 @@ from pydantic import BaseModel, Field, model_validator
 
 def get_full_parameters():
     """Get the full set of parameters."""
-    full_parameters = {
+    return {
         "subcatchment_derivation": SubcatchmentDerivation(),
         "outlet_derivation": OutletDerivation(),
         "topology_derivation": TopologyDerivation(),
         "hydraulic_design": HydraulicDesign()
     }
-    return full_parameters
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
@@ -231,10 +230,46 @@ class FilePaths:
         """
         if property_name in self.__dict__.keys():
              return self.__dict__[property_name]
-        else:
-            return self._generate_path(self.project_name, 
-                                       getattr(self, location),
-                                       property_name)
+        
+        return self._generate_path(self.project_name, 
+                                    getattr(self, location),
+                                    property_name)
+
+    def _generate_project(self):
+        return self._generate_path(self.project_name)
+
+    def _generate_national(self):
+        return self._generate_property('national', 'project')
+
+    def _generate_national_building(self):
+        return self._generate_property('building.parquet',
+                                        'national')
+    def _generate_bbox(self):
+        return self._generate_property(f'bbox_{self.bbox_number}', 
+                                        'project')
+    def _generate_model(self):
+        return self._generate_property(f'model_{self.model_number}', 
+                                        'bbox')
+    def _generate_subcatchments(self):
+        return self._generate_property(f'subcatchments.{self.extension}', 
+                                        'model')
+    def _generate_download(self):
+        return self._generate_property('download', 
+                                        'bbox')
+    def _generate_river(self):
+        return self._generate_property('river.json', 
+                                        'download')
+    def _generate_street(self):
+        return self._generate_property('street.json', 
+                                        'download')
+    def _generate_elevation(self):
+        return self._generate_property('elevation.tif', 'download')
+    def _generate_building(self):
+        return self._generate_property(f'building.{self.extension}', 
+                                        'download')
+    def _generate_precipitation(self):
+        return self._generate_property(f'precipitation.{self.extension}', 
+                                        'download')
 
     def _fetch_address(self, name):
         """Fetch the address.
@@ -249,39 +284,8 @@ class FilePaths:
         Returns:
             Path: Path to the folder/file.
         """
-        if name == 'project':
-            return self._generate_path(self.project_name)
-        elif name == 'national':
-             return self._generate_property('national', 'project')
-        elif name == 'national_building':
-             return self._generate_property('building.parquet',
-                                            'national')
-        elif name == 'bbox':
-            return self._generate_property(f'bbox_{self.bbox_number}', 
-                                       'project')
-        elif name == 'model':
-            return self._generate_property(f'model_{self.model_number}', 
-                                       'bbox')
-        elif name == 'subcatchments':
-            return self._generate_property(f'subcatchments.{self.extension}', 
-                                       'model')
-        elif name == 'download':
-            return self._generate_property('download', 
-                                            'bbox')
-        elif name == 'river':
-            return self._generate_property('river.json', 
-                                       'download')
-        elif name == 'street':
-            return self._generate_property('street.json', 
-                                       'download')
-        elif name == 'elevation':
-            return self._generate_property('elevation.tif', 'download')
-        elif name == 'building':
-            return self._generate_property(f'building.{self.extension}', 
-                                       'download')
-        elif name == 'precipitation':
-            return self._generate_property(f'precipitation.{self.extension}', 
-                                       'download')
-        else:
-            raise AttributeError(f"Attribute {name} not found")
-    
+        try:
+            return getattr(self, f"_generate_{name}")()
+        except AttributeError:
+            raise AttributeError(
+                f"Generate path for '{name}' failed. Attribute not found.")

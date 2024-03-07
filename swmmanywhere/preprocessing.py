@@ -16,6 +16,7 @@ import pandas as pd
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as gu
 from swmmanywhere import parameters, prepare_data
+from swmmanywhere.logging import logger
 
 
 def next_directory(keyword: str, directory: Path) -> int:
@@ -31,10 +32,9 @@ def next_directory(keyword: str, directory: Path) -> int:
     Returns:
         int: Next directory number.
     """
-    existing_dirs = [int(d.name.split("_")[-1]) for d in directory.iterdir() 
-                     if d.name.startswith(f"{keyword}_")]
-    next_dir_number = 1 if not existing_dirs else max(existing_dirs) + 1
-    return next_dir_number
+    existing_dirs = [int(d.name.split("_")[-1]) 
+                     for d in directory.glob(f"{keyword}_*")]
+    return 1 if not existing_dirs else max(existing_dirs) + 1
 
 def check_bboxes(bbox: tuple[float, float, float, float],
                  data_dir: Path) -> int | bool:
@@ -57,7 +57,7 @@ def check_bboxes(bbox: tuple[float, float, float, float],
     # Iterate over info files
     for info_fid in info_fids:
         # Read bounding_box_info.json
-        with open(info_fid, 'r') as info_file:
+        with info_fid.open('r') as info_file:
             bounding_info = json.load(info_file)
         # Check if the bounding box coordinates match
         if Counter(bounding_info.get("bbox")) == Counter(bbox):
@@ -88,8 +88,7 @@ def get_next_bbox_number(bbox: tuple[float, float, float, float],
     bbox_number = check_bboxes(bbox, data_dir)
     if not bbox_number:
         return next_directory('bbox', data_dir)
-    else:
-        return bbox_number
+    return bbox_number
 
 def create_project_structure(bbox: tuple[float, float, float, float],
                              project: str,
@@ -160,14 +159,96 @@ def write_df(df: pd.DataFrame | gpd.GeoDataFrame,
         else:
             df.to_json(fid)
 
+def prepare_precipitation(bbox: tuple[float, float, float, float],
+                          addresses: parameters.FilePaths,
+                          api_keys: dict[str, str],
+                          target_crs: str,
+                          source_crs: str = 'EPSG:4326'):
+    """Download and reproject precipitation data."""
+    if addresses.precipitation.exists():
+        return
+    logger.info(f'downloading precipitation to {addresses.precipitation}')
+    precip = prepare_data.download_precipitation(bbox,
+                                                    api_keys['cds_username'],
+                                                    api_keys['cds_api_key'])
+    precip = precip.reset_index()
+    precip = go.reproject_df(precip, source_crs, target_crs)
+    write_df(precip, addresses.precipitation)
+    
+def prepare_elvation(bbox: tuple[float, float, float, float],
+                    addresses: parameters.FilePaths,
+                    api_keys: dict[str, str],
+                    target_crs: str):
+    """Download and reproject elevation data."""
+    if addresses.elevation.exists():
+        return
+    logger.info(f'downloading elevation to {addresses.elevation}')
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fid = Path(temp_dir) / 'elevation.tif'
+        prepare_data.download_elevation(fid,
+                                        bbox, 
+                                        api_keys['nasadem_key']
+                                        )
+        go.reproject_raster(target_crs,
+                            fid,
+                            addresses.elevation)
+        
+def prepare_building(bbox: tuple[float, float, float, float],
+                    addresses: parameters.FilePaths,
+                    target_crs: str):
+    """Download, trim and reproject building data."""
+    if addresses.building.exists():
+        return
+    
+    if not addresses.national_building.exists():  
+        logger.info(f'downloading buildings to {addresses.national_building}')
+        prepare_data.download_buildings(addresses.national_building, 
+                                        bbox[0],
+                                        bbox[1])
+        
+    logger.info(f'trimming buildings to {addresses.building}')
+    national_buildings = gpd.read_parquet(addresses.national_building)
+    buildings = national_buildings.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]] # type: ignore 
+    
+    buildings = buildings.to_crs(target_crs)
+    write_df(buildings,addresses.building)
+
+def prepare_street(bbox: tuple[float, float, float, float],
+                     addresses: parameters.FilePaths,
+                     target_crs: str,
+                     source_crs: str = 'EPSG:4326'):
+    """Download and reproject street graph."""
+    if addresses.street.exists():
+        return
+    logger.info(f'downloading street network to {addresses.street}')
+    street_network = prepare_data.download_street(bbox)
+    street_network = go.reproject_graph(street_network, 
+                                        source_crs, 
+                                        target_crs)
+    gu.save_graph(street_network, addresses.street)
+
+def prepare_river(bbox: tuple[float, float, float, float],
+                    addresses: parameters.FilePaths,
+                    target_crs: str,
+                    source_crs: str = 'EPSG:4326'):
+    """Download and reproject river graph."""
+    if addresses.river.exists():
+        return
+    logger.info(f'downloading river network to {addresses.river}')
+    river_network = prepare_data.download_river(bbox)
+    river_network = go.reproject_graph(river_network, 
+                                        source_crs,
+                                        target_crs)
+    gu.save_graph(river_network, addresses.river)
+
 def run_downloads(bbox: tuple[float, float, float, float],
                   addresses: parameters.FilePaths,
                   api_keys: dict[str, str]):
     """Run the data downloads.
 
     Run the precipitation, elevation, building, street and river network
-    downloads. If the data already exists, do not download it again. Assumes
-    that data downloads are in EPSG:4326 and reprojects them to the UTM zone.
+    downloads. If the data already exists, do not download it again. Reprojects
+    data to the UTM zone.
 
     Args:
         bbox (tuple[float, float, float, float]): Bounding box coordinates in 
@@ -175,81 +256,22 @@ def run_downloads(bbox: tuple[float, float, float, float],
         addresses (FilePaths): Class containing the addresses of the directories.
         api_keys (dict): Dictionary containing the API keys.
     """
-    source_crs = 'EPSG:4326'
     target_crs = go.get_utm_epsg(bbox[0], bbox[1])
 
     # Download precipitation data
-    #TODO precipitation dates..?
-    if not addresses.precipitation.exists():
-        print(f'downloading precipitation to {addresses.precipitation}')
-        precip = prepare_data.download_precipitation(bbox,
-                                                     api_keys['cds_username'],
-                                                     api_keys['cds_api_key'])
-        precip = precip.reset_index()
-        precip = go.reproject_df(precip,
-                                 source_crs, 
-                                 target_crs)
-        write_df(precip, 
-                 addresses.precipitation)
+    prepare_precipitation(bbox, addresses, api_keys, target_crs)
     
     # Download elevation data
-    if not addresses.elevation.exists():
-        print(f'downloading elevation to {addresses.elevation}')
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fid = Path(temp_dir) / 'elevation.tif'
-            prepare_data.download_elevation(fid,
-                                            bbox, 
-                                            api_keys['nasadem_key']
-                                            )
-            go.reproject_raster(target_crs,
-                                fid,
-                                addresses.elevation)
-        
-    else:
-        print('elevation already exists')
+    prepare_elvation(bbox, addresses, api_keys, target_crs)
     
     # Download building data
-    if not addresses.national_building.exists():
-        print(f'downloading buildings to {addresses.national_building}')
-        prepare_data.download_buildings(addresses.national_building, 
-                                        bbox[0],
-                                        bbox[1])
-    else:
-        print('buildings already exist')
-    
-    # Trim and reproject buildings to bbox
-    if not addresses.building.exists():
-        print(f'trimming buildings to {addresses.building}')
-        national_buildings = gpd.read_parquet(addresses.national_building)
-        buildings = national_buildings.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]] # type: ignore 
-        
-        buildings = buildings.to_crs(target_crs)
-        write_df(buildings,
-                  addresses.building)
-    else:
-        print('buildings already trimmed')
+    prepare_building(bbox, addresses, target_crs)
     
     # Download street network data
-    if not addresses.street.exists():
-        print(f'downloading street network to {addresses.street}')
-        street_network = prepare_data.download_street(bbox)
-        street_network = go.reproject_graph(street_network, 
-                                            source_crs, 
-                                            target_crs)
-        gu.save_graph(street_network, addresses.street)
-    else:
-        print('street network already exists')
+    prepare_street(bbox, addresses, target_crs)
 
     # Download river network data
-    if not addresses.river.exists():
-        print(f'downloading river network to {addresses.river}')
-        river_network = prepare_data.download_river(bbox)
-        river_network = go.reproject_graph(river_network, 
-                                           source_crs,
-                                           target_crs)
-        gu.save_graph(river_network, addresses.river)
-    else:
-        print('river network already exists')
+    prepare_river(bbox, addresses, target_crs)
 
 def create_starting_graph(addresses: parameters.FilePaths):
     """Create the starting graph.

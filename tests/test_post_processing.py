@@ -1,6 +1,5 @@
 import difflib
 import filecmp
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -13,6 +12,8 @@ from shapely import geometry as sgeom
 from swmmanywhere import post_processing as stt
 from swmmanywhere.parameters import FilePaths
 
+fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
+          'basic_drainage_all_bits.inp'
 
 def test_overwrite_section():
     """Test the overwrite_section function.
@@ -36,29 +37,21 @@ def test_overwrite_section():
         
         section = '[SUBCATCHMENTS]'
         stt.overwrite_section(data, section, temp_fid)
-        with open(temp_fid, 'r') as file:
+        with temp_fid.open('r') as file:
             content = file.read()
         assert 'subca_3' in content
-
 
 def test_change_flow_routing():
     """Test the change_flow_routing function."""
     # Copy the example file to a temporary file
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    temp_fid = 'temp.inp'
-    shutil.copy(fid, temp_fid)
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.inp'
+        shutil.copy(fid, temp_fid)
         new_routing = 'STEADY'
         stt.change_flow_routing(new_routing, temp_fid)
-        with open(temp_fid, 'r') as file:
+        with temp_fid.open('r') as file:
             content = file.read()
         assert 'STEADY' in content
-    finally:
-        os.remove(temp_fid)
 
 def test_data_input_dict_to_inp():
     """Test the data_input_dict_to_inp function.
@@ -71,22 +64,16 @@ def test_data_input_dict_to_inp():
                   ["subca_3","1","1","2","100","400","0.5","0","empty"]]
                   }
     
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    temp_fid = 'temp.inp'
-    shutil.copy(fid, temp_fid)
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.inp'
+        shutil.copy(fid, temp_fid)
         stt.data_dict_to_inp(data_dict,
                              fid,
                              temp_fid)
-        with open(temp_fid, 'r') as file:
+        with temp_fid.open('r') as file:
             content = file.read()
         assert 'subca_3' in content
-    finally:
-        os.remove(temp_fid)
+
 
 def test_explode_polygon():
     """Test the explode_polygon function."""
@@ -186,9 +173,8 @@ def test_synthetic_write():
                                            comparison_file, 
                                            shallow=False)
         if not are_files_identical:
-            with open(new_input_file, 
-                      'r') as file1, open(comparison_file, 
-                                          'r') as file2:
+            with new_input_file.open('r') as file1,\
+                comparison_file.open('r') as file2:
                 diff = difflib.unified_diff(
                     file1.readlines(),
                     file2.readlines(),
@@ -197,7 +183,6 @@ def test_synthetic_write():
                 )
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"
-
 
 def test_format_to_swmm_dict():
     """Test the format_format_to_swmm_dict function.

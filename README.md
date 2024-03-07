@@ -71,7 +71,7 @@ To use this repository as a template for your own application:
 
 To add or remove dependencies:
 
-1. Edit the `dependencies` variables in the `pyproject.toml` file (aim to keep develpment tools separate from the project requirements).
+1. Edit the `dependencies` variables in the `pyproject.toml` file (aim to keep development tools separate from the project requirements).
 2. Update the requirements files:
    - `pip-compile` for `requirements.txt` - the project requirements.
    - `pip-compile --extra dev -o dev-requirements.txt` for `dev-requirements.txt` - the development requirements.

@@ -6,7 +6,6 @@ files.
 
 @author: Barnaby Dobson
 """
-import os
 import re
 import shutil
 from pathlib import Path
@@ -163,14 +162,14 @@ def overwrite_section(data: np.ndarray,
         overwrite_section(data, section, fid)
     """
     # Read the existing SWMM .inp file
-    with open(fid, 'r') as infile:
+    with fid.open('r') as infile:
         lines = infile.readlines()
     
     # Create a flag to indicate whether we are within the target section
     within_target_section = False
     
     # Iterate through the lines and make modifications as needed
-    with open(fid, 'w') as outfile:
+    with fid.open('w') as outfile:
         for ix, line in enumerate(lines):
             if line.strip() != section and re.search(r'\[.*?\]', line):
                 within_target_section = False
@@ -203,7 +202,7 @@ def overwrite_section(data: np.ndarray,
             # Calculate the space counts by taking the length of each match
             space_counts = [len(x) + len(y) 
                             for x, y in zip(matches, example_line.split())]
-            if len(space_counts) == 0:
+            if not space_counts:
                 if data.shape[0] != 0:
                     print('no template for data?')
                 continue
@@ -229,21 +228,20 @@ def overwrite_section(data: np.ndarray,
             outfile.write('\n')
 
 def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
-                        file_path: str | Path)-> None:
+                        file_path: Path)-> None:
     """Replace the flow routing method in a SWMM inp file with a new method, in-place.
     
     Args:
-        file_path : str or Path
+        file_path : Path
             Path to the SWMM inp file to be modified.
         routing_method : {"KINWAVE", "DYNWAVE", "STEADY"}
             The new flow routing method to be used. Available options are:
             ``KINWAVE``, ``DYNWAVE``, or ``STEADY``.
     """
-    if routing_method.upper() not in ["KINWAVE", "DYNWAVE", "STEADY"]:
+    if routing_method.upper() not in ("KINWAVE", "DYNWAVE", "STEADY"):
         raise ValueError(
             "routing_method must be one of 'KINWAVE', 'DYNWAVE', or 'STEADY'."
         )
-    file_path = Path(file_path)
     updated_contents = re.sub(
         r'^FLOW_ROUTING\s+.*$',
         f'FLOW_ROUTING {routing_method.upper()}',
@@ -390,17 +388,14 @@ def format_to_swmm_dict(nodes,
         ...                                    symbol)
     """
     # Get the directory of the current module
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(__file__).parent
     
     # TODO use 'load_yaml_from_defs'
     # Create the path to iso_converter.yml
-    iso_path = os.path.join(current_dir,
-                            "defs", 
-                            "swmm_conversion.yml")
-
+    iso_path = current_dir / "defs" / "swmm_conversion.yml"
 
     # Load conversion mapping from YAML file
-    with open(iso_path, "r") as file:
+    with iso_path.open("r") as file:
         conversion_dict = yaml.safe_load(file)
 
     ## Create nodes, coordinates and map dimensions

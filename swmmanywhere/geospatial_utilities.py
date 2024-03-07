@@ -6,8 +6,10 @@ such as reprojecting coordinates and handling raster data.
 
 @author: Barnaby Dobson
 """
+import itertools
 import json
 import math
+import operator
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -248,8 +250,9 @@ def reproject_graph(G: nx.Graph,
     # Convert and add edges with 'geometry' property
     for u, v, data in G_new.edges(data=True):
         if 'geometry' in data.keys():
-            data['geometry'] = sgeom.LineString(transformer.transform(x, y) 
-                                      for x, y in data['geometry'].coords)
+            data['geometry'] = sgeom.LineString(
+                itertools.starmap(transformer.transform,
+                                  data['geometry'].coords))
         else:
             data['geometry'] = sgeom.LineString([[G_new.nodes[u]['x'],
                                         G_new.nodes[u]['y']],
@@ -440,7 +443,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         polys.append({'id': id, 
                       'geometry': catchment_polygon,
                       'area': catchment_polygon.area})
-    polys = sorted(polys, key=lambda d: d['area'], reverse=True)
+    polys.sort(key=operator.itemgetter("area"), reverse=True)
     return gpd.GeoDataFrame(polys, crs = grid.crs)
 
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -461,9 +464,11 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     result_polygons = polys.copy()
     
     # Sort the polygons by area (smallest first)
-    result_polygons['area'] = result_polygons.geometry.area
-    result_polygons = result_polygons.sort_values('area', ascending=True)
-    result_polygons = result_polygons.reset_index(drop=True)
+    result_polygons = (
+        result_polygons.assign(area=result_polygons.geometry.area)
+        .sort_values('area', ascending=True)
+        .reset_index(drop=True)
+    )
 
     # Store the area of 'trimmed' polygons into a combined geometry, starting
     # with the smallest area polygon
@@ -480,8 +485,10 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     
     # Sort the polygons by area (largest first) - this is just to conform to
     # the unit test and is not strictly essential
-    result_polygons = result_polygons.sort_values('area', ascending=False)
-    result_polygons = result_polygons.drop('area', axis=1)
+    result_polygons = (
+        result_polygons.sort_values('area', ascending=False)
+        .drop('area', axis=1)
+    )
 
     return result_polygons
 
@@ -592,7 +599,7 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
 
     # Remove zero area subareas and attach to nearest polygon
-    removed_subareas: List[sgeom.Polygon] = list() # needed for mypy
+    removed_subareas: List[sgeom.Polygon] = [] # needed for mypy
     def remove_(mp): return remove_zero_area_subareas(mp, removed_subareas)
     polys_gdf['geometry'] = polys_gdf['geometry'].apply(remove_)
     polys_gdf = attach_unconnected_subareas(polys_gdf, removed_subareas)
@@ -619,7 +626,12 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
               G: nx.Graph,
               building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Derive the RC of each subcatchment.
+    """Derive the Runoff Coefficient (RC) of each subcatchment.
+
+    The runoff coefficient is the ratio of impervious area to total area. The
+    impervious area is calculated by overlaying the subcatchments with building
+    footprints and all edges in G buffered by their width parameter (i.e., to
+    calculate road area).
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
@@ -638,12 +650,15 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     ## Format as swmm type catchments 
 
     # TODO think harder about lane widths (am I double counting here?)
-    lines = []
-    for u, v, x in G.edges(data=True):
-        lines.append({'geometry' : x['geometry'].buffer(x['width'], 
-                                                                cap_style = 2, 
-                                                                join_style=2),
-                            'id' : x['id']})
+    lines = [
+        {
+            'geometry': x['geometry'].buffer(x['width'], 
+                                             cap_style=2, 
+                                             join_style=2),
+            'id': x['id']
+        }
+        for u, v, x in G.edges(data=True)
+    ]
     lines_df = pd.DataFrame(lines)
     lines_gdf = gpd.GeoDataFrame(lines_df, 
                                 geometry=lines_df.geometry,
@@ -708,6 +723,49 @@ def calculate_angle(point1: tuple[float,float],
 
     return angle_degrees
 
+def nodes_to_features(G: nx.Graph):
+    """Convert a graph to a GeoJSON node feature collection.
+
+    Args:
+        G (nx.Graph): The input graph.
+
+    Returns:
+        dict: A GeoJSON feature collection.
+    """
+    features = []
+    for node, data in G.nodes(data=True):
+        feature = {
+            'type': 'Feature',
+            'geometry': sgeom.mapping(sgeom.Point(data['x'], data['y'])),
+            'properties': {'id': node, **data}
+        }
+        features.append(feature)
+    return features
+
+def edges_to_features(G: nx.Graph):
+    """Convert a graph to a GeoJSON edge feature collection.
+
+    Args:
+        G (nx.Graph): The input graph.
+
+    Returns:
+        dict: A GeoJSON feature collection.
+    """
+    features = []
+    for u, v, data in G.edges(data=True):
+        if 'geometry' not in data:
+            geom = None
+        else: 
+            geom = sgeom.mapping(data['geometry'])
+            del data['geometry']
+        feature = {
+            'type': 'Feature',
+            'geometry': geom,
+            'properties': {'u': u, 'v': v, **data}
+        }
+        features.append(feature)
+    return features
+
 def graph_to_geojson(graph: nx.Graph, 
                      fid: Path, 
                      crs: str):
@@ -719,39 +777,20 @@ def graph_to_geojson(graph: nx.Graph,
         crs (str): The CRS of the graph.
     """
     graph = graph.copy()
-    for iterable, label in zip([graph.nodes(data=True), 
-                                graph.edges(data=True)],
-                               ['nodes', 'edges']):
-        geojson_features = []
-        for item_ in iterable:
-            if label == 'nodes':
-                data = item_[1]
-                data['geometry'] = sgeom.Point(data['x'], data['y'])
-                name_data = {'id' : item_[0]}
-            else:
-                data = item_[2]
-                name_data = {'u' : item_[0] , 
-                             'v' : item_[1]}
-            if 'geometry' in data:
-                geometry = sgeom.mapping(data['geometry'])
-                data_ = data.copy()
-                del data_['geometry']
-                feature = {
-                    'type': 'Feature',
-                    'geometry': geometry,
-                    'properties': {**data_, **name_data}
-                }
-                geojson_features.append(feature)
+    nodes = nodes_to_features(graph)
+    edges = edges_to_features(graph)
+    
+    for iterable, label in zip([nodes, edges], ['nodes', 'edges']):
         geojson = {
             'type': 'FeatureCollection',
-            'features': geojson_features,
+            'features' : iterable,
             'crs' : {
                 'type': 'name',
                 'properties': {
                     'name': "urn:ogc:def:crs:{0}".format(crs.replace(':', '::'))
                 }
             }
-        }
+            }
         fid_ = fid.with_stem(fid.stem + f'_{label}').with_suffix('.geojson')
 
         with fid_.open('w') as output_file:
