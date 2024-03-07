@@ -29,9 +29,9 @@ dependencies = [
   "fiona",
   "geopandas",
   "geopy",
-  "GitPython",
   "matplotlib",
   "netcdf4",
+  "netcomp@ git+https://github.com/barneydobson/NetComp.git",
   "networkx",
   "numpy",
   "osmnx",
@@ -46,7 +46,6 @@ dependencies = [
   "SALib",
   "SciPy",
   "shapely",
-  "snkit",
   "tqdm",
   "xarray",
 ]

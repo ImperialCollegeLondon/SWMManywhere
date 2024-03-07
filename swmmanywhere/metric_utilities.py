@@ -7,6 +7,7 @@ from inspect import signature
 from typing import Callable
 
 import geopandas as gpd
+import netcomp
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -167,6 +168,77 @@ def dominant_outlet(G: nx.Graph,
     # Subselect the matching graph
     sg = G.subgraph(nx.ancestors(G, max_outlet) | {max_outlet})
     return sg, max_outlet
+
+def nc_compare(G1, G2, funcname, **kw):
+    """Compare two graphs using netcomp."""
+    A1,A2 = [nx.adjacency_matrix(G) for G in (G1,G2)]
+    return getattr(netcomp, funcname)(A1,A2,**kw)
+
+@metrics.register
+def nc_deltacon0(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'deltacon0',
+                      eps = 1e-10)
+
+@metrics.register
+def nc_laplacian_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'laplacian')
+
+@metrics.register
+def nc_laplacian_norm_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'laplacian_norm')
+
+@metrics.register
+def nc_adjacency_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'adjacency')
+
+@metrics.register
+def nc_vertex_edge_distance(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric.
+    
+    Do '1 -' because this metric is similarity not distance.
+    """
+    return 1 - nc_compare(synthetic_G, 
+                           real_G, 
+                          'vertex_edge_distance')
+
+@metrics.register
+def nc_resistance_distance(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G,
+                        real_G,
+                        'resistance_distance',
+                        check_connected = False,
+                        renormalized = True)
 
 @metrics.register
 def bias_flood_depth(

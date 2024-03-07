@@ -263,3 +263,21 @@ def test_outlet_nse_flooding():
                                     real_results = results,
                                     real_subs = subs)
     assert val == 0.0
+
+def test_netcomp():
+    """Test the netcomp metrics."""
+    netcomp_results = {'nc_deltacon0' : 0.00129408,
+                       'nc_laplacian_dist' : 36.334773,
+                       'nc_laplacian_norm_dist' : 1.932007,
+                       'nc_adjacency_dist' : 3.542749,
+                       'nc_resistance_distance' : 8.098548,
+                       'nc_vertex_edge_distance' : 0.132075}
+
+    for func, val in netcomp_results.items():
+        G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+        val_ = getattr(mu.metrics, func)(synthetic_G = G, real_G = G)
+        assert val_ == 0.0, func
+
+        G_ = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+        val_ = getattr(mu.metrics, func)(synthetic_G = G_, real_G = G)
+        assert np.isclose(val, val_), func

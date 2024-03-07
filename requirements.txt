@@ -74,13 +74,8 @@ geojson==3.1.0
 geopandas==0.14.2
     # via
     #   osmnx
-    #   snkit
     #   swmmanywhere (pyproject.toml)
 geopy==2.4.1
-    # via swmmanywhere (pyproject.toml)
-gitdb==4.0.11
-    # via gitpython
-gitpython==3.1.41
     # via swmmanywhere (pyproject.toml)
 idna==3.6
     # via requests
@@ -102,8 +97,11 @@ multiprocess==0.70.15
     # via salib
 netcdf4==1.6.5
     # via swmmanywhere (pyproject.toml)
+netcomp @ git+https://github.com/barneydobson/NetComp.git
+    # via swmmanywhere (pyproject.toml)
 networkx==3.2.1
     # via
+    #   netcomp
     #   osmnx
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
@@ -117,6 +115,7 @@ numpy==1.26.3
     #   imageio
     #   matplotlib
     #   netcdf4
+    #   netcomp
     #   numba
     #   osmnx
     #   pandas
@@ -201,6 +200,7 @@ scikit-image==0.22.0
     # via pysheds
 scipy==1.12.0
     # via
+    #   netcomp
     #   pysheds
     #   salib
     #   scikit-image
@@ -209,16 +209,11 @@ shapely==2.0.2
     # via
     #   geopandas
     #   osmnx
-    #   snkit
     #   swmmanywhere (pyproject.toml)
 six==1.16.0
     # via
     #   fiona
     #   python-dateutil
-smmap==5.0.1
-    # via gitdb
-snkit==1.9.0
-    # via swmmanywhere (pyproject.toml)
 snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.3
