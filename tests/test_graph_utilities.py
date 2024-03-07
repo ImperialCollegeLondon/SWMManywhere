@@ -104,7 +104,7 @@ def test_derive_subcatchments():
             assert isinstance(data['contributing_area'], float)
 
 def test_set_elevation_and_slope():
-    """Test the set_elevation and set_surface_slope function."""
+    """Test the set_elevation, set_surface_slope, chahinian_slope function."""
     G, _ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -125,6 +125,24 @@ def test_set_elevation_and_slope():
             assert 'surface_slope' in data.keys()
             assert math.isfinite(data['surface_slope'])
 
+        
+        G = gu.set_chahinian_slope(G)
+        for u, v, data in G.edges(data=True):
+            assert 'chahinian_slope' in data.keys()
+            assert math.isfinite(data['chahinian_slope'])
+        
+        slope_vals = {-2 : 1,
+                      0.3 : 0,
+                      0.4 : 0,
+                      12 : 1}
+        for slope, expected in slope_vals.items():
+            first_edge = list(G.edges)[0]
+            G.edges[first_edge]['surface_slope'] = slope / 100
+            G = gu.set_chahinian_slope(G)
+            assert G.edges[first_edge]['chahinian_slope'] == expected
+
+
+
 def test_chahinian_angle():
     """Test the chahinian_angle function."""
     G, _ = load_street_network()
@@ -132,6 +150,8 @@ def test_chahinian_angle():
     for u, v, data in G.edges(data=True):
         assert 'chahinian_angle' in data.keys()
         assert math.isfinite(data['chahinian_angle'])
+
+
 
 def test_calculate_weights():
     """Test the calculate_weights function."""

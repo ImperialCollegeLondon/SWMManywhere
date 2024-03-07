@@ -61,7 +61,7 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
-    weights: list = Field(default = ['surface_slope',
+    weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
                                       'contributing_area'],
@@ -69,7 +69,7 @@ class TopologyDerivation(BaseModel):
                         unit = "-",
                         description = "Weights for topo derivation")
 
-    surface_slope_scaling: float = Field(default = 1,
+    chahinian_slope_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
@@ -93,7 +93,7 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Constant to apply to contributing area in topo derivation")
     
-    surface_slope_exponent: float = Field(default = 1,
+    chahinian_slope_exponent: float = Field(default = 1,
         le = 2,
         ge = -2,
         unit = "-",
@@ -132,7 +132,7 @@ class TopologyDerivation(BaseModel):
 # TODO move this to tests and run it if we're happy with this way of doing things
 class NewTopo(TopologyDerivation):
      """Demo for changing weights that should break the validator."""
-     weights: list = Field(default = ['surface_slope',
+     weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
                                       'contributing_area',
@@ -149,38 +149,38 @@ class HydraulicDesign(BaseModel):
                             description = """Diameters to consider in 
                             pipe by pipe method""")
     max_fr: float = Field(default = 0.8,
-		upper_limit = 1,
-		lower_limit = 0,
+		le = 1,
+		ge = 0,
 		unit = "-",
 		description = "Maximum filling ratio in pipe by pipe method")
     min_shear: float = Field(default = 2,
-		upper_limit = 3,
-		lower_limit = 0,
+		le = 3,
+		ge = 0,
 		unit = "Pa",
 		description = "Minimum wall shear stress in pipe by pipe method")
     min_v: float = Field(default = 0.75,
-		upper_limit = 2,
-		lower_limit = 0,
+		le = 2,
+		ge = 0,
 		unit = "m/s",
 		description = "Minimum velocity in pipe by pipe method")
     max_v: float = Field(default = 5,
-		upper_limit = 10,
-		lower_limit = 3,
+		le = 10,
+		ge = 3,
 		unit = "m/s",
 		description = "Maximum velocity in pipe by pipe method")
     min_depth: float = Field(default = 0.5,
-		upper_limit = 1,
-		lower_limit = 0,
+		le = 1,
+		ge = 0,
 		unit = "m",
 		description = "Minimum excavation depth in pipe by pipe method")
     max_depth: float = Field(default = 5,
-		upper_limit = 10,
-		lower_limit = 2,
+		le = 10,
+		ge = 2,
 		unit = "m",
 		description = "Maximum excavation depth in pipe by pipe method")
     precipitation: float = Field(default = 0.006,
-		upper_limit = 0.010,
-		lower_limit = 0.001,
+		le = 0.010,
+		ge = 0.001,
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
 
