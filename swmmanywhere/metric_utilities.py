@@ -32,7 +32,7 @@ class MetricRegistry(dict):
         for param, obj in sig.parameters.items():
             if param == 'kwargs':
                 continue
-            if param not in allowable_params.keys():
+            if param not in allowable_params:
                 raise ValueError(f"{param} of {func.__name__} not allowed.")
             if obj.annotation != allowable_params[param]:
                 raise ValueError(f"""{param} of {func.__name__} should be of
