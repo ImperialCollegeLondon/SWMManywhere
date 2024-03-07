@@ -123,11 +123,11 @@ def test_outlet_nse_flow():
     results = pd.DataFrame([{'object' : 4253560,
                              'variable' : 'flow',
                              'value' : 10,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                             'date' : pd.to_datetime('2021-01-01').date()},
                             {'object' : '',
                              'variable' : 'flow',
                              'value' : 5,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                             'date' : pd.to_datetime('2021-01-01').date()},
                              {'object' : 4253560,
                              'variable' : 'flow',
                              'value' : 5,
@@ -136,7 +136,7 @@ def test_outlet_nse_flow():
                              'variable' : 'flow',
                              'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')}])
-    
+
     # Calculate NSE (perfect results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G,
                                     synthetic_results = results,

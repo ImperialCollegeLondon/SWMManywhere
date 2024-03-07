@@ -70,24 +70,29 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     efficiency (NSE) of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
+    # Format dates
+    synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
+    real_results['date'] = pd.to_datetime(real_results['date'])
+
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
     syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
-    syn_data = syn_data.groupby('date').value.sum().reset_index()
+    syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
     real_data = real_data.loc[real_data.object.isin(real_ids)]
-    real_data = real_data.groupby('date').value.sum().reset_index()
-
+    real_data = real_data.groupby('date').value.sum()
+    
     # Align data
     df = pd.merge(syn_data, 
                   real_data, 
-                  on='date', 
+                  left_index = True,
+                  right_index = True,
                   suffixes=('_syn', '_real'), 
-                  how='outer').sort_values(by='date')
+                  how='outer').sort_index()
 
     # Interpolate to time in real data
-    df['value_syn'] = df.set_index('date').value_syn.interpolate().to_numpy()
+    df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
     # Calculate NSE
