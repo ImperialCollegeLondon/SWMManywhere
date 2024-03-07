@@ -30,6 +30,7 @@ dependencies = [
   "geopandas",
   "geopy",
   "GitPython",
+  "loguru",
   "matplotlib",
   "netcdf4",
   "networkx",
