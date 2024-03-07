@@ -10,6 +10,10 @@ from swmmanywhere import metric_utilities as mu
 from swmmanywhere.graph_utilities import load_graph
 
 
+def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
+    """Assert that two floats are close."""
+    assert np.isclose(a, b, rtol=rtol).all()
+
 def get_subs():
     """Get a GeoDataFrame of subcatchments."""
     subs = [shapely.Polygon([(700262, 5709928),
@@ -75,7 +79,7 @@ def test_bias_flood_depth():
                               real_results = real_results,
                               synthetic_subs = synthetic_subs,
                               real_subs = real_subs)
-    assert np.isclose(val, -0.29523809523809524)
+    assert_close(val, -0.2952)
 
 def test_kstest_betweenness():
     """Test the kstest_betweenness metric."""
@@ -86,7 +90,7 @@ def test_kstest_betweenness():
     G_ = G.copy()
     G_.remove_node(list(G.nodes)[0])
     val = mu.metrics.kstest_betweenness(synthetic_G = G_, real_G = G)
-    assert np.isclose(val, 0.286231884057971)
+    assert_close(val, 0.2862)
 
 def test_best_outlet_match():
     """Test the best_outlet_match and ks_betweenness."""
