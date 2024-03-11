@@ -537,13 +537,14 @@ class set_chahinian_slope(BaseGraphFunction,
         weights = [1, 0, 0, 1]
 
         # Calculate weights
-        chahinian_weights = [
-            {(u,v): np.interp(d['surface_slope'] * 100,
+        chahinian_weights = {
+            (u,v): np.interp(d['surface_slope'] * 100,
                                           angle_points,
                                           weights,
                                           left=1.0,
-                                          right=1.0)}
-             for u, v, d in G.edges(data=True)]
+                                          right=1.0)
+            for u, v, d in G.edges(data=True)}
+             
         
         # Update graph
         nx.set_edge_attributes(G, chahinian_weights, 'chahinian_slope')
