@@ -529,15 +529,14 @@ class set_chahinian_slope(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        for u,v,d in G.edges(data=True):
-            slope_pct = d['surface_slope'] * 100
-            chahinian_weight = np.interp(slope_pct,
-                                        [-1, 0.3, 0.7, 10],
-                                        [1, 0, 0, 1],
-                                        left = 1.0,
-                                        right = 1.0
-                                        )
-            d['chahinian_slope'] = chahinian_weight
+        chahinian_weights = [
+            {(u,v): np.interp(d['surface_slope'] * 100,
+                                          [-1, 0.3, 0.7, 10],
+                                          [1, 0, 0, 1],
+                                          left=1.0,
+                                          right=1.0)}
+             for u, v, d in G.edges(data=True)]
+        nx.set_edge_attributes(G, chahinian_weights, 'chahinian_slope')
         return G
     
 @register_graphfcn
