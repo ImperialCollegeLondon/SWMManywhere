@@ -3,10 +3,14 @@
 
 @author: Barnaby Dobson
 """
+from collections import defaultdict
 from inspect import signature
-from typing import Callable
+from typing import Callable, Optional
 
+import cytoolz.curried as tlz
 import geopandas as gpd
+import joblib
+import netcomp
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -59,6 +63,244 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
+def align_calc_nse(synthetic_results: pd.DataFrame, 
+                  real_results: pd.DataFrame, 
+                  variable: str, 
+                  syn_ids: list,
+                  real_ids: list) -> float:
+    """Align and calculate NSE.
+
+    Align the synthetic and real data and calculate the Nash-Sutcliffe
+    efficiency (NSE) of the variable over time. In cases where the synthetic
+    data is does not overlap the real data, the value is interpolated.
+    """
+    # Format dates
+    synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
+    real_results['date'] = pd.to_datetime(real_results['date'])
+
+    # Extract data
+    syn_data = extract_var(synthetic_results, variable)
+    syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
+    syn_data = syn_data.groupby('date').value.sum()
+
+    real_data = extract_var(real_results, variable)
+    real_data = real_data.loc[real_data.object.isin(real_ids)]
+    real_data = real_data.groupby('date').value.sum()
+    
+    # Align data
+    df = pd.merge(syn_data, 
+                  real_data, 
+                  left_index = True,
+                  right_index = True,
+                  suffixes=('_syn', '_real'), 
+                  how='outer').sort_index()
+
+    # Interpolate to time in real data
+    df['value_syn'] = df.value_syn.interpolate().to_numpy()
+    df = df.dropna(subset=['value_real'])
+
+    # Calculate NSE
+    return nse(df.value_real, df.value_syn)
+
+def create_subgraph(G: nx.Graph,
+                    nodes: list) -> nx.Graph:
+    """Create a subgraph.
+    
+    Create a subgraph of G based on the nodes list. Taken from networkx 
+    documentation: https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.subgraph.html
+    
+    Args:
+        G (nx.Graph): The original graph.
+        nodes (list): The list of nodes to include in the subgraph.
+
+    Returns:
+        nx.Graph: The subgraph.
+    """
+    # Create a subgraph SG based on a (possibly multigraph) G
+    SG = G.__class__()
+    SG.add_nodes_from((n, G.nodes[n]) for n in nodes)
+    if SG.is_multigraph():
+        SG.add_edges_from((n, nbr, key, d)
+            for n, nbrs in G.adj.items() if n in nodes
+            for nbr, keydict in nbrs.items() if nbr in nodes
+            for key, d in keydict.items())
+    else:
+        SG.add_edges_from((n, nbr, d)
+            for n, nbrs in G.adj.items() if n in nodes
+            for nbr, d in nbrs.items() if nbr in nodes)
+    SG.graph.update(G.graph)
+    return SG
+
+def nse(y: np.ndarray,
+        yhat: np.ndarray) -> float:
+    """Calculate Nash-Sutcliffe efficiency (NSE)."""
+    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
+
+def best_outlet_match(synthetic_G: nx.Graph,
+                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int]:
+    """Best outlet match.
+    
+    Identify the outlet with the most nodes within the real_subs and return the
+    subgraph of the synthetic graph of nodes that drain to that outlet.
+
+    Args:
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+
+    Returns:
+        nx.Graph: The subgraph of the synthetic graph for the outlet with the 
+            most nodes within the real_subs.
+        int: The id of the outlet.
+    """
+    # Identify which nodes fall within real_subs
+    nodes_df = pd.DataFrame([d for x,d in synthetic_G.nodes(data=True)],
+                             index = synthetic_G.nodes)
+    nodes_joined = (
+        gpd.GeoDataFrame(nodes_df, 
+                         geometry=gpd.points_from_xy(nodes_df.x, 
+                                                    nodes_df.y),
+                         crs = synthetic_G.graph['crs'])
+        .sjoin(real_subs, 
+               how="right", 
+               predicate="within")
+    )
+
+    # Select the most common outlet
+    outlet = nodes_joined.outlet.value_counts().idxmax()
+
+    # Subselect the matching graph
+    outlet_nodes = [n for n, d in synthetic_G.nodes(data=True) 
+                    if d['outlet'] == outlet]
+    sg = create_subgraph(synthetic_G,outlet_nodes)
+    return sg, outlet
+
+def dominant_outlet(G: nx.DiGraph,
+                    results: pd.DataFrame) -> tuple[nx.DiGraph,int]:
+    """Dominant outlet.
+
+    Identify the outlet with highest flow along it and return the
+    subgraph of the graph of nodes that drain to that outlet.
+
+    Args:
+        G (nx.Graph): The graph.
+        results (pd.DataFrame): The results, which include a 'flow' and 'id' 
+            column.
+
+    Returns:
+        nx.Graph: The subgraph of nodes/arcs that the reach max flow outlet
+        int: The id of the outlet.
+    """
+    # Identify outlets of the graph
+    outlets = [n for n, outdegree in G.out_degree() 
+               if outdegree == 0]
+    outlet_arcs = [d['id'] for u,v,d in G.edges(data=True) 
+                   if v in outlets]
+    
+    # Identify the outlet with the highest flow
+    outlet_flows = results.loc[(results.variable == 'flow') &
+                               (results.object.isin(outlet_arcs))]
+    max_outlet_arc = outlet_flows.groupby('object').value.mean().idxmax()
+    max_outlet = [v for u,v,d in G.edges(data=True) 
+                  if d['id'] == max_outlet_arc][0]
+    
+    # Subselect the matching graph
+    sg = create_subgraph(G, nx.ancestors(G, max_outlet) | {max_outlet})
+    return sg, max_outlet
+
+def nc_compare(G1, G2, funcname, **kw):
+    """Compare two graphs using netcomp."""
+    A1,A2 = [nx.adjacency_matrix(G) for G in (G1,G2)]
+    return getattr(netcomp, funcname)(A1,A2,**kw)
+
+def edge_betweenness_centrality(G: nx.Graph, 
+                                normalized: bool = True,
+                                weight: Optional[str] = "weight", 
+                                njobs: int = -1):
+    """Parallel betweenness centrality function."""
+    njobs = joblib.cpu_count(True) if njobs == -1 else njobs
+    node_chunks = tlz.partition_all(G.order() // njobs, G.nodes())
+    bt_func = tlz.partial(nx.edge_betweenness_centrality_subset, 
+                          G=G, 
+                          normalized=normalized, 
+                          weight=weight)
+    bt_sc = joblib.Parallel(n_jobs=njobs)(
+        joblib.delayed(bt_func)(sources=nodes, 
+                                targets=G.nodes()) for nodes in node_chunks
+    )
+
+    # Merge the betweenness centrality results
+    bt_c: dict[int, float] = defaultdict(float)
+    for bt in bt_sc:
+        for n, v in bt.items():
+            bt_c[n] += v
+    return bt_c
+
+@metrics.register
+def nc_deltacon0(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'deltacon0',
+                      eps = 1e-10)
+
+@metrics.register
+def nc_laplacian_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'laplacian')
+
+@metrics.register
+def nc_laplacian_norm_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'laplacian_norm')
+
+@metrics.register
+def nc_adjacency_dist(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G, 
+                      real_G, 
+                      'lambda_dist',
+                      k=10,
+                      kind = 'adjacency')
+
+@metrics.register
+def nc_vertex_edge_distance(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric.
+    
+    Do '1 -' because this metric is similarity not distance.
+    """
+    return 1 - nc_compare(synthetic_G, 
+                           real_G, 
+                          'vertex_edge_distance')
+
+@metrics.register
+def nc_resistance_distance(synthetic_G: nx.Graph,
+                  real_G: nx.Graph,
+                  **kwargs) -> float:
+    """Run the evaluated metric."""
+    return nc_compare(synthetic_G,
+                        real_G,
+                        'resistance_distance',
+                        check_connected = False,
+                        renormalized = True)
+
 @metrics.register
 def bias_flood_depth(
                  synthetic_results: pd.DataFrame,
@@ -84,14 +326,82 @@ def bias_flood_depth(
         return (syn_tot - real_tot) / real_tot
 
 @metrics.register
+def kstest_edge_betweenness( 
+                 synthetic_G: nx.Graph,
+                 real_G: nx.Graph,
+                 **kwargs) -> float:
+        """Run the evaluated metric."""
+        syn_betweenness = edge_betweenness_centrality(synthetic_G, weight=None)
+        real_betweenness = edge_betweenness_centrality(real_G, weight=None)
+
+        #TODO does it make more sense to use statistic or pvalue?
+        return stats.ks_2samp(list(syn_betweenness.values()),
+                              list(real_betweenness.values())).statistic
+
+@metrics.register
 def kstest_betweenness( 
                  synthetic_G: nx.Graph,
                  real_G: nx.Graph,
                  **kwargs) -> float:
         """Run the evaluated metric."""
-        syn_betweenness = nx.betweenness_centrality(synthetic_G)
-        real_betweenness = nx.betweenness_centrality(real_G)
+        syn_betweenness = nx.betweenness_centrality(synthetic_G, weight=None)
+        real_betweenness = nx.betweenness_centrality(real_G, weight=None)
 
         #TODO does it make more sense to use statistic or pvalue?
         return stats.ks_2samp(list(syn_betweenness.values()),
                               list(real_betweenness.values())).statistic
+
+@metrics.register
+def outlet_nse_flow(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet NSE flow.
+
+    Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
+    is measured as the total flow of all arcs that drain to the 'dominant'
+    outlet node. The dominant outlet node of the 'real' network is calculated by
+    dominant_outlet, while the dominant outlet node of the 'synthetic' network
+    is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real arcs that flow into the best outlet node
+    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
+                if v == syn_outlet]
+    _, real_outlet = dominant_outlet(real_G, real_results)
+    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
+                if v == real_outlet]
+    
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flow', 
+                         syn_arc, 
+                         real_arc)
+
+
+@metrics.register
+def outlet_nse_flooding(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet NSE flooding.
+    
+    Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
+    flooding is the total volume of flooded water across all nodes that drain
+    to the 'dominant' outlet node. The dominant outlet node of the 'real' 
+    network is calculated by dominant_outlet, while the dominant outlet node of
+    the 'synthetic' network is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return align_calc_nse(synthetic_results, 
+                         real_results, 
+                         'flooding', 
+                         list(sg_syn.nodes),
+                         list(sg_real.nodes))
