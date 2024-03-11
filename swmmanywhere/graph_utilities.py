@@ -529,13 +529,23 @@ class set_chahinian_slope(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
+        G = G.copy()
+
+        # Values where the weight of the angle can be matched to the values 
+        # in weights
+        angle_points = [-1, 0.3, 0.7, 10] 
+        weights = [1, 0, 0, 1]
+
+        # Calculate weights
         chahinian_weights = [
             {(u,v): np.interp(d['surface_slope'] * 100,
-                                          [-1, 0.3, 0.7, 10],
-                                          [1, 0, 0, 1],
+                                          angle_points,
+                                          weights,
                                           left=1.0,
                                           right=1.0)}
              for u, v, d in G.edges(data=True)]
+        
+        # Update graph
         nx.set_edge_attributes(G, chahinian_weights, 'chahinian_slope')
         return G
     
