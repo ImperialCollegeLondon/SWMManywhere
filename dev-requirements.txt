@@ -55,6 +55,7 @@ colorama==0.4.6
     # via
     #   build
     #   click
+    #   loguru
     #   pytest
     #   tqdm
 contourpy==1.2.0
@@ -117,6 +118,8 @@ lazy-loader==0.3
     # via scikit-image
 llvmlite==0.41.1
     # via numba
+loguru==0.7.2
+    # via swmmanywhere (pyproject.toml)
 matplotlib==3.8.2
     # via
     #   salib
@@ -311,6 +314,8 @@ virtualenv==20.24.5
     # via pre-commit
 wheel==0.41.3
     # via pip-tools
+win32-setctime==1.1.0
+    # via loguru
 xarray==2023.12.0
     # via
     #   rioxarray

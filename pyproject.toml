@@ -31,6 +31,8 @@ dependencies = [
   "geopandas",
   "geopy",
   "joblib",
+  "GitPython",
+  "loguru",
   "matplotlib",
   "netcdf4",
   "netcomp@ git+https://github.com/barneydobson/NetComp.git",
