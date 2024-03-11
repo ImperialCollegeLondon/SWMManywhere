@@ -5,7 +5,7 @@
 """
 from collections import defaultdict
 from inspect import signature
-from typing import Callable
+from typing import Callable, Optional
 
 import cytoolz.curried as tlz
 import geopandas as gpd
@@ -214,7 +214,7 @@ def nc_compare(G1, G2, funcname, **kw):
 
 def edge_betweenness_centrality(G: nx.Graph, 
                                 normalized: bool = True,
-                                weight: str = "weight", 
+                                weight: Optional[str] = "weight", 
                                 njobs: int = -1):
     """Parallel betweenness centrality function."""
     njobs = joblib.cpu_count(True) if njobs == -1 else njobs
@@ -229,7 +229,7 @@ def edge_betweenness_centrality(G: nx.Graph,
     )
 
     # Merge the betweenness centrality results
-    bt_c = defaultdict(float)
+    bt_c: dict[int, float] = defaultdict(float)
     for bt in bt_sc:
         for n, v in bt.items():
             bt_c[n] += v
