@@ -16,6 +16,7 @@ import pandas as pd
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as gu
 from swmmanywhere import parameters, prepare_data
+from swmmanywhere.logging import logger
 
 
 def next_directory(keyword: str, directory: Path) -> int:
@@ -160,7 +161,7 @@ def prepare_precipitation(bbox: tuple[float, float, float, float],
     """Download and reproject precipitation data."""
     if addresses.precipitation.exists():
         return
-    print(f'downloading precipitation to {addresses.precipitation}')
+    logger.info(f'downloading precipitation to {addresses.precipitation}')
     precip = prepare_data.download_precipitation(bbox,
                                                     api_keys['cds_username'],
                                                     api_keys['cds_api_key'])
@@ -175,7 +176,7 @@ def prepare_elvation(bbox: tuple[float, float, float, float],
     """Download and reproject elevation data."""
     if addresses.elevation.exists():
         return
-    print(f'downloading elevation to {addresses.elevation}')
+    logger.info(f'downloading elevation to {addresses.elevation}')
     with tempfile.TemporaryDirectory() as temp_dir:
         fid = Path(temp_dir) / 'elevation.tif'
         prepare_data.download_elevation(fid,
@@ -194,12 +195,12 @@ def prepare_building(bbox: tuple[float, float, float, float],
         return
     
     if not addresses.national_building.exists():  
-        print(f'downloading buildings to {addresses.national_building}')
+        logger.info(f'downloading buildings to {addresses.national_building}')
         prepare_data.download_buildings(addresses.national_building, 
                                         bbox[0],
                                         bbox[1])
         
-    print(f'trimming buildings to {addresses.building}')
+    logger.info(f'trimming buildings to {addresses.building}')
     national_buildings = gpd.read_parquet(addresses.national_building)
     buildings = national_buildings.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]] # type: ignore 
     
@@ -213,7 +214,7 @@ def prepare_street(bbox: tuple[float, float, float, float],
     """Download and reproject street graph."""
     if addresses.street.exists():
         return
-    print(f'downloading street network to {addresses.street}')
+    logger.info(f'downloading street network to {addresses.street}')
     street_network = prepare_data.download_street(bbox)
     street_network = go.reproject_graph(street_network, 
                                         source_crs, 
@@ -227,7 +228,7 @@ def prepare_river(bbox: tuple[float, float, float, float],
     """Download and reproject river graph."""
     if addresses.river.exists():
         return
-    print(f'downloading river network to {addresses.river}')
+    logger.info(f'downloading river network to {addresses.river}')
     river_network = prepare_data.download_river(bbox)
     river_network = go.reproject_graph(river_network, 
                                         source_crs,
