@@ -92,6 +92,17 @@ def test_kstest_betweenness():
     val = mu.metrics.kstest_betweenness(synthetic_G = G_, real_G = G)
     assert_close(val, 0.2862)
 
+def test_kstest_edge_betweenness():
+    """Test the kstest_betweenness metric."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    val = mu.metrics.kstest_edge_betweenness(synthetic_G = G, real_G = G)
+    assert val == 0.0
+
+    G_ = G.copy()
+    G_.remove_node(list(G.nodes)[0])
+    val = mu.metrics.kstest_edge_betweenness(synthetic_G = G_, real_G = G)
+    assert_close(val, 0.38995)
+
 def test_best_outlet_match():
     """Test the best_outlet_match and ks_betweenness."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')

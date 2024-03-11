@@ -25,10 +25,12 @@ classifiers = [
 dependencies = [
   # TODO definitely don't need all of these
   "cdsapi",
+  "cytoolz",
   "fastparquet",
   "fiona",
   "geopandas",
   "geopy",
+  "joblib",
   "matplotlib",
   "netcdf4",
   "netcomp@ git+https://github.com/barneydobson/NetComp.git",

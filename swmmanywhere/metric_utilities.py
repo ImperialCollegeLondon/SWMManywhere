@@ -12,7 +12,10 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from scipy import stats
-
+import joblib
+import networkx as nx
+import cytoolz.curried as tlz
+from collections import defaultdict
 
 class MetricRegistry(dict): 
     """Registry object.""" 
@@ -209,6 +212,22 @@ def nc_compare(G1, G2, funcname, **kw):
     A1,A2 = [nx.adjacency_matrix(G) for G in (G1,G2)]
     return getattr(netcomp, funcname)(A1,A2,**kw)
 
+def edge_betweenness_centrality(G: nx.Graph, normalized: bool = True, weight: str = "weight", njobs: int = -1):
+    """Parallel betweenness centrality function"""
+    njobs = joblib.cpu_count(True) if njobs == -1 else njobs
+    node_chunks = tlz.partition_all(G.order() // njobs, G.nodes())
+    bt_func = tlz.partial(nx.edge_betweenness_centrality_subset, G=G, normalized=normalized, weight=weight)
+    bt_sc = joblib.Parallel(n_jobs=njobs)(
+        joblib.delayed(bt_func)(sources=nodes, targets=G.nodes()) for nodes in node_chunks
+    )
+
+    # Merge the betweenness centrality results
+    bt_c = defaultdict(float)
+    for bt in bt_sc:
+        for n, v in bt.items():
+            bt_c[n] += v
+    return bt_c
+
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
@@ -300,13 +319,26 @@ def bias_flood_depth(
         return (syn_tot - real_tot) / real_tot
 
 @metrics.register
+def kstest_edge_betweenness( 
+                 synthetic_G: nx.Graph,
+                 real_G: nx.Graph,
+                 **kwargs) -> float:
+        """Run the evaluated metric."""
+        syn_betweenness = edge_betweenness_centrality(synthetic_G, weight=None)
+        real_betweenness = edge_betweenness_centrality(real_G, weight=None)
+
+        #TODO does it make more sense to use statistic or pvalue?
+        return stats.ks_2samp(list(syn_betweenness.values()),
+                              list(real_betweenness.values())).statistic
+
+@metrics.register
 def kstest_betweenness( 
                  synthetic_G: nx.Graph,
                  real_G: nx.Graph,
                  **kwargs) -> float:
         """Run the evaluated metric."""
-        syn_betweenness = nx.betweenness_centrality(synthetic_G)
-        real_betweenness = nx.betweenness_centrality(real_G)
+        syn_betweenness = nx.betweenness_centrality(synthetic_G, weight=None)
+        real_betweenness = nx.betweenness_centrality(real_G, weight=None)
 
         #TODO does it make more sense to use statistic or pvalue?
         return stats.ks_2samp(list(syn_betweenness.values()),
