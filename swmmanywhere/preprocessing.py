@@ -169,7 +169,7 @@ def prepare_precipitation(bbox: tuple[float, float, float, float],
     precip = go.reproject_df(precip, source_crs, target_crs)
     write_df(precip, addresses.precipitation)
     
-def prepare_elvation(bbox: tuple[float, float, float, float],
+def prepare_elevation(bbox: tuple[float, float, float, float],
                     addresses: parameters.FilePaths,
                     api_keys: dict[str, str],
                     target_crs: str):
@@ -256,7 +256,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
     prepare_precipitation(bbox, addresses, api_keys, target_crs)
     
     # Download elevation data
-    prepare_elvation(bbox, addresses, api_keys, target_crs)
+    prepare_elevation(bbox, addresses, api_keys, target_crs)
     
     # Download building data
     prepare_building(bbox, addresses, target_crs)
