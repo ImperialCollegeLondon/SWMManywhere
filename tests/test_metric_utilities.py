@@ -279,20 +279,34 @@ def test_outlet_nse_flooding():
                                     real_subs = subs)
     assert val == 0.0
 
-def test_netcomp():
-    """Test the netcomp metrics."""
+def test_netcomp_iterate():
+    """Test the netcomp metrics and iterate_metrics."""
     netcomp_results = {'nc_deltacon0' : 0.00129408,
                        'nc_laplacian_dist' : 36.334773,
                        'nc_laplacian_norm_dist' : 1.932007,
                        'nc_adjacency_dist' : 3.542749,
                        'nc_resistance_distance' : 8.098548,
                        'nc_vertex_edge_distance' : 0.132075}
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    metrics = mu.iterate_metrics(synthetic_G = G,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = None,
+                                 real_results = None,
+                                 metric_list = netcomp_results.keys())
+    for metric, val in metrics.items():
+        assert metric in netcomp_results
+        assert np.isclose(val, 0)
 
-    for func, val in netcomp_results.items():
-        G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-        val_ = getattr(mu.metrics, func)(synthetic_G = G, real_G = G)
-        assert val_ == 0.0, func
-
-        G_ = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
-        val_ = getattr(mu.metrics, func)(synthetic_G = G_, real_G = G)
-        assert np.isclose(val, val_), func
+    G_ = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    metrics = mu.iterate_metrics(synthetic_G = G_,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = None,
+                                 real_results = None,
+                                 metric_list = netcomp_results.keys())
+    for metric, val in metrics.items():
+        assert metric in netcomp_results
+        assert np.isclose(val, netcomp_results[metric])

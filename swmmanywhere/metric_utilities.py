@@ -61,7 +61,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
                     real_results: pd.DataFrame,
                     real_subs: gpd.GeoDataFrame,
                     real_G: nx.Graph,
-                    metric_list: list[str]) -> list[float]:
+                    metric_list: list[str]) -> dict[str, float]:
     """Iterate a list of metrics over a graph.
 
     Args:
@@ -74,18 +74,18 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
         metric_list (list[str]): A list of metrics to iterate.
 
     Returns:
-        list[float]: The results of the metrics.
+        dict[str, float]: The results of the metrics.
     """
-    results = []
+    results = {}
     for metric in metric_list:
         assert metric in metrics.keys(), f"Metric {metric} not registered in metrics."
-        results.append(metrics[metric](synthetic_results = synthetic_results,
+        results[metric] = metrics[metric](synthetic_results = synthetic_results,
                                        synthetic_subs = synthetic_subs,
                                        synthetic_G = synthetic_G,
                                        real_results = real_results,
                                        real_subs = real_subs,
-                                       real_G = real_G))
-    return pd.DataFrame(results)
+                                       real_G = real_G)
+    return results
 
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:

@@ -13,7 +13,7 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import load_graph, save_graph
+from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
 
 def load_street_network():
@@ -242,3 +242,19 @@ def test_pipe_by_pipe():
         assert 'chamber_floor_elevation' in d.keys()
         assert math.isfinite(d['chamber_floor_elevation'])
         
+def test_iterate_graphfcns():
+    """Test the iterate_graphfcns function."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    params = parameters.get_full_parameters()
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    G = iterate_graphfcns(G, 
+                             ['assign_id',
+                              'format_osmnx_lanes'],
+                              params, 
+                              addresses)
+    for u, v, d in G.edges(data=True):
+        assert 'id' in d.keys()
+        assert 'width' in d.keys()
