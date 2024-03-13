@@ -12,7 +12,7 @@ import yaml
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import preprocessing
-from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph
+from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 from swmmanywhere.logging import logger
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.parameters import get_full_parameters
@@ -20,7 +20,11 @@ from swmmanywhere.post_processing import synthetic_write
 
 
 def swmmanywhere(config_: Path | dict):
-    """Run a SWMM model and store the results.
+    """Run SWMManywhere processes.
+    
+    This function runs the SWMManywhere processes, including downloading data,
+    preprocessing the graphfcns, running the model, and comparing the results 
+    to real data using metrics.
 
     Args:
         config_ (Path | dict): The path to the configuration file, or the loaded
@@ -36,19 +40,21 @@ def swmmanywhere(config_: Path | dict):
         assert isinstance(config_, dict), \
             logger.error("config must be a Path or a dict.")
         config = config_
+
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],
                                                        config['project'],
                                                        Path(config['base_dir'])
                                                        )
 
-    for address_override in config['address_overrides']:
-        addresses[address_override] = config['address_overrides'][address_override]
+    for key, val in config['address_overrides'].items():
+        setattr(addresses,key,val)
 
     # Run downloads
+    api_keys = yaml.safe_load(config['api_keys'].open('r'))
     preprocessing.run_downloads(config['bbox'],
                                 addresses,
-                                config['api_keys']
+                                api_keys
                                 )
 
     # Identify the starting graph
@@ -65,7 +71,7 @@ def swmmanywhere(config_: Path | dict):
 
     # Iterate the graph functions
     G = iterate_graphfcns(G, 
-                          config['graphfcns'], 
+                          config['graphfcn_list'], 
                           parameters,
                           addresses)
 
@@ -75,13 +81,13 @@ def swmmanywhere(config_: Path | dict):
                         addresses.edges,
                         G.graph['crs']
                         )
-
+    save_graph(G, addresses.graph)
     # Write to .inp
-    synthetic_write(addresses.model)
+    synthetic_write(addresses)
                     
     # Run the model
     synthetic_results = run(addresses.inp, 
-                  **config['run_settings'])
+                            **config['run_settings'])
     
     # Get the real results
     if config['real']['results']:

@@ -258,7 +258,7 @@ def reproject_graph(G: nx.Graph,
                                         G_new.nodes[u]['y']],
                                        [G_new.nodes[v]['x'],
                                         G_new.nodes[v]['y']]])
-    
+    G_new.graph['crs'] = target_crs
     return G_new
 
 

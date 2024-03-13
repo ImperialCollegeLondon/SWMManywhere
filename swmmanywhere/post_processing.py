@@ -38,7 +38,8 @@ def synthetic_write(addresses: FilePaths):
     nodes = gpd.read_file(addresses.nodes)
     edges = gpd.read_file(addresses.edges)
     subs = gpd.read_file(addresses.subcatchments)
-    
+    subs = subs.loc[subs.id.isin(nodes.id)]
+
     # Extract SWMM relevant data
     edges = edges[['u','v','diameter','length']]
     nodes = nodes[['id',
@@ -99,7 +100,7 @@ def synthetic_write(addresses: FilePaths):
     event = {'name' : '1',
              'unit' : 'mm',
              'interval' : '01:00',
-             'fid' : 'storm.dat' # overwritten at runtime
+             'fid' : str(addresses.precipitation)
                                  }
 
     # Locate raingage(s) on the map

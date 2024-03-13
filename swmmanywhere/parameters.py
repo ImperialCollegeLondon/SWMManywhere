@@ -243,6 +243,9 @@ class FilePaths:
     def _generate_subcatchments(self):
         return self._generate_property(f'subcatchments.geo{self.extension}', 
                                         'model')
+    def _generate_graph(self):
+        return self._generate_property(f'graph.{self.extension}', 
+                                        'model')
     def _generate_nodes(self):
         return self._generate_property(f'nodes.geo{self.extension}', 
                                         'model')

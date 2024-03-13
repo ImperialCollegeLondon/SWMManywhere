@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from swmmanywhere.logging import logger
+
 
 class MetricRegistry(dict): 
     """Registry object.""" 
@@ -85,6 +87,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
                                        real_results = real_results,
                                        real_subs = real_subs,
                                        real_G = real_G)
+        logger.info(f"metric: {metric} completed.")
     return results
 
 def extract_var(df: pd.DataFrame,
@@ -112,11 +115,11 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
 
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
-    syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
+    syn_data = syn_data.loc[syn_data.id.isin(syn_ids)]
     syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
-    real_data = real_data.loc[real_data.object.isin(real_ids)]
+    real_data = real_data.loc[real_data.id.isin(real_ids)]
     real_data = real_data.groupby('date').value.sum()
     
     # Align data
@@ -230,8 +233,8 @@ def dominant_outlet(G: nx.DiGraph,
     
     # Identify the outlet with the highest flow
     outlet_flows = results.loc[(results.variable == 'flow') &
-                               (results.object.isin(outlet_arcs))]
-    max_outlet_arc = outlet_flows.groupby('object').value.mean().idxmax()
+                               (results.id.isin(outlet_arcs))]
+    max_outlet_arc = outlet_flows.groupby('id').value.mean().idxmax()
     max_outlet = [v for u,v,d in G.edges(data=True) 
                   if d['id'] == max_outlet_arc][0]
     
@@ -346,12 +349,12 @@ def bias_flood_depth(
             return np.trapz(x.value,x.duration)
 
         syn_flooding = extract_var(synthetic_results,
-                                    'flooding').groupby('object').apply(_f)
+                                    'flooding').groupby('id').apply(_f)
         syn_area = synthetic_subs.impervious_area.sum()
         syn_tot = syn_flooding.sum() / syn_area
 
         real_flooding = extract_var(real_results,
-                                    'flooding').groupby('object').apply(_f)
+                                    'flooding').groupby('id').apply(_f)
         real_area = real_subs.impervious_area.sum()
         real_tot = real_flooding.sum() / real_area
 

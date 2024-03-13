@@ -21,7 +21,7 @@ graphfcn_list:
   - set_elevation
   - set_surface_slope
   - set_chahinian_slope
-  - set_chahinan_angle
+  - set_chahinian_angle
   - calculate_weights
   - identify_outlets
   - derive_topology
