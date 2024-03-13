@@ -136,6 +136,33 @@ def nse(y: np.ndarray,
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
+def median_nse_by_group(results: pd.DataFrame,
+                        gb_key: str) -> float:
+    """Median NSE by group.
+
+    Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
+    for each group in the results dataframe, and return the median of these
+    values.
+
+    Args:
+        results (pd.DataFrame): The results dataframe.
+        gb_key (str): The column to group by.
+
+    Returns:
+        float: The median NSE.
+    """
+    val = (
+        results
+        .groupby(['date',gb_key])
+        .sum()
+        .reset_index()
+        .groupby(gb_key)
+        .apply(lambda x: nse(x.value_real, x.value_sim))
+        .median()
+    ) 
+    return val
+
+
 def nodes_to_subs(G: nx.Graph,
                   subs: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Nodes to subcatchments.
@@ -249,6 +276,40 @@ def edge_betweenness_centrality(G: nx.Graph,
         for n, v in bt.items():
             bt_c[n] += v
     return bt_c
+
+def align_by_subcatchment(var,
+                          synthetic_results: pd.DataFrame,
+                          real_results: pd.DataFrame,
+                          real_subs: gpd.GeoDataFrame,
+                          synthetic_G: nx.Graph,
+                          real_G: nx.Graph) -> pd.DataFrame:
+    """Align by subcatchment.
+
+    Align synthetic and real results by subcatchment and return the results.
+    """
+    synthetic_joined = nodes_to_subs(synthetic_G, real_subs)
+    real_joined = nodes_to_subs(real_G, real_subs)
+
+    # Extract data
+    real_results = extract_var(real_results, var)
+    synthetic_results = extract_var(synthetic_results, var)
+
+    # Align data
+    synthetic_results = pd.merge(synthetic_results,
+                                 synthetic_joined[['id','sub_id']],
+                                 left_on='object',
+                                 right_on = 'id')
+    real_results = pd.merge(real_results,
+                            real_joined[['id','sub_id']],
+                            left_on='object',
+                            right_on = 'id')
+    
+    results = pd.merge(real_results[['date','sub_id','value']],
+                            synthetic_results[['date','sub_id','value']],
+                            on = ['date','sub_id'],
+                            suffixes = ('_real', '_sim')
+                            )
+    return results
 
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
@@ -421,6 +482,8 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                          list(sg_syn.nodes),
                          list(sg_real.nodes))
 
+
+
 @metrics.register
 def subcatchment_nse_flooding(synthetic_G: nx.Graph,
                             real_G: nx.Graph,
@@ -434,37 +497,11 @@ def subcatchment_nse_flooding(synthetic_G: nx.Graph,
     flooding over time for each subcatchment. The metric produced is the median
     NSE across all subcatchments.
     """
-    synthetic_joined = nodes_to_subs(synthetic_G, real_subs)
-    real_joined = nodes_to_subs(real_G, real_subs)
-
-    # Extract data
-    real_results = extract_var(real_results, 'flooding')
-    synthetic_results = extract_var(synthetic_results, 'flooding')
-
-    # Align data
-    synthetic_results = pd.merge(synthetic_results,
-                                 synthetic_joined[['id','sub_id']],
-                                 left_on='object',
-                                 right_on = 'id')
-    real_results = pd.merge(real_results,
-                            real_joined[['id','sub_id']],
-                            left_on='object',
-                            right_on = 'id')
+    results = align_by_subcatchment('flooding',
+                                    synthetic_results = synthetic_results,
+                                    real_results = real_results,
+                                    real_subs = real_subs,
+                                    synthetic_G = synthetic_G,
+                                    real_G = real_G)
     
-    results = pd.merge(real_results[['date','sub_id','value']],
-                            synthetic_results[['date','sub_id','value']],
-                            on = ['date','sub_id'],
-                            suffixes = ('_real', '_sim')
-                            )
-    
-    val = (
-        results
-        .groupby(['date','sub_id'])
-        .sum()
-        .reset_index()
-        .groupby('sub_id')
-        .apply(lambda x: nse(x.value_real, x.value_sim))
-        .median()
-    )
-    return val
-    
+    return median_nse_by_group(results, 'sub_id')

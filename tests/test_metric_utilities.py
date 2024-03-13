@@ -324,7 +324,15 @@ def test_subcatchment_nse_flooding():
                              'variable' : 'flooding',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                             {'object' : 1696030874,
+                            {'object' : 107733,
+                             'variable' : 'flooding',
+                             'value' : 1,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'object' : 107737,
+                             'variable' : 'flooding',
+                             'value' : 2,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'object' : 1696030874,
                              'variable' : 'flooding',
                              'value' : 0,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
@@ -335,6 +343,14 @@ def test_subcatchment_nse_flooding():
                             {'object' : 107736,
                              'variable' : 'flooding',
                              'value' : 15,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'object' : 107733,
+                             'variable' : 'flooding',
+                             'value' : 2,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'object' : 107737,
+                             'variable' : 'flooding',
+                             'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')}])
     
     # Calculate NSE (perfect results)
@@ -349,7 +365,8 @@ def test_subcatchment_nse_flooding():
 
     G_ = G.copy()
     # Create a mapping from the old name to the new name
-    mapping = {1696030874: 'new_name'}
+    mapping = {1696030874: 'new_name',
+               107737 : 'new_name2'}
 
     # Rename the node
     G_ = nx.relabel_nodes(G_, mapping)
