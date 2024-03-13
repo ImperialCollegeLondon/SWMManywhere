@@ -116,9 +116,9 @@ def test_set_elevation_and_slope():
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         G = gu.set_elevation(G, addresses)
         for id_, data in G.nodes(data=True):
-            assert 'elevation' in data.keys()
-            assert math.isfinite(data['elevation'])
-            assert data['elevation'] > 0
+            assert 'surface_elevation' in data.keys()
+            assert math.isfinite(data['surface_elevation'])
+            assert data['surface_elevation'] > 0
         
         G = gu.set_surface_slope(G)
         for u, v, data in G.edges(data=True):
@@ -228,7 +228,7 @@ def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     for ix, (u,d) in enumerate(G.nodes(data=True)):
-        d['elevation'] = ix
+        d['surface_elevation'] = ix
         d['contributing_area'] = ix
     
     params = parameters.HydraulicDesign()

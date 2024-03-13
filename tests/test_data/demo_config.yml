@@ -1,1 +1,60 @@
-# placeholder
+base_dir: /path/to/base/directory
+project: demo
+bbox: [0.04020, 51.55759, 0.09826, 51.62050]
+api_keys: /path/to/api/keys.yml
+run_settings: 
+  reporting_iters: 100
+  duration: 86400
+  storevars: [flooding, flow]
+real:
+  inp: /path/to/real/model.inp
+  graph: /path/to/real/graph.json
+  subcatchments: /path/to/real/subcatchments.geojson
+  results: null
+starting_graph: null
+graphfcn_list:
+  - assign_id
+  - format_osmnx_lanes
+  - double_directed
+  - split_long_edges
+  - calculate_contributing_area
+  - set_elevation
+  - set_surface_slope
+  - set_chahinian_slope
+  - set_chahinan_angle
+  - calculate_weights
+  - identify_outlets
+  - derive_topology
+  - pipe_by_pipe
+metric_list:
+  - nc_deltacon0
+  - nc_laplacian_dist
+  - nc_laplacian_norm_dist
+  - nc_adjacency_dist
+  - nc_vertex_edge_distance
+  - nc_resistance_distance
+  - bias_flood_depth
+  - kstest_edge_betweenness
+  - kstest_betweenness
+  - outlet_nse_flow
+  - outlet_nse_flooding
+parameter_overrides:
+  hydraulic_design:
+    diameters:
+      - 0.15
+      - 0.225
+      - 0.3
+      - 0.375
+      - 0.45
+      - 0.525
+      - 0.6
+      - 0.675
+      - 0.75
+      - 0.825
+      - 0.9
+      - 1.125
+      - 1.35
+      - 1.5
+      - 1.95
+      - 3.0
+address_overrides: null

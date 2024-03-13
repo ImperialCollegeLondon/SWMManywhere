@@ -751,20 +751,23 @@ def edges_to_features(G: nx.Graph):
     return features
 
 def graph_to_geojson(graph: nx.Graph, 
-                     fid: Path, 
+                     fid_nodes: Path, 
+                     fid_edges: Path,
                      crs: str):
     """Write a graph to a GeoJSON file.
 
     Args:
         graph (nx.Graph): The input graph.
-        fid (Path): The filepath to save the GeoJSON file.
+        fid_nodes (Path): The filepath to save the nodes GeoJSON file.
+        fid_edges (Path): The filepath to save the edges GeoJSON file.
         crs (str): The CRS of the graph.
     """
     graph = graph.copy()
     nodes = nodes_to_features(graph)
     edges = edges_to_features(graph)
     
-    for iterable, label in zip([nodes, edges], ['nodes', 'edges']):
+    for iterable, fid in zip([nodes, edges], 
+                             [fid_nodes, fid_edges]):
         geojson = {
             'type': 'FeatureCollection',
             'features' : iterable,
@@ -775,7 +778,6 @@ def graph_to_geojson(graph: nx.Graph,
                 }
             }
             }
-        fid_ = fid.with_stem(fid.stem + f'_{label}').with_suffix('.geojson')
 
-        with fid_.open('w') as output_file:
+        with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)

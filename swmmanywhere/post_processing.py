@@ -16,12 +16,14 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from swmmanywhere.parameters import FilePaths
 
-def synthetic_write(model_dir: Path):
+
+def synthetic_write(addresses: FilePaths):
     """Load synthetic data and write to SWMM input file.
 
     Loads nodes, edges and subcatchments from synthetic data, assumes that 
-    these are all located in `model_dir`. Fills in appropriate default values 
+    these are all located in `addresses`. Fills in appropriate default values 
     for many SWMM parameters. More parameters are available to edit (see 
     defs/swmm_conversion.yml). Identifies outfalls and automatically ensures
     that they have only one link to them (as is required by SWMM). Formats
@@ -29,14 +31,13 @@ def synthetic_write(model_dir: Path):
     a SWMM input (.inp) file.
 
     Args:
-        model_dir (str): model directory address. Assumes a format along the 
-            lines of 'model_2', where the number is the model number.
+        addresses (FilePaths): A dictionary of file paths.
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(model_dir / 'pipe_by_pipe_nodes.geojson')
-    edges = gpd.read_file(model_dir / 'pipe_by_pipe_edges.geojson')
-    subs = gpd.read_file(model_dir / 'subcatchments.geojson')
+    nodes = gpd.read_file(addresses.nodes)
+    edges = gpd.read_file(addresses.edges)
+    subs = gpd.read_file(addresses.subcatchments)
     
     # Extract SWMM relevant data
     edges = edges[['u','v','diameter','length']]
@@ -111,10 +112,6 @@ def synthetic_write(model_dir: Path):
     existing_input_file = Path(__file__).parent / 'defs' /\
           'basic_drainage_all_bits.inp'
     
-    # New input file
-    model_number = model_dir.name.split('_')[-1]
-    new_input_file = model_dir / f'model_{model_number}.inp'
-    
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
                                     outfalls,
@@ -124,7 +121,7 @@ def synthetic_write(model_dir: Path):
                                     symbol)
     
     # Write new input file
-    data_dict_to_inp(data_dict, existing_input_file, new_input_file)
+    data_dict_to_inp(data_dict, existing_input_file, addresses.inp)
 
 
 def overwrite_section(data: np.ndarray,

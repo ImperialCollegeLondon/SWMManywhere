@@ -55,6 +55,38 @@ class MetricRegistry(dict):
 
 metrics = MetricRegistry()
 
+def iterate_metrics(synthetic_results: pd.DataFrame, 
+                    synthetic_subs: gpd.GeoDataFrame,
+                    synthetic_G: nx.Graph,
+                    real_results: pd.DataFrame,
+                    real_subs: gpd.GeoDataFrame,
+                    real_G: nx.Graph,
+                    metric_list: list[str]) -> list[float]:
+    """Iterate a list of metrics over a graph.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_results (pd.DataFrame): The real results.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+        real_G (nx.Graph): The real graph.
+        metric_list (list[str]): A list of metrics to iterate.
+
+    Returns:
+        list[float]: The results of the metrics.
+    """
+    results = []
+    for metric in metric_list:
+        assert metric in metrics.keys(), f"Metric {metric} not registered in metrics."
+        results.append(metrics[metric](synthetic_results = synthetic_results,
+                                       synthetic_subs = synthetic_subs,
+                                       synthetic_G = synthetic_G,
+                                       real_results = real_results,
+                                       real_subs = real_subs,
+                                       real_G = real_G))
+    return pd.DataFrame(results)
+
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""

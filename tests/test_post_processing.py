@@ -9,6 +9,7 @@ import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
+from swmmanywhere import parameters
 from swmmanywhere import post_processing as stt
 
 fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
@@ -131,25 +132,29 @@ def test_synthetic_write():
     data_dict = generate_data_dict()    
     with tempfile.TemporaryDirectory() as model_dir:
         model_dir = Path(model_dir)
-        model_dir = model_dir / 'model_1'
-        model_dir.mkdir()
+        addresses = parameters.FilePaths(base_dir = model_dir,
+                                        project_name = 'test',
+                                        bbox_number = 1,
+                                        extension = 'json',
+                                        model_number = 0)
+        addresses.model.mkdir(parents=True, exist_ok=True)
         # Write the model with synthetic_write
         nodes = gpd.GeoDataFrame(data_dict['nodes'])
         nodes.geometry = gpd.points_from_xy(nodes.x, nodes.y)
-        nodes.to_file(model_dir / 'pipe_by_pipe_nodes.geojson')
+        nodes.to_file(addresses.nodes)
         nodes = nodes.set_index('id')
         edges = gpd.GeoDataFrame(pd.DataFrame(data_dict['conduits']).iloc[[0]])
         edges.geometry = [sgeom.LineString([nodes.loc[u,'geometry'],
                                             nodes.loc[v,'geometry']]) 
                           for u,v in zip(edges.u, edges.v)]
-        edges.to_file(model_dir / 'pipe_by_pipe_edges.geojson')
+        edges.to_file(addresses.edges)
         subs = data_dict['subs'].copy()
         subs['subcatchment'] = ['node1']
-        subs.to_file(model_dir / 'subcatchments.geojson')
-        stt.synthetic_write(model_dir)
+        subs.to_file(addresses.subcatchments)
+        stt.synthetic_write(addresses)
 
         # Write the model with data_dict_to_inp
-        comparison_file = model_dir / "model_base.inp"
+        comparison_file = addresses.model / "model_base.inp"
         template_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
             'basic_drainage_all_bits.inp'
         stt.data_dict_to_inp(stt.format_to_swmm_dict(**data_dict),
@@ -157,7 +162,7 @@ def test_synthetic_write():
                              comparison_file)
         
         # Compare
-        new_input_file = model_dir / "model_1.inp"
+        new_input_file = addresses.inp
         are_files_identical = filecmp.cmp(new_input_file,
                                            comparison_file, 
                                            shallow=False)

@@ -5,9 +5,117 @@
 """
 from pathlib import Path
 
+import geopandas as gpd
 import pandas as pd
 import pyswmm
+import yaml
 
+import swmmanywhere.geospatial_utilities as go
+from swmmanywhere import preprocessing
+from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph
+from swmmanywhere.logging import logger
+from swmmanywhere.metric_utilities import iterate_metrics
+from swmmanywhere.parameters import get_full_parameters
+from swmmanywhere.post_processing import synthetic_write
+
+
+def swmmanywhere(config_: Path | dict):
+    """Run a SWMM model and store the results.
+
+    Args:
+        config_ (Path | dict): The path to the configuration file, or the loaded
+            file as a dict.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the results.
+    """
+    # Load the configuration
+    if isinstance(config_, Path):
+        config = load_config(config_)
+    else:
+        assert isinstance(config_, dict), \
+            logger.error("config must be a Path or a dict.")
+        config = config_
+    # Create the project structure
+    addresses = preprocessing.create_project_structure(config['bbox'],
+                                                       config['project'],
+                                                       Path(config['base_dir'])
+                                                       )
+
+    for address_override in config['address_overrides']:
+        addresses[address_override] = config['address_overrides'][address_override]
+
+    # Run downloads
+    preprocessing.run_downloads(config['bbox'],
+                                addresses,
+                                config['api_keys']
+                                )
+
+    # Identify the starting graph
+    if config['starting_graph']:
+        G = load_graph(config['starting_graph'])
+    else:
+        G = preprocessing.create_starting_graph(addresses)
+
+    # Load the parameters and perform any manual overrides
+    parameters = get_full_parameters()
+    for category, overrides in config['parameter_overrides'].items():
+        for key, val in overrides.items():
+            setattr(parameters[category], key, val)
+
+    # Iterate the graph functions
+    G = iterate_graphfcns(G, 
+                          config['graphfcns'], 
+                          parameters,
+                          addresses)
+
+    # Save the final graph
+    go.graph_to_geojson(G, 
+                        addresses.nodes,
+                        addresses.edges,
+                        G.graph['crs']
+                        )
+
+    # Write to .inp
+    synthetic_write(addresses.model)
+                    
+    # Run the model
+    synthetic_results = run(addresses.inp, 
+                  **config['run_settings'])
+    
+    # Get the real results
+    if config['real']['results']:
+        # TODO.. bit messy
+        real_results = pd.read_parquet(config['real']['results'])
+    elif config['real']['inp']:
+        real_results = run(config['real']['inp'],
+                           **config['run_settings'])
+    else:
+        logger.info("No real network provided, returning SWMM .inp file.")
+        return addresses.inp
+    
+    # Iterate the metrics
+    metrics = iterate_metrics(synthetic_results,
+                              gpd.read_file(addresses.subcatchments),
+                              G,
+                              real_results,
+                              gpd.read_file(config['real']['subcatchments']),
+                              load_graph(config['real']['graph']),
+                              config['metric_list'])
+
+    return metrics
+
+def load_config(config: Path):
+    """Load a configuration file.
+
+    Args:
+        config (Path): The path to the configuration file.
+
+    Returns:
+        dict: The configuration.
+    """
+    with config.open('r') as f:
+        return yaml.safe_load(f)
 
 def run(model: Path,
         reporting_iters: int = 50,
