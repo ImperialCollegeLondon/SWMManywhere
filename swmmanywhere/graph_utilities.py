@@ -205,9 +205,9 @@ class assign_id(BaseGraphFunction,
         edge_ids: set[str] = set()
         for u, v, data in G.edges(data=True):
             data['id'] = f'{u}-{v}'
-            edge_ids.add(data['id'])
             if data['id'] in edge_ids:
                 logger.warning(f"Duplicate edge ID: {data['id']}")
+            edge_ids.add(data['id'])
         return G
 
 @register_graphfcn
