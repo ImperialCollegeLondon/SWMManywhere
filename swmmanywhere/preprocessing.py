@@ -145,7 +145,7 @@ def write_df(df: pd.DataFrame | gpd.GeoDataFrame,
         df (DataFrame): DataFrame to write to a file.
         fid (Path): Path to the file.
     """
-    if fid.suffix == '.parquet':
+    if fid.suffix in ('.geoparquet','.parquet'):
         df.to_parquet(fid)
     elif fid.suffix == '.json':
         if isinstance(df, gpd.GeoDataFrame):

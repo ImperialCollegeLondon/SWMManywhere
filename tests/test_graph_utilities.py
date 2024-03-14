@@ -40,7 +40,7 @@ def test_assign_id():
     G = gu.assign_id(G)
     for u, v, data in G.edges(data=True):
         assert 'id' in data.keys()
-        assert isinstance(data['id'], int)
+        assert isinstance(data['id'], str)
 
 def test_double_directed():
     """Test the double_directed function."""

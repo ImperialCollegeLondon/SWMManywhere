@@ -41,7 +41,7 @@ def synthetic_write(addresses: FilePaths):
     subs = subs.loc[subs.id.isin(nodes.id)]
 
     # Extract SWMM relevant data
-    edges = edges[['u','v','diameter','length']]
+    edges = edges[['id','u','v','diameter','length']]
     nodes = nodes[['id',
                     'x',
                     'y',
@@ -85,14 +85,12 @@ def synthetic_write(addresses: FilePaths):
     new_edges = edges.iloc[0:outfalls.shape[0]].copy()
     new_edges['u'] = outfalls['id'].str.replace('_outfall','').values
     new_edges['v'] = outfalls['id'].values
+    new_edges['id'] = [f'{u}-{v}' for u,v in zip(new_edges['u'], new_edges['v'])]
     new_edges['diameter'] = 15 # TODO .. big pipe to enable all outfall...
     new_edges['length'] = 1
 
     # Append new edges
     edges = pd.concat([edges, new_edges], ignore_index = True)
-
-    # Name all edges
-    edges['id'] = edges.u.astype(str) + '-' + edges.v.astype(str)
 
     # Create event
     # TODO will need some updating if multiple rain gages

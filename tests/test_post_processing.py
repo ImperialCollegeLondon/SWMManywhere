@@ -138,6 +138,7 @@ def test_synthetic_write():
                                         extension = 'json',
                                         model_number = 0)
         addresses.model.mkdir(parents=True, exist_ok=True)
+        addresses.precipitation = 'storm.dat'
         # Write the model with synthetic_write
         nodes = gpd.GeoDataFrame(data_dict['nodes'])
         nodes.geometry = gpd.points_from_xy(nodes.x, nodes.y)

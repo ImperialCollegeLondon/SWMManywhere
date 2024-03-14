@@ -26,6 +26,7 @@ graphfcn_list:
   - identify_outlets
   - derive_topology
   - pipe_by_pipe
+  - assign_id
 metric_list:
   - nc_deltacon0
   - nc_laplacian_dist

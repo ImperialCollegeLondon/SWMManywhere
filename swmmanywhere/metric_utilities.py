@@ -217,7 +217,7 @@ def dominant_outlet(G: nx.DiGraph,
     subgraph of the graph of nodes that drain to that outlet.
 
     Args:
-        G (nx.Graph): The graph.
+        G (nx.DiGraph): The graph.
         results (pd.DataFrame): The results, which include a 'flow' and 'id' 
             column.
 
@@ -234,7 +234,7 @@ def dominant_outlet(G: nx.DiGraph,
     # Identify the outlet with the highest flow
     outlet_flows = results.loc[(results.variable == 'flow') &
                                (results.id.isin(outlet_arcs))]
-    max_outlet_arc = outlet_flows.groupby('id').value.mean().idxmax()
+    max_outlet_arc = outlet_flows.groupby('id').value.median().idxmax()
     max_outlet = [v for u,v,d in G.edges(data=True) 
                   if d['id'] == max_outlet_arc][0]
     
@@ -414,7 +414,6 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
                          'flow', 
                          syn_arc, 
                          real_arc)
-
 
 @metrics.register
 def outlet_nse_flooding(synthetic_G: nx.Graph,

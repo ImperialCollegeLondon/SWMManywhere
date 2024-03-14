@@ -182,7 +182,6 @@ def iterate_graphfcns(G: nx.Graph,
 
 @register_graphfcn
 class assign_id(BaseGraphFunction, 
-                required_edge_attributes = ['osmid'], 
                 adds_edge_attributes = ['id']
                 ):
     """assign_id class."""
@@ -203,8 +202,12 @@ class assign_id(BaseGraphFunction,
         Returns:
             G (nx.Graph): The same graph with an ID assigned to each edge
         """
+        edge_ids: set[str] = set()
         for u, v, data in G.edges(data=True):
-            data['id'] = get_osmid_id(data)
+            data['id'] = f'{u}-{v}'
+            edge_ids.add(data['id'])
+            if data['id'] in edge_ids:
+                logger.warning(f"Duplicate edge ID: {data['id']}")
         return G
 
 @register_graphfcn
@@ -446,7 +449,7 @@ class calculate_contributing_area(BaseGraphFunction,
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
         # Calculate runoff coefficient (RC)
-        if addresses.building.suffix == '.parquet':
+        if addresses.building.suffix in ('.geoparquet','.parquet'):
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)

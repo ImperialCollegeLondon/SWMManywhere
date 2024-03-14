@@ -39,15 +39,15 @@ def test_run():
 
 def test_swmmanywhere():
     """Test the swmmanywhere function."""
-    with tempfile.TemporaryDirectory() as base_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         test_data_dir = Path(__file__).parent / 'test_data'
         defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
         config = swmmanywhere.load_config(test_data_dir / 'demo_config.yml')
-        base_dir = Path(base_dir)
+        base_dir = Path(temp_dir)
         config['base_dir'] = str(base_dir)
         config['bbox'] = (0.05428,51.55847,0.07193,51.56726)
         config['address_overrides'] = {
-            'building': test_data_dir / 'building.geojson',
+            'building': test_data_dir / 'building.geoparquet',
             'precipitation': defs_dir / 'storm.dat'
             }
         model_dir = base_dir / 'demo' / 'bbox_1' / 'model_1'
