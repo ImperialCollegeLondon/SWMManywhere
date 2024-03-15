@@ -65,7 +65,7 @@ def swmmanywhere(config_: Path | dict):
 
     # Load the parameters and perform any manual overrides
     parameters = get_full_parameters()
-    for category, overrides in config['parameter_overrides'].items():
+    for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
             setattr(parameters[category], key, val)
 
