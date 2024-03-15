@@ -173,9 +173,10 @@ def iterate_graphfcns(G: nx.Graph,
     Returns:
         nx.Graph: The graph after the graph functions have been applied.
     """
+    not_exists = [g for g in graphfcn_list if g not in graphfcns]
+    if not_exists:
+        raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
     for function in graphfcn_list:
-        if function not in graphfcns:
-            raise ValueError(f"Function {function} not registered in graphfcns.")
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
     return G

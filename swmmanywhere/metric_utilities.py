@@ -16,8 +16,6 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from swmmanywhere.logging import logger
-
 
 class MetricRegistry(dict): 
     """Registry object.""" 
@@ -78,18 +76,20 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
     Returns:
         dict[str, float]: The results of the metrics.
     """
-    results = {}
-    for metric in metric_list:
-        if metric not in metrics:
-            raise ValueError(f"{metric} not registered in metrics.")
-        results[metric] = metrics[metric](synthetic_results = synthetic_results,
-                                       synthetic_subs = synthetic_subs,
-                                       synthetic_G = synthetic_G,
-                                       real_results = real_results,
-                                       real_subs = real_subs,
-                                       real_G = real_G)
-        logger.info(f"metric: {metric} completed.")
-    return results
+    not_exists = [m for m in metric_list if m not in metrics]
+    if not_exists:
+        raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
+    
+    kwargs = {
+        "synthetic_results": synthetic_results,
+        "synthetic_subs": synthetic_subs,
+        "synthetic_G": synthetic_G,
+        "real_results": real_results,
+        "real_subs": real_subs,
+        "real_G": real_G,
+    }
+
+    return {m : metrics[m](**kwargs) for m in metric_list}
 
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
