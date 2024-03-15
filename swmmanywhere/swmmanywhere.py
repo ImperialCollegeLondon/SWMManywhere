@@ -19,7 +19,7 @@ from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import synthetic_write
 
 
-def swmmanywhere(config_: Path | dict):
+def swmmanywhere(config: dict):
     """Run SWMManywhere processes.
     
     This function runs the SWMManywhere processes, including downloading data,
@@ -27,20 +27,11 @@ def swmmanywhere(config_: Path | dict):
     to real data using metrics.
 
     Args:
-        config_ (Path | dict): The path to the configuration file, or the loaded
-            file as a dict.
+        config (dict): The loaded config as a dict.
 
     Returns:
         pd.DataFrame: A DataFrame containing the results.
     """
-    # Load the configuration
-    if isinstance(config_, Path):
-        config = load_config(config_)
-    else:
-        if not isinstance(config_, dict):
-            raise TypeError("config must be a Path or a dict.")
-        config = config_
-
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],
                                                        config['project'],
