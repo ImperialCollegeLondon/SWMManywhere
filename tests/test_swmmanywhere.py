@@ -40,24 +40,45 @@ def test_run():
 def test_swmmanywhere():
     """Test the swmmanywhere function."""
     with tempfile.TemporaryDirectory() as temp_dir:
+        # Load the config
         test_data_dir = Path(__file__).parent / 'test_data'
         defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
-        config = swmmanywhere.load_config(test_data_dir / 'demo_config.yml')
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+
+        # Set some test values
         base_dir = Path(temp_dir)
         config['base_dir'] = str(base_dir)
-        config['bbox'] = (0.05428,51.55847,0.07193,51.56726)
+        config['bbox'] = [0.05428,51.55847,0.07193,51.56726]
         config['address_overrides'] = {
-            'building': test_data_dir / 'building.geoparquet',
-            'precipitation': defs_dir / 'storm.dat'
+            'building': str(test_data_dir / 'building.geoparquet'),
+            'precipitation': str(defs_dir / 'storm.dat')
             }
-        model_dir = base_dir / 'demo' / 'bbox_1' / 'model_1'
-        config['real']['subcatchments'] = model_dir / 'subcatchments.geoparquet'
-        config['real']['inp'] = model_dir / 'model_1.inp'
-        config['real']['graph'] = model_dir / 'graph.parquet'
+        
         config['run_settings']['duration'] = 1000
         api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
         with open(base_dir / 'api_keys.yml', 'w') as f:
             yaml.dump(api_keys, f)
-        config['api_keys'] = base_dir / 'api_keys.yml'
+        config['api_keys'] = str(base_dir / 'api_keys.yml')
+        
+        # Fill the real dict with unused paths to avoid filevalidation errors
+        config['real']['subcatchments'] = str(defs_dir / 'storm.dat')
+        config['real']['inp'] = str(defs_dir / 'storm.dat')
+        config['real']['graph'] = str(defs_dir / 'storm.dat')
+
+        # Write the config
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+        
+        # Load and test validation of the config
+        config = swmmanywhere.load_config(base_dir / 'test_config.yml')
+
+        # Set the test config to just use the generated data
+        model_dir = base_dir / 'demo' / 'bbox_1' / 'model_1'
+        config['real']['subcatchments'] = model_dir / 'subcatchments.geoparquet'
+        config['real']['inp'] = model_dir / 'model_1.inp'
+        config['real']['graph'] = model_dir / 'graph.parquet'
+
+        # Run swmmanywhere
         swmmanywhere.swmmanywhere(config)
         

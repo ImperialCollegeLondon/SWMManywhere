@@ -6,6 +6,7 @@
 from pathlib import Path
 
 import geopandas as gpd
+import jsonschema
 import pandas as pd
 import pyswmm
 import yaml
@@ -35,7 +36,7 @@ def swmmanywhere(config: dict):
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],
                                                        config['project'],
-                                                       Path(config['base_dir'])
+                                                       config['base_dir']
                                                        )
 
     for key, val in config.get('address_overrides', {}).items():
@@ -102,17 +103,49 @@ def swmmanywhere(config: dict):
 
     return metrics
 
-def load_config(config: Path):
-    """Load a configuration file.
+def load_config(config_path: Path):
+    """Load, validate, and convert Paths in a configuration file.
 
     Args:
-        config (Path): The path to the configuration file.
+        config_path (Path): The path to the configuration file.
 
     Returns:
         dict: The configuration.
     """
-    with config.open('r') as f:
-        return yaml.safe_load(f)
+    # Load the schema
+    schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
+    with schema_fid.open('r') as file:
+        schema = yaml.safe_load(file)
+
+    with config_path.open('r') as f:
+        # Load the config
+        config = yaml.safe_load(f)
+
+    # Validate the config
+    jsonschema.validate(instance = config, schema = schema)
+
+    # Check top level paths
+    for key in ['base_dir', 'api_keys']: 
+        if not Path(config[key]).exists():
+            raise FileNotFoundError(f"{key} not found at {config[key]}")
+        config[key] = Path(config[key])
+    
+    # Check real network paths
+    for key, path in config['real'].items():
+        if not isinstance(path, str):
+            continue
+        if not Path(path).exists():
+            raise FileNotFoundError(f"{key} not found at {path}")
+        config['real'][key] = Path(path)
+    
+    # Check address overrides
+    for key, path in config.get('address_overrides', {}).items():
+        if not Path(path).exists():
+            raise FileNotFoundError(f"{key} not found at {path}")
+        config['address_overrides'][key] = Path(path)
+        
+    return config
+
 
 def run(model: Path,
         reporting_iters: int = 50,
