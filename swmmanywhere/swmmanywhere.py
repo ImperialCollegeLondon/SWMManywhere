@@ -38,8 +38,8 @@ def swmmanywhere(config: dict):
                                                        Path(config['base_dir'])
                                                        )
 
-    for key, val in config['address_overrides'].items():
-        setattr(addresses,key,val)
+    for key, val in config.get('address_overrides', {}).items():
+        setattr(addresses, key, val)
 
     # Run downloads
     api_keys = yaml.safe_load(config['api_keys'].open('r'))
@@ -56,7 +56,7 @@ def swmmanywhere(config: dict):
 
     # Load the parameters and perform any manual overrides
     parameters = get_full_parameters()
-    for category, overrides in config['parameter_overrides'].items():
+    for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
             setattr(parameters[category], key, val)
 
