@@ -1043,7 +1043,7 @@ class pipe_by_pipe(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         G = G.copy()
-        surface_elevations = {n : d['surface_elevation'] for n, d in G.nodes(data=True)}
+        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
