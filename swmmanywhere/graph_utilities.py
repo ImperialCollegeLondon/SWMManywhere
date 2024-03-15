@@ -178,6 +178,10 @@ def iterate_graphfcns(G: nx.Graph,
             raise ValueError(f"Function {function} not registered in graphfcns.")
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
+        go.graph_to_geojson(G,
+                            Path(str(addresses.nodes).replace('.geo',f'{function}.geo')),
+                            Path(str(addresses.edges).replace('.geo',f'{function}.geo')),
+                            G.graph['crs'])
     return G
 
 @register_graphfcn
@@ -203,11 +207,15 @@ class assign_id(BaseGraphFunction,
             G (nx.Graph): The same graph with an ID assigned to each edge
         """
         edge_ids: set[str] = set()
-        for u, v, data in G.edges(data=True):
+        edges_to_remove = []
+        for u, v, key, data in G.edges(data=True, keys = True):
             data['id'] = f'{u}-{v}'
             if data['id'] in edge_ids:
                 logger.warning(f"Duplicate edge ID: {data['id']}")
+                edges_to_remove.append((u, v, key))
             edge_ids.add(data['id'])
+        for u, v, key in edges_to_remove:
+            G.remove_edge(u, v, key)
         return G
 
 @register_graphfcn
@@ -403,6 +411,36 @@ class split_long_edges(BaseGraphFunction,
             graph.add_edge(edge[0], edge[1], **edge[2])
 
         return graph
+
+@register_graphfcn
+class fix_geometries(BaseGraphFunction,
+                     required_edge_attributes = ['geometry'],
+                     required_node_attributes = ['x', 'y']):
+    """fix_geometries class."""
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Fix the geometries of the edges.
+
+        This function fixes the geometries of the edges. The geometries are
+        recalculated from the node coordinates.
+
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+        for u, v, data in G.edges(data=True):
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
+            start_point_edge = data['geometry'].coords[0]
+            end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
+            end_point_edge = data['geometry'].coords[-1]
+            if (start_point_edge != start_point_node) & \
+                    (end_point_edge != end_point_node):
+                data['geometry'] = shapely.LineString([start_point_node,
+                                                       end_point_node])
+        return G
 
 @register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
