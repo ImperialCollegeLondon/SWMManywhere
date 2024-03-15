@@ -2,6 +2,8 @@
 import tempfile
 from pathlib import Path
 
+import jsonschema
+import pytest
 import yaml
 
 from swmmanywhere import __version__, swmmanywhere
@@ -81,4 +83,53 @@ def test_swmmanywhere():
 
         # Run swmmanywhere
         swmmanywhere.swmmanywhere(config)
+
+def test_load_config_file_validation():
+    """Test the file validation of the config."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_data_dir = Path(__file__).parent / 'test_data'
+        defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
+        base_dir = Path(temp_dir)
         
+        # Test file not found
+        with pytest.raises(FileNotFoundError) as exc_info:
+            swmmanywhere.load_config(base_dir / 'test_config.yml')
+            assert "test_config.yml" in str(exc_info.value)
+
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+        
+        # Correct and avoid filevalidation errors
+        config['real'] = None
+        
+        # Fill with unused paths to avoid filevalidation errors
+        config['base_dir'] = str(defs_dir / 'storm.dat')
+        config['api_keys'] = str(defs_dir / 'storm.dat')
+        
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+        
+        config = swmmanywhere.load_config(base_dir / 'test_config.yml')
+        assert isinstance(config, dict)
+
+def test_load_config_schema_validation():
+    """Test the schema validation of the config."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_data_dir = Path(__file__).parent / 'test_data'
+        base_dir = Path(temp_dir)
+
+        # Load the config
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+        
+        # Make an edit not to schema
+        config['base_dir'] = 1
+        
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+
+        # Test schema validation
+        with pytest.raises(jsonschema.exceptions.ValidationError) as exc_info:
+            swmmanywhere.load_config(base_dir / 'test_config.yml')
+            assert "null" in str(exc_info.value)
+

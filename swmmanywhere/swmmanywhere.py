@@ -103,6 +103,64 @@ def swmmanywhere(config: dict):
 
     return metrics
 
+def check_top_level_paths(config: dict):
+    """Check the top level paths in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        FileNotFoundError: If a top level path does not exist.
+    """
+    for key in ['base_dir', 'api_keys']:
+        if not Path(config[key]).exists():
+            raise FileNotFoundError(f"{key} not found at {config[key]}")
+        config[key] = Path(config[key])
+    return config
+
+def check_address_overrides(config: dict):
+    """Check the address overrides in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        FileNotFoundError: If an address override path does not exist.
+    """
+    overrides = config.get('address_overrides', None)
+    
+    if not overrides:
+        return config
+    
+    for key, path in overrides.items():
+        if not Path(path).exists():
+            raise FileNotFoundError(f"{key} not found at {path}")
+        config['address_overrides'][key] = Path(path)
+    return config
+
+def check_real_network_paths(config: dict):
+    """Check the paths to the real network in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        FileNotFoundError: If a real network path does not exist.
+    """
+    real = config.get('real', None)
+    
+    if not real:
+        return config
+    
+    for key, path in real.items():
+        if not isinstance(path, str):
+            continue
+        if not Path(path).exists():
+            raise FileNotFoundError(f"{key} not found at {path}")
+        config['real'][key] = Path(path)
+
+    return config
+
 def load_config(config_path: Path):
     """Load, validate, and convert Paths in a configuration file.
 
@@ -125,25 +183,14 @@ def load_config(config_path: Path):
     jsonschema.validate(instance = config, schema = schema)
 
     # Check top level paths
-    for key in ['base_dir', 'api_keys']: 
-        if not Path(config[key]).exists():
-            raise FileNotFoundError(f"{key} not found at {config[key]}")
-        config[key] = Path(config[key])
-    
-    # Check real network paths
-    for key, path in config['real'].items():
-        if not isinstance(path, str):
-            continue
-        if not Path(path).exists():
-            raise FileNotFoundError(f"{key} not found at {path}")
-        config['real'][key] = Path(path)
+    config = check_top_level_paths(config)
     
     # Check address overrides
-    for key, path in config.get('address_overrides', {}).items():
-        if not Path(path).exists():
-            raise FileNotFoundError(f"{key} not found at {path}")
-        config['address_overrides'][key] = Path(path)
+    config = check_address_overrides(config)
         
+    # Check real network paths
+    config = check_real_network_paths(config)
+    
     return config
 
 

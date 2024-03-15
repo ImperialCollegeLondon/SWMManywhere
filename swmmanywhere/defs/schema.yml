@@ -15,7 +15,7 @@ properties:
           type: string
           enum: [flooding, flow, depth, runoff]
   real:
-    type: object
+    type: ['object', 'null']
     properties:
       inp: {type: string}
       graph: {type: string}
@@ -30,4 +30,4 @@ properties:
   metric_list: {type: array, items: {type: string}}
   address_overrides: {type: ['object', 'null']}
   parameter_overrides: {type: ['object', 'null']}
-required: [base_dir, project, bbox, api_keys, run_settings, real, graphfcn_list, metric_list, parameter_overrides]
+required: [base_dir, project, bbox, api_keys, graphfcn_list]
