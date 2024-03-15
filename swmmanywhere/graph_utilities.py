@@ -179,10 +179,6 @@ def iterate_graphfcns(G: nx.Graph,
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
-        go.graph_to_geojson(G,
-                            Path(str(addresses.nodes).replace('.geo',f'{function}.geo')),
-                            Path(str(addresses.edges).replace('.geo',f'{function}.geo')),
-                            G.graph['crs'])
     return G
 
 @register_graphfcn
@@ -437,7 +433,7 @@ class fix_geometries(BaseGraphFunction,
             start_point_edge = data['geometry'].coords[0]
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
             end_point_edge = data['geometry'].coords[-1]
-            if (start_point_edge != start_point_node) & \
+            if (start_point_edge != start_point_node) | \
                     (end_point_edge != end_point_node):
                 data['geometry'] = shapely.LineString([start_point_node,
                                                        end_point_node])
