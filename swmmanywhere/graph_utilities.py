@@ -174,8 +174,8 @@ def iterate_graphfcns(G: nx.Graph,
         nx.Graph: The graph after the graph functions have been applied.
     """
     for function in graphfcn_list:
-        assert function in graphfcns.keys(), \
-            logger.error(f"Function {function} not registered in graphfcns.")
+        if function not in graphfcns:
+            raise ValueError(f"Function {function} not registered in graphfcns.")
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
     return G

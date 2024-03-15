@@ -80,7 +80,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
     """
     results = {}
     for metric in metric_list:
-        assert metric in metrics.keys(), f"Metric {metric} not registered in metrics."
+        if metric not in metrics:
+            raise ValueError(f"{metric} not registered in metrics.")
         results[metric] = metrics[metric](synthetic_results = synthetic_results,
                                        synthetic_subs = synthetic_subs,
                                        synthetic_G = synthetic_G,

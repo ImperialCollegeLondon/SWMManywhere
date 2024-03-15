@@ -37,8 +37,8 @@ def swmmanywhere(config_: Path | dict):
     if isinstance(config_, Path):
         config = load_config(config_)
     else:
-        assert isinstance(config_, dict), \
-            logger.error("config must be a Path or a dict.")
+        if not isinstance(config_, dict):
+            raise TypeError("config must be a Path or a dict.")
         config = config_
 
     # Create the project structure
