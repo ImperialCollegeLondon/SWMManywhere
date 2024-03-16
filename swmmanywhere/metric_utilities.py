@@ -441,6 +441,7 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                          list(sg_syn.nodes),
                          list(sg_real.nodes))
 
+@metrics.register
 def outlet_kstest_diameters(real_G: nx.Graph,
                             synthetic_G: nx.Graph,
                             real_results: pd.DataFrame,
@@ -453,7 +454,6 @@ def outlet_kstest_diameters(real_G: nx.Graph,
     'real' network is calculated by dominant_outlet, while the dominant outlet
     node of the 'synthetic' network is calculated by best_outlet_match.
     """
-
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
     sg_real, _ = dominant_outlet(real_G, real_results)
@@ -464,6 +464,7 @@ def outlet_kstest_diameters(real_G: nx.Graph,
     return stats.ks_2samp(list(syn_diameters.values()),
                          list(real_diameters.values())).statistic
 
+@metrics.register
 def outlet_pbias_length(real_G: nx.Graph,
                         synthetic_G: nx.Graph,
                         real_results: pd.DataFrame,
@@ -485,6 +486,7 @@ def outlet_pbias_length(real_G: nx.Graph,
     real_length = sum([d['length'] for u,v,d in sg_real.edges(data=True)])
     return (syn_length - real_length) / real_length
 
+@metrics.register
 def outlet_pbias_nmanholes(real_G: nx.Graph,
                            synthetic_G: nx.Graph,
                            real_results: pd.DataFrame,
@@ -504,6 +506,7 @@ def outlet_pbias_nmanholes(real_G: nx.Graph,
     return (sg_syn.number_of_nodes() - sg_real.number_of_nodes()) \
         / sg_real.number_of_nodes()
 
+@metrics.register
 def outlet_pbias_npipes(real_G: nx.Graph,
                         synthetic_G: nx.Graph,
                         real_results: pd.DataFrame,
