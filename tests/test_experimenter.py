@@ -5,6 +5,7 @@ import numpy as np
 from swmmanywhere import parameters
 from swmmanywhere.paper import experimenter
 
+
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
     """Assert that two floats are close."""
     assert np.isclose(a, b, rtol=rtol).all()
@@ -27,7 +28,9 @@ def test_generate_samples():
                             seed = 1,
                             groups = False)
     assert len(samples) == 48
-    assert set([x['param'] for x in samples]) == {'min_v','max_v','chahinian_slope_scaling'}
+    assert set([x['param'] for x in samples]) == {'min_v',
+                                                  'max_v',
+                                                  'chahinian_slope_scaling'}
     assert_close(samples[0]['value'], 0.31093)
 
     samples = experimenter.generate_samples(N = 2,
