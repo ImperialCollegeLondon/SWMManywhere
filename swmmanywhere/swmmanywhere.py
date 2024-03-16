@@ -12,15 +12,14 @@ import pyswmm
 import yaml
 
 import swmmanywhere.geospatial_utilities as go
-from swmmanywhere import preprocessing
+from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 from swmmanywhere.logging import logger
 from swmmanywhere.metric_utilities import iterate_metrics
-from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import synthetic_write
 
 
-def swmmanywhere(config: dict):
+def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
     """Run SWMManywhere processes.
     
     This function runs the SWMManywhere processes, including downloading data,
@@ -31,7 +30,7 @@ def swmmanywhere(config: dict):
         config (dict): The loaded config as a dict.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the results.
+        tuple[parameters.FilePaths, dict]: The addresses and metrics.
     """
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],
@@ -56,15 +55,15 @@ def swmmanywhere(config: dict):
         G = preprocessing.create_starting_graph(addresses)
 
     # Load the parameters and perform any manual overrides
-    parameters = get_full_parameters()
+    params = parameters.get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
-            setattr(parameters[category], key, val)
+            setattr(params[category], key, val)
 
     # Iterate the graph functions
     G = iterate_graphfcns(G, 
                           config['graphfcn_list'], 
-                          parameters,
+                          params,
                           addresses)
 
     # Save the final graph
@@ -90,7 +89,7 @@ def swmmanywhere(config: dict):
                            **config['run_settings'])
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
-        return addresses.inp
+        return addresses
     
     # Iterate the metrics
     metrics = iterate_metrics(synthetic_results,
@@ -101,7 +100,7 @@ def swmmanywhere(config: dict):
                               load_graph(config['real']['graph']),
                               config['metric_list'])
 
-    return metrics
+    return addresses, metrics
 
 def check_top_level_paths(config: dict):
     """Check the top level paths in the config.
@@ -161,6 +160,24 @@ def check_real_network_paths(config: dict):
 
     return config
 
+def check_parameters_to_sample(config: dict):
+    """Check the parameters to sample in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a parameter to sample is not in the parameters
+            dictionary.
+    """
+    params = parameters.get_full_parameters_flat()
+    for param in config['parameters_to_sample']:
+        if isinstance(param, dict):
+            param = list(param.keys())[0]
+        if param not in params:
+            raise ValueError(f"{param} not found in parameters dictionary.")
+    return config
+
 def load_config(config_path: Path):
     """Load, validate, and convert Paths in a configuration file.
 
@@ -191,6 +208,9 @@ def load_config(config_path: Path):
     # Check real network paths
     config = check_real_network_paths(config)
     
+    # Check the parameters to sample
+    config = check_parameters_to_sample(config)
+
     return config
 
 

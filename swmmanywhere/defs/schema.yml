@@ -30,4 +30,6 @@ properties:
   metric_list: {type: array, items: {type: string}}
   address_overrides: {type: ['object', 'null']}
   parameter_overrides: {type: ['object', 'null']}
+  parameters_to_sample: {type: ['array', 'null']}
+  sample_magnitude: {type: ['integer', 'null']}
 required: [base_dir, project, bbox, api_keys, graphfcn_list]

@@ -59,3 +59,18 @@ parameter_overrides:
       - 1.95
       - 3.0
 address_overrides: null
+parameters_to_sample:
+  - min_v: [0.5, 1.5]
+  - max_v
+  - max_fr
+  - precipitation
+  - outlet_length
+  - chahinian_slope_scaling
+  - length_scaling
+  - contributing_area_scaling
+  - chahinian_slope_exponent
+  - length_exponent
+  - contributing_area_exponent
+  - lane_width
+  - max_street_length
+sample_magnitude: 9
