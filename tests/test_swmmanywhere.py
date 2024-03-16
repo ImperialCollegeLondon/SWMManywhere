@@ -1,5 +1,10 @@
 """Tests for the main module."""
+import tempfile
 from pathlib import Path
+
+import jsonschema
+import pytest
+import yaml
 
 from swmmanywhere import __version__, swmmanywhere
 
@@ -33,3 +38,98 @@ def test_run():
 
     model.with_suffix('.out').unlink()
     model.with_suffix('.rpt').unlink()
+
+def test_swmmanywhere():
+    """Test the swmmanywhere function."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Load the config
+        test_data_dir = Path(__file__).parent / 'test_data'
+        defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+
+        # Set some test values
+        base_dir = Path(temp_dir)
+        config['base_dir'] = str(base_dir)
+        config['bbox'] = [0.05428,51.55847,0.07193,51.56726]
+        config['address_overrides'] = {
+            'building': str(test_data_dir / 'building.geoparquet'),
+            'precipitation': str(defs_dir / 'storm.dat')
+            }
+        
+        config['run_settings']['duration'] = 1000
+        api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
+        with open(base_dir / 'api_keys.yml', 'w') as f:
+            yaml.dump(api_keys, f)
+        config['api_keys'] = str(base_dir / 'api_keys.yml')
+        
+        # Fill the real dict with unused paths to avoid filevalidation errors
+        config['real']['subcatchments'] = str(defs_dir / 'storm.dat')
+        config['real']['inp'] = str(defs_dir / 'storm.dat')
+        config['real']['graph'] = str(defs_dir / 'storm.dat')
+
+        # Write the config
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+        
+        # Load and test validation of the config
+        config = swmmanywhere.load_config(base_dir / 'test_config.yml')
+
+        # Set the test config to just use the generated data
+        model_dir = base_dir / 'demo' / 'bbox_1' / 'model_1'
+        config['real']['subcatchments'] = model_dir / 'subcatchments.geoparquet'
+        config['real']['inp'] = model_dir / 'model_1.inp'
+        config['real']['graph'] = model_dir / 'graph.parquet'
+
+        # Run swmmanywhere
+        swmmanywhere.swmmanywhere(config)
+
+def test_load_config_file_validation():
+    """Test the file validation of the config."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_data_dir = Path(__file__).parent / 'test_data'
+        defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
+        base_dir = Path(temp_dir)
+        
+        # Test file not found
+        with pytest.raises(FileNotFoundError) as exc_info:
+            swmmanywhere.load_config(base_dir / 'test_config.yml')
+            assert "test_config.yml" in str(exc_info.value)
+
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+        
+        # Correct and avoid filevalidation errors
+        config['real'] = None
+        
+        # Fill with unused paths to avoid filevalidation errors
+        config['base_dir'] = str(defs_dir / 'storm.dat')
+        config['api_keys'] = str(defs_dir / 'storm.dat')
+        
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+        
+        config = swmmanywhere.load_config(base_dir / 'test_config.yml')
+        assert isinstance(config, dict)
+
+def test_load_config_schema_validation():
+    """Test the schema validation of the config."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_data_dir = Path(__file__).parent / 'test_data'
+        base_dir = Path(temp_dir)
+
+        # Load the config
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+        
+        # Make an edit not to schema
+        config['base_dir'] = 1
+        
+        with open(base_dir / 'test_config.yml', 'w') as f:
+            yaml.dump(config, f)
+
+        # Test schema validation
+        with pytest.raises(jsonschema.exceptions.ValidationError) as exc_info:
+            swmmanywhere.load_config(base_dir / 'test_config.yml')
+            assert "null" in str(exc_info.value)
+

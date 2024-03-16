@@ -157,9 +157,32 @@ def get_osmid_id(data: dict) -> Hashable:
         id_ = id_[0]
     return id_
 
+def iterate_graphfcns(G: nx.Graph, 
+                      graphfcn_list: list[str], 
+                      params: dict,
+                      addresses: parameters.FilePaths) -> nx.Graph:
+    """Iterate a list of graph functions over a graph.
+
+    Args:
+        G (nx.Graph): The graph to iterate over.
+        graphfcn_list (list[str]): A list of graph functions to iterate.
+        params (dict): A dictionary of parameters to pass to the graph
+            functions.
+        addresses (parameters.FilePaths): A FilePaths parameter object
+
+    Returns:
+        nx.Graph: The graph after the graph functions have been applied.
+    """
+    not_exists = [g for g in graphfcn_list if g not in graphfcns]
+    if not_exists:
+        raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+    for function in graphfcn_list:
+        G = graphfcns[function](G, addresses = addresses, **params)
+        logger.info(f"graphfcn: {function} completed.")
+    return G
+
 @register_graphfcn
 class assign_id(BaseGraphFunction, 
-                required_edge_attributes = ['osmid'], 
                 adds_edge_attributes = ['id']
                 ):
     """assign_id class."""
@@ -180,8 +203,12 @@ class assign_id(BaseGraphFunction,
         Returns:
             G (nx.Graph): The same graph with an ID assigned to each edge
         """
+        edge_ids: set[str] = set()
         for u, v, data in G.edges(data=True):
-            data['id'] = get_osmid_id(data)
+            data['id'] = f'{u}-{v}'
+            if data['id'] in edge_ids:
+                logger.warning(f"Duplicate edge ID: {data['id']}")
+            edge_ids.add(data['id'])
         return G
 
 @register_graphfcn
@@ -423,7 +450,7 @@ class calculate_contributing_area(BaseGraphFunction,
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
         # Calculate runoff coefficient (RC)
-        if addresses.building.suffix == '.parquet':
+        if addresses.building.suffix in ('.geoparquet','.parquet'):
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
@@ -451,7 +478,7 @@ class calculate_contributing_area(BaseGraphFunction,
 @register_graphfcn
 class set_elevation(BaseGraphFunction,
                     required_node_attributes = ['x', 'y'],
-                    adds_node_attributes = ['elevation']):
+                    adds_node_attributes = ['surface_elevation']):
     """set_elevation class."""
     
     def __call__(self, G: nx.Graph, 
@@ -477,12 +504,12 @@ class set_elevation(BaseGraphFunction,
                                                     y, 
                                                     addresses.elevation)
         elevations_dict = {id_: elev for id_, elev in zip(G.nodes, elevations)}
-        nx.set_node_attributes(G, elevations_dict, 'elevation')
+        nx.set_node_attributes(G, elevations_dict, 'surface_elevation')
         return G
 
 @register_graphfcn
 class set_surface_slope(BaseGraphFunction,
-                        required_node_attributes = ['elevation'],
+                        required_node_attributes = ['surface_elevation'],
                         adds_edge_attributes = ['surface_slope']):
     """set_surface_slope class."""
 
@@ -502,7 +529,8 @@ class set_surface_slope(BaseGraphFunction,
         """
         G = G.copy()
         # Compute the slope for each edge
-        slope_dict = {(u, v, k): (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) 
+        slope_dict = {(u, v, k): (G.nodes[u]['surface_elevation'] - \
+                                  G.nodes[v]['surface_elevation']) 
                         / d['length'] for u, v, k, d in G.edges(data=True,
                                                                 keys=True)}
 
@@ -977,8 +1005,9 @@ def process_successors(G: nx.Graph,
 
 @register_graphfcn
 class pipe_by_pipe(BaseGraphFunction,
-                   required_edge_attributes = ['length', 'elevation'],
-                   required_node_attributes = ['contributing_area', 'elevation'],
+                   required_edge_attributes = ['length'],
+                   required_node_attributes = ['contributing_area', 
+                                               'surface_elevation'],
                    adds_edge_attributes = ['diameter'],
                    adds_node_attributes = ['chamber_floor_elevation']):
     """pipe_by_pipe class."""
@@ -1015,7 +1044,7 @@ class pipe_by_pipe(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         G = G.copy()
-        surface_elevations = {n : d['elevation'] for n, d in G.nodes(data=True)}
+        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}

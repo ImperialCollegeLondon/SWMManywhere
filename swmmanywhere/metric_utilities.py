@@ -55,6 +55,42 @@ class MetricRegistry(dict):
 
 metrics = MetricRegistry()
 
+def iterate_metrics(synthetic_results: pd.DataFrame, 
+                    synthetic_subs: gpd.GeoDataFrame,
+                    synthetic_G: nx.Graph,
+                    real_results: pd.DataFrame,
+                    real_subs: gpd.GeoDataFrame,
+                    real_G: nx.Graph,
+                    metric_list: list[str]) -> dict[str, float]:
+    """Iterate a list of metrics over a graph.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_results (pd.DataFrame): The real results.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+        real_G (nx.Graph): The real graph.
+        metric_list (list[str]): A list of metrics to iterate.
+
+    Returns:
+        dict[str, float]: The results of the metrics.
+    """
+    not_exists = [m for m in metric_list if m not in metrics]
+    if not_exists:
+        raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
+    
+    kwargs = {
+        "synthetic_results": synthetic_results,
+        "synthetic_subs": synthetic_subs,
+        "synthetic_G": synthetic_G,
+        "real_results": real_results,
+        "real_subs": real_subs,
+        "real_G": real_G,
+    }
+
+    return {m : metrics[m](**kwargs) for m in metric_list}
+
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
@@ -80,11 +116,11 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
 
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
-    syn_data = syn_data.loc[syn_data.object.isin(syn_ids)]
+    syn_data = syn_data.loc[syn_data.id.isin(syn_ids)]
     syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
-    real_data = real_data.loc[real_data.object.isin(real_ids)]
+    real_data = real_data.loc[real_data.id.isin(real_ids)]
     real_data = real_data.groupby('date').value.sum()
     
     # Align data
@@ -182,7 +218,7 @@ def dominant_outlet(G: nx.DiGraph,
     subgraph of the graph of nodes that drain to that outlet.
 
     Args:
-        G (nx.Graph): The graph.
+        G (nx.DiGraph): The graph.
         results (pd.DataFrame): The results, which include a 'flow' and 'id' 
             column.
 
@@ -198,8 +234,8 @@ def dominant_outlet(G: nx.DiGraph,
     
     # Identify the outlet with the highest flow
     outlet_flows = results.loc[(results.variable == 'flow') &
-                               (results.object.isin(outlet_arcs))]
-    max_outlet_arc = outlet_flows.groupby('object').value.median().idxmax()
+                               (results.id.isin(outlet_arcs))]
+    max_outlet_arc = outlet_flows.groupby('id').value.median().idxmax()
     max_outlet = [v for u,v,d in G.edges(data=True) 
                   if d['id'] == max_outlet_arc][0]
     
@@ -314,12 +350,12 @@ def bias_flood_depth(
             return np.trapz(x.value,x.duration)
 
         syn_flooding = extract_var(synthetic_results,
-                                    'flooding').groupby('object').apply(_f)
+                                    'flooding').groupby('id').apply(_f)
         syn_area = synthetic_subs.impervious_area.sum()
         syn_tot = syn_flooding.sum() / syn_area
 
         real_flooding = extract_var(real_results,
-                                    'flooding').groupby('object').apply(_f)
+                                    'flooding').groupby('id').apply(_f)
         real_area = real_subs.impervious_area.sum()
         real_tot = real_flooding.sum() / real_area
 
@@ -379,7 +415,6 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
                          'flow', 
                          syn_arc, 
                          real_arc)
-
 
 @metrics.register
 def outlet_nse_flooding(synthetic_G: nx.Graph,
