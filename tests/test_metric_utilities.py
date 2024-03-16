@@ -279,6 +279,30 @@ def test_outlet_nse_flooding():
                                     real_subs = subs)
     assert val == 0.0
 
+def test_design_params():
+    """Test the design param related metrics."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    subs = get_subs()
+
+    # Mock results
+    results = pd.DataFrame([{'object' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 10,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                             {'object' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                             ])
+    
+    # Calculate NSE (perfect results)
+    val = mu.metrics.outlet_kstest_diameters(synthetic_G = G,
+                                    synthetic_results = results,
+                                    real_G = G,
+                                    real_results = results,
+                                    real_subs = subs)
+    assert val == 0.0
+
 def test_netcomp():
     """Test the netcomp metrics."""
     netcomp_results = {'nc_deltacon0' : 0.00129408,
