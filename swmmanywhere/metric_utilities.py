@@ -14,6 +14,7 @@ import netcomp
 import networkx as nx
 import numpy as np
 import pandas as pd
+import shapely
 from scipy import stats
 
 
@@ -277,18 +278,26 @@ def edge_betweenness_centrality(G: nx.Graph,
             bt_c[n] += v
     return bt_c
 
-def align_by_subcatchment(var,
+def align_by_shape(var,
                           synthetic_results: pd.DataFrame,
                           real_results: pd.DataFrame,
-                          real_subs: gpd.GeoDataFrame,
+                          shapes: gpd.GeoDataFrame,
                           synthetic_G: nx.Graph,
                           real_G: nx.Graph) -> pd.DataFrame:
     """Align by subcatchment.
 
-    Align synthetic and real results by subcatchment and return the results.
+    Align synthetic and real results by shape and return the results.
+
+    Args:
+        var (str): The variable to align.
+        synthetic_results (pd.DataFrame): The synthetic results.
+        real_results (pd.DataFrame): The real results.
+        shapes (gpd.GeoDataFrame): The shapes to align by (e.g., grid or real_subs).
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_G (nx.Graph): The real graph.
     """
-    synthetic_joined = nodes_to_subs(synthetic_G, real_subs)
-    real_joined = nodes_to_subs(real_G, real_subs)
+    synthetic_joined = nodes_to_subs(synthetic_G, shapes)
+    real_joined = nodes_to_subs(real_G, shapes)
 
     # Extract data
     real_results = extract_var(real_results, var)
@@ -310,6 +319,24 @@ def align_by_subcatchment(var,
                             suffixes = ('_real', '_sim')
                             )
     return results
+
+def create_grid(bbox: tuple,
+                scale: float):
+    """Create a grid of polygons."""
+    dx = scale
+    dy = scale
+    minx, miny, maxx, maxy = bbox
+
+    grid = []
+    for i in range(int((maxx - minx) // dx + 1)):
+        for j in range(int((maxy - miny) // dy + 1)):
+            grid.append({'geometry' : shapely.Polygon([(minx + i * dx, 
+                                                        miny + j * dy),
+                                 (minx + (i + 1) * dx, miny + j * dy),
+                                 (minx + (i + 1) * dx, miny + (j + 1) * dy),
+                                 (minx + i * dx, miny + (j + 1) * dy)]),
+                         'sub_id' : f'{i}_{j}'})
+    return gpd.GeoDataFrame(grid)
 
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
@@ -497,10 +524,37 @@ def subcatchment_nse_flooding(synthetic_G: nx.Graph,
     flooding over time for each subcatchment. The metric produced is the median
     NSE across all subcatchments.
     """
-    results = align_by_subcatchment('flooding',
+    results = align_by_shape('flooding',
                                     synthetic_results = synthetic_results,
                                     real_results = real_results,
-                                    real_subs = real_subs,
+                                    shapes = real_subs,
+                                    synthetic_G = synthetic_G,
+                                    real_G = real_G)
+    
+    return median_nse_by_group(results, 'sub_id')
+
+@metrics.register
+def grid_nse_flooding(synthetic_G: nx.Graph,
+                            real_G: nx.Graph,
+                            synthetic_results: pd.DataFrame,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            **kwargs) -> float:
+    """Grid NSE flooding.
+    
+    Classify synthetic nodes to a grid and calculate the NSE of
+    flooding over time for each grid cell. The metric produced is the median
+    NSE across all grid cells.
+    """
+    scale = 100 #m
+    grid = create_grid(real_subs.total_bounds,
+                       scale)
+    grid.crs = real_subs.crs
+
+    results = align_by_shape('flooding',
+                                    synthetic_results = synthetic_results,
+                                    real_results = real_results,
+                                    shapes = grid,
                                     synthetic_G = synthetic_G,
                                     real_G = real_G)
     

@@ -297,8 +297,14 @@ def test_netcomp():
         val_ = getattr(mu.metrics, func)(synthetic_G = G_, real_G = G)
         assert np.isclose(val, val_), func
 
-def test_subcatchment_nse_flooding():
-    """Test the outlet_nse_flow metric."""
+def test_create_grid():
+    """Test the create_grid function."""
+    grid = mu.create_grid((0,0,1,1), 1/3 - 0.001)
+    assert grid.shape[0] == 16
+    assert set(grid.columns) == {'sub_id','geometry'}
+
+def test_subcatchment_grid_nse_flooding():
+    """Test the subcatchment and grid nse metrics."""
     # Load data
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     subs = get_subs()
@@ -375,6 +381,14 @@ def test_subcatchment_nse_flooding():
     results_.object = results_.object.replace(mapping)
 
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G_,
+                                    synthetic_results = results_,
+                                    real_G = G,
+                                    real_results = results,
+                                    real_subs = subs)
+    assert val == 1.0
+
+    # Test gridded
+    val = mu.metrics.grid_nse_flooding(synthetic_G = G_,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
