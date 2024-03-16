@@ -151,13 +151,13 @@ def test_check_parameters_to_sample():
         config['base_dir'] = str(defs_dir / 'storm.dat')
         config['api_keys'] = str(defs_dir / 'storm.dat')
 
-        # Make an edit not to schema
+        # Make an edit that should fail
         config['parameters_to_sample'] = ['not_a_parameter']
         
         with open(base_dir / 'test_config.yml', 'w') as f:
             yaml.dump(config, f)
 
-        # Test schema validation
+        # Test parameter validation
         with pytest.raises(ValueError) as exc_info:
             swmmanywhere.load_config(base_dir / 'test_config.yml')
             assert "not_a_parameter" in str(exc_info.value)
