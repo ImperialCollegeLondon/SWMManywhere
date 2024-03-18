@@ -177,7 +177,7 @@ def nodes_to_subs(G: nx.Graph,
         gpd.GeoDataFrame: A dataframe from the nodes and data, and the 
             subcatchment information, distinguished by the column 'sub_id'.
     """
-    nodes_df = pd.DataFrame([{**{'id' :x}, **d} for x,d in G.nodes(data=True)])
+    nodes_df = pd.DataFrame([{'id' :x, **d} for x,d in G.nodes(data=True)])
     nodes_joined = (
         gpd.GeoDataFrame(nodes_df, 
                         geometry=gpd.points_from_xy(nodes_df.x, 
