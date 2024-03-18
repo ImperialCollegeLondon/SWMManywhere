@@ -25,7 +25,7 @@ build==1.0.3
     # via pip-tools
 cdsapi==0.6.1
     # via swmmanywhere (pyproject.toml)
-certifi==2023.11.17
+certifi==2024.2.2
     # via
     #   fiona
     #   netcdf4
