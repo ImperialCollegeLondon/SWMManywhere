@@ -98,7 +98,8 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
                               real_results,
                               gpd.read_file(config['real']['subcatchments']),
                               load_graph(config['real']['graph']),
-                              config['metric_list'])
+                              config['metric_list'],
+                              parameters['metric_evaluation'])
 
     return addresses, metrics
 

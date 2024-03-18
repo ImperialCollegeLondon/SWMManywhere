@@ -8,6 +8,7 @@ import shapely
 
 from swmmanywhere import metric_utilities as mu
 from swmmanywhere.graph_utilities import load_graph
+from swmmanywhere.parameters import MetricEvaluation
 
 
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
@@ -294,7 +295,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, 0)
@@ -306,7 +308,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, netcomp_results[metric])
@@ -394,3 +397,18 @@ def test_subcatchment_nse_flooding():
                                     real_results = results,
                                     real_subs = subs)
     assert val == 1.0
+
+    # Test gridded
+    val = mu.metrics.grid_nse_flooding(synthetic_G = G_,
+                                    synthetic_results = results_,
+                                    real_G = G,
+                                    real_results = results,
+                                    real_subs = subs,
+                                    metric_evaluation = MetricEvaluation())
+    assert val == 1.0
+
+def test_create_grid():
+    """Test the create_grid function."""
+    grid = mu.create_grid((0,0,1,1), 1/3 - 0.001)
+    assert grid.shape[0] == 16
+    assert set(grid.columns) == {'sub_id','geometry'}
