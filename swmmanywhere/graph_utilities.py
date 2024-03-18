@@ -841,7 +841,7 @@ class derive_topology(BaseGraphFunction,
 
         # Check for negative cycles
         if nx.negative_edge_cycle(G, weight = 'weight'):
-            raise ValueError('Graph contains negative cycle')
+            logger.warning('Graph contains negative cycle')
 
         # Initialize the dictionary with infinity for all nodes
         shortest_paths = {node: float('inf') for node in G.nodes}
