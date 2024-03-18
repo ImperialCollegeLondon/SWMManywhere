@@ -4,6 +4,7 @@
 @author: Barney
 """
 import json
+import os
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -179,6 +180,8 @@ def iterate_graphfcns(G: nx.Graph,
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
+        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            save_graph(G, addresses.model / f"{function}_graph.json")
     return G
 
 @register_graphfcn

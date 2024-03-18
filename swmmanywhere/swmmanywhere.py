@@ -3,6 +3,7 @@
 
 @author: Barney
 """
+import os
 from pathlib import Path
 
 import geopandas as gpd
@@ -19,18 +20,21 @@ from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
 
 
-def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
+def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict | None]:
     """Run SWMManywhere processes.
     
     This function runs the SWMManywhere processes, including downloading data,
     preprocessing the graphfcns, running the model, and comparing the results 
-    to real data using metrics.
+    to real data using metrics. The function will always return the path to 
+    the generated .inp file. If real data (either a results file or the graph,
+    .inp, and subcatchments) is provided, the function will also return the
+    metrics comparing the synthetic network with the real.
 
     Args:
         config (dict): The loaded config as a dict.
 
     Returns:
-        tuple[parameters.FilePaths, dict]: The addresses and metrics.
+        tuple[parameters.FilePaths, dict | None]: The addresses and metrics.
     """
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],
@@ -79,7 +83,10 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
     # Run the model
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
-    
+    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        synthetic_results.to_parquet(addresses.model /\
+                                      f'results.{addresses.extension}')
+
     # Get the real results
     if config['real']['results']:
         # TODO.. bit messy
@@ -87,9 +94,12 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
     elif config['real']['inp']:
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
+        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            real_results.to_parquet(config['real']['inp'].parent /\
+                                     f'real_results.{addresses.extension}')
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
-        return addresses
+        return addresses.inp, None
     
     # Iterate the metrics
     metrics = iterate_metrics(synthetic_results,
@@ -101,7 +111,7 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict]:
                               config['metric_list'],
                               params['metric_evaluation'])
 
-    return addresses, metrics
+    return addresses.inp, metrics
 
 def check_top_level_paths(config: dict):
     """Check the top level paths in the config.
