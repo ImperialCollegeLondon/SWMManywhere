@@ -26,9 +26,9 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict | None]:
     This function runs the SWMManywhere processes, including downloading data,
     preprocessing the graphfcns, running the model, and comparing the results 
     to real data using metrics. The function will always return the path to 
-    the generated .inp file. If real data (either a results file or the graph,
-    .inp, and subcatchments) is provided, the function will also return the
-    metrics comparing the synthetic network with the real.
+    the generated .inp file. If real data (either a results file or the .inp, 
+    as well as graph, and subcatchments) is provided, the function will also 
+    return the metrics comparing the synthetic network with the real.
 
     Args:
         config (dict): The loaded config as a dict.

@@ -328,7 +328,8 @@ def test_design_params():
                                  real_G = G,
                                  real_subs = subs,
                                  real_results = results,
-                                 metric_list = design_results.keys())
+                                 metric_list = design_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
 
     for metric, val in metrics.items():
         assert metric in design_results
