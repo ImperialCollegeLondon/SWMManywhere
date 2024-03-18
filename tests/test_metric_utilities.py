@@ -54,14 +54,14 @@ def test_bias_flood_depth():
     """Test the bias_flood_depth metric."""
     # Create synthetic and real data
     synthetic_results = pd.DataFrame({
-        'object': ['obj1', 'obj1','obj2','obj2'],
+        'id': ['obj1', 'obj1','obj2','obj2'],
         'value': [10, 20, 5, 2],
         'variable': 'flooding',
         'date' : pd.to_datetime(['2021-01-01 00:00:00','2021-01-01 00:05:00',
                                  '2021-01-01 00:00:00','2021-01-01 00:05:00'])
     })
     real_results = pd.DataFrame({
-        'object': ['obj1', 'obj1','obj2','obj2'],
+        'id': ['obj1', 'obj1','obj2','obj2'],
         'value': [15, 25, 10, 20],
         'variable': 'flooding',
         'date' : pd.to_datetime(['2021-01-01 00:00:00','2021-01-01 00:05:00',
@@ -131,19 +131,19 @@ def test_outlet_nse_flow():
     subs = get_subs()
 
     # Mock results
-    results = pd.DataFrame([{'object' : 4253560,
+    results = pd.DataFrame([{'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01').date()},
-                            {'object' : '',
+                            {'id' : '',
                              'variable' : 'flow',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01').date()},
-                             {'object' : 4253560,
+                             {'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : '',
+                            {'id' : '',
                              'variable' : 'flow',
                              'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')}])
@@ -173,7 +173,7 @@ def test_outlet_nse_flow():
                            new_outlet,
                            'outlet')
     G_.remove_node(12354833)
-    results_.loc[results_.object == 4253560, 'object'] = 725226531
+    results_.loc[results_.id == 4253560, 'id'] = 725226531
 
     # Calculate NSE (mean results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G_,
@@ -200,35 +200,35 @@ def test_outlet_nse_flooding():
     subs = get_subs()
 
     # Mock results
-    results = pd.DataFrame([{'object' : 4253560,
+    results = pd.DataFrame([{'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                             {'object' : 4253560,
+                             {'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                             {'object' : 25472468,
+                             {'id' : 25472468,
                              'variable' : 'flooding',
                              'value' : 4.5,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 770549936,
+                            {'id' : 770549936,
                              'variable' : 'flooding',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 109753,
+                            {'id' : 109753,
                              'variable' : 'flooding',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                             {'object' : 25472468,
+                             {'id' : 25472468,
                              'variable' : 'flooding',
                              'value' : 0,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 770549936,
+                            {'id' : 770549936,
                              'variable' : 'flooding',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 109753,
+                            {'id' : 109753,
                              'variable' : 'flooding',
                              'value' : 15,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')}])
@@ -243,7 +243,7 @@ def test_outlet_nse_flooding():
 
     # Calculate NSE (mean results)
     results_ = results.copy()
-    results_.loc[results_.object.isin([770549936, 25472468]),'value'] = [14.5 / 4] * 4
+    results_.loc[results_.id.isin([770549936, 25472468]),'value'] = [14.5 / 4] * 4
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G,
                                     synthetic_results = results_,
                                     real_G = G,
@@ -279,24 +279,38 @@ def test_outlet_nse_flooding():
                                     real_subs = subs)
     assert val == 0.0
 
-def test_netcomp():
-    """Test the netcomp metrics."""
+def test_netcomp_iterate():
+    """Test the netcomp metrics and iterate_metrics."""
     netcomp_results = {'nc_deltacon0' : 0.00129408,
                        'nc_laplacian_dist' : 36.334773,
                        'nc_laplacian_norm_dist' : 1.932007,
                        'nc_adjacency_dist' : 3.542749,
                        'nc_resistance_distance' : 8.098548,
                        'nc_vertex_edge_distance' : 0.132075}
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    metrics = mu.iterate_metrics(synthetic_G = G,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = None,
+                                 real_results = None,
+                                 metric_list = netcomp_results.keys())
+    for metric, val in metrics.items():
+        assert metric in netcomp_results
+        assert np.isclose(val, 0)
 
-    for func, val in netcomp_results.items():
-        G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-        val_ = getattr(mu.metrics, func)(synthetic_G = G, real_G = G)
-        assert val_ == 0.0, func
-
-        G_ = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
-        val_ = getattr(mu.metrics, func)(synthetic_G = G_, real_G = G)
-        assert np.isclose(val, val_), func
-
+    G_ = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    metrics = mu.iterate_metrics(synthetic_G = G_,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = None,
+                                 real_results = None,
+                                 metric_list = netcomp_results.keys())
+    for metric, val in metrics.items():
+        assert metric in netcomp_results
+        assert np.isclose(val, netcomp_results[metric])
+        
 def test_subcatchment_nse_flooding():
     """Test the outlet_nse_flow metric."""
     # Load data

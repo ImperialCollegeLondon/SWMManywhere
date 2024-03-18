@@ -18,9 +18,9 @@ def test_getattr():
     assert addresses.bbox == addresses.project / 'bbox_1'
     assert addresses.download == addresses.bbox / 'download'
     assert addresses.elevation == addresses.download / 'elevation.tif'
-    assert addresses.building == addresses.download / 'building.parquet'
+    assert addresses.building == addresses.download / 'building.geoparquet'
     assert addresses.model == addresses.bbox / 'model_1'
-    assert addresses.subcatchments == addresses.model / 'subcatchments.parquet'
+    assert addresses.subcatchments == addresses.model / 'subcatchments.geoparquet'
     assert addresses.precipitation == addresses.download / 'precipitation.parquet'
 
     addresses.elevation = filepath
