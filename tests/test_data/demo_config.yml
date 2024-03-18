@@ -16,6 +16,7 @@ graphfcn_list:
   - assign_id
   - format_osmnx_lanes
   - double_directed
+  - fix_geometries
   - split_long_edges
   - calculate_contributing_area
   - set_elevation
