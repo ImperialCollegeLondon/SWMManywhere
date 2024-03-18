@@ -17,6 +17,8 @@ import pandas as pd
 import shapely
 from scipy import stats
 
+from swmmanywhere.parameters import MetricEvaluation
+
 
 class MetricRegistry(dict): 
     """Registry object.""" 
@@ -31,7 +33,8 @@ class MetricRegistry(dict):
                             "synthetic_subs": gpd.GeoDataFrame,
                             "real_subs": gpd.GeoDataFrame,
                             "synthetic_G": nx.Graph,
-                            "real_G": nx.Graph}
+                            "real_G": nx.Graph,
+                            "metric_evaluation": MetricEvaluation}
 
         sig = signature(func)
         for param, obj in sig.parameters.items():
@@ -62,7 +65,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
                     real_results: pd.DataFrame,
                     real_subs: gpd.GeoDataFrame,
                     real_G: nx.Graph,
-                    metric_list: list[str]) -> dict[str, float]:
+                    metric_list: list[str],
+                    metric_evaluation: MetricEvaluation) -> dict[str, float]:
     """Iterate a list of metrics over a graph.
 
     Args:
@@ -73,6 +77,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
         real_subs (gpd.GeoDataFrame): The real subcatchments.
         real_G (nx.Graph): The real graph.
         metric_list (list[str]): A list of metrics to iterate.
+        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
 
     Returns:
         dict[str, float]: The results of the metrics.
@@ -88,6 +93,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
         "real_results": real_results,
         "real_subs": real_subs,
         "real_G": real_G,
+        "metric_evaluation": metric_evaluation
     }
 
     return {m : metrics[m](**kwargs) for m in metric_list}
@@ -574,6 +580,7 @@ def grid_nse_flooding(synthetic_G: nx.Graph,
                             synthetic_results: pd.DataFrame,
                             real_results: pd.DataFrame,
                             real_subs: gpd.GeoDataFrame,
+                            metric_evaluation: MetricEvaluation,
                             **kwargs) -> float:
     """Grid NSE flooding.
     
@@ -581,7 +588,7 @@ def grid_nse_flooding(synthetic_G: nx.Graph,
     flooding over time for each grid cell. The metric produced is the median
     NSE across all grid cells.
     """
-    scale = 100 #m
+    scale = metric_evaluation.grid_scale
     grid = create_grid(real_subs.total_bounds,
                        scale)
     grid.crs = real_subs.crs

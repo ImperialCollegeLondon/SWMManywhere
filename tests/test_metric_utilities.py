@@ -8,6 +8,7 @@ import shapely
 
 from swmmanywhere import metric_utilities as mu
 from swmmanywhere.graph_utilities import load_graph
+from swmmanywhere.parameters import MetricEvaluation
 
 
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
@@ -294,7 +295,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, 0)
@@ -306,7 +308,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, netcomp_results[metric])
@@ -400,7 +403,8 @@ def test_subcatchment_nse_flooding():
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = MetricEvaluation())
     assert val == 1.0
 
 def test_create_grid():

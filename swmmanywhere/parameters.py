@@ -16,7 +16,8 @@ def get_full_parameters():
         "subcatchment_derivation": SubcatchmentDerivation(),
         "outlet_derivation": OutletDerivation(),
         "topology_derivation": TopologyDerivation(),
-        "hydraulic_design": HydraulicDesign()
+        "hydraulic_design": HydraulicDesign(),
+        "metric_evaluation": MetricEvaluation()
     }
 
 class SubcatchmentDerivation(BaseModel):
@@ -172,12 +173,18 @@ class HydraulicDesign(BaseModel):
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
 
-class FilePaths:
-    """Parameters for file path lookup.
+class MetricEvaluation(BaseModel):
+    """Parameters for metric evaluation."""
+    grid_scale: float = Field(default = 100,
+                        le = 10,
+                        ge = 5000,
+                        unit = "m",
+                        description = "Scale of the grid for metric evaluation")
 
-    TODO: this doesn't validate file paths to allow for un-initialised data
-    (e.g., subcatchments are created by a graph and so cannot be validated).
-    """
+
+
+class FilePaths:
+    """Parameters for file path lookup."""
 
     def __init__(self, 
                  base_dir: Path, 
