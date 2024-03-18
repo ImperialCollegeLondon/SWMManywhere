@@ -13,7 +13,7 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import load_graph, save_graph
+from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
 
 def load_street_network():
@@ -40,7 +40,7 @@ def test_assign_id():
     G = gu.assign_id(G)
     for u, v, data in G.edges(data=True):
         assert 'id' in data.keys()
-        assert isinstance(data['id'], int)
+        assert isinstance(data['id'], str)
 
 def test_double_directed():
     """Test the double_directed function."""
@@ -116,9 +116,9 @@ def test_set_elevation_and_slope():
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         G = gu.set_elevation(G, addresses)
         for id_, data in G.nodes(data=True):
-            assert 'elevation' in data.keys()
-            assert math.isfinite(data['elevation'])
-            assert data['elevation'] > 0
+            assert 'surface_elevation' in data.keys()
+            assert math.isfinite(data['surface_elevation'])
+            assert data['surface_elevation'] > 0
         
         G = gu.set_surface_slope(G)
         for u, v, data in G.edges(data=True):
@@ -228,7 +228,7 @@ def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     for ix, (u,d) in enumerate(G.nodes(data=True)):
-        d['elevation'] = ix
+        d['surface_elevation'] = ix
         d['contributing_area'] = ix
     
     params = parameters.HydraulicDesign()
@@ -242,3 +242,19 @@ def test_pipe_by_pipe():
         assert 'chamber_floor_elevation' in d.keys()
         assert math.isfinite(d['chamber_floor_elevation'])
         
+def test_iterate_graphfcns():
+    """Test the iterate_graphfcns function."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    params = parameters.get_full_parameters()
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    G = iterate_graphfcns(G, 
+                             ['assign_id',
+                              'format_osmnx_lanes'],
+                              params, 
+                              addresses)
+    for u, v, d in G.edges(data=True):
+        assert 'id' in d.keys()
+        assert 'width' in d.keys()

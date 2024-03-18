@@ -378,7 +378,10 @@ def test_graph_to_geojson():
     crs = G.graph['crs']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        go.graph_to_geojson(G, temp_path / 'graph.geojson', crs)
+        go.graph_to_geojson(G, 
+                            temp_path / 'graph_nodes.geojson', 
+                            temp_path / 'graph_edges.geojson', 
+                            crs)
         gdf = gpd.read_file(temp_path / 'graph_nodes.geojson')
         assert gdf.crs == crs
         assert gdf.shape[0] == len(G.nodes)

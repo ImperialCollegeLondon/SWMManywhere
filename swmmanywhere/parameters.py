@@ -129,18 +129,6 @@ class TopologyDerivation(BaseModel):
                         raise ValueError(f"Missing {weight}_exponent")
         return values
 
-# TODO move this to tests and run it if we're happy with this way of doing things
-class NewTopo(TopologyDerivation):
-     """Demo for changing weights that should break the validator."""
-     weights: list = Field(default = ['chahinian_slope',
-                                      'chahinian_angle',
-                                      'length',
-                                      'contributing_area',
-                                'test'],
-                        min_items = 1,
-                        unit = "-",
-                        description = "Weights for topo derivation")
-
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
     diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
@@ -249,8 +237,20 @@ class FilePaths:
     def _generate_model(self):
         return self._generate_property(f'model_{self.model_number}', 
                                         'bbox')
+    def _generate_inp(self):
+        return self._generate_property(f'model_{self.model_number}.inp',
+                                        'model')
     def _generate_subcatchments(self):
-        return self._generate_property(f'subcatchments.{self.extension}', 
+        return self._generate_property(f'subcatchments.geo{self.extension}', 
+                                        'model')
+    def _generate_graph(self):
+        return self._generate_property(f'graph.{self.extension}', 
+                                        'model')
+    def _generate_nodes(self):
+        return self._generate_property(f'nodes.geo{self.extension}', 
+                                        'model')
+    def _generate_edges(self):
+        return self._generate_property(f'edges.geo{self.extension}', 
                                         'model')
     def _generate_download(self):
         return self._generate_property('download', 
@@ -264,7 +264,7 @@ class FilePaths:
     def _generate_elevation(self):
         return self._generate_property('elevation.tif', 'download')
     def _generate_building(self):
-        return self._generate_property(f'building.{self.extension}', 
+        return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 

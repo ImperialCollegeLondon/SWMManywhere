@@ -1,0 +1,33 @@
+type: object
+properties:
+  base_dir: {type: string}
+  project: {type: string}
+  bbox: {type: array, items: {type: number}, minItems: 4, maxItems: 4}
+  api_keys: {type: string}
+  run_settings:
+    type: object
+    properties:
+      reporting_iters: {type: integer, minimum: 1}
+      duration: {type: number}
+      storevars:
+        type: array
+        items: 
+          type: string
+          enum: [flooding, flow, depth, runoff]
+  real:
+    type: ['object', 'null']
+    properties:
+      inp: {type: string}
+      graph: {type: string}
+      subcatchments: {type: string}
+      results: {type: ['string', 'null']}
+    required: [graph, subcatchments]
+    anyOf:
+      - required: [inp]
+      - required: [results]
+  starting_graph: {type: ['string', 'null']}
+  graphfcn_list: {type: array, items: {type: string}}
+  metric_list: {type: array, items: {type: string}}
+  address_overrides: {type: ['object', 'null']}
+  parameter_overrides: {type: ['object', 'null']}
+required: [base_dir, project, bbox, api_keys, graphfcn_list]
