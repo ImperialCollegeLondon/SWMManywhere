@@ -221,7 +221,7 @@ def median_nse_by_group(results: pd.DataFrame,
         .apply(lambda x: nse(x.value_real, x.value_sim))
         .median()
     )
-    if val.shape[0] == 0:
+    if not isinstance(val, float):
         return None
     return val
 
