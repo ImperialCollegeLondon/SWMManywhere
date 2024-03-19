@@ -182,7 +182,7 @@ def check_parameters_to_sample(config: dict):
             dictionary.
     """
     params = parameters.get_full_parameters_flat()
-    for param in config['parameters_to_sample']:
+    for param in config.get('parameters_to_sample',{}):
         if isinstance(param, dict):
             param = list(param.keys())[0]
         if param not in params:
