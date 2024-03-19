@@ -695,7 +695,7 @@ class calculate_weights(BaseGraphFunction,
             total_weight = 0
             for attr, bds in bounds.items():
                 # Normalise
-                weight = (d[attr] - bds[0]) / (bds[1] - bds[0])
+                weight = (d[attr] - bds[0]) / (bds[1] - bds[0]) + 1e-10
                 # Exponent
                 weight = weight ** getattr(topology_derivation,f'{attr}_exponent')
                 # Scaling
