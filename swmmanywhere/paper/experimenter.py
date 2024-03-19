@@ -164,7 +164,7 @@ def parse_arguments():
     if len(sys.argv) > 1:
         jobid = int(sys.argv[1])
         nproc = int(sys.argv[2])
-        config_path = sys.argv[3]
+        config_path = Path(sys.argv[3])
     else:
         jobid = 1
         nproc = None
