@@ -72,11 +72,11 @@ def generate_samples(N = None,
     
     if N is None:
         N = 2 ** (problem['num_vars'] - 1) 
+    problem_ = problem.copy()
+    
     if not groups:
-        problem_ = problem.copy()
         del problem_['groups']
-    else:
-        problem_ = problem.copy()
+    
     param_values = sobol.sample(problem_, 
                                 N, 
                                 calc_second_order=True,
@@ -127,7 +127,9 @@ def process_parameters(jobid, nproc, config_base):
 
         # Update the parameters
         for _, row in params_.iterrows():
-            config['parameter_overrides'][row['param']] = row['value']
+            if row['group'] not in config['parameter_overrides']:
+                config['parameter_overrides'][row['group']] = {}
+            config['parameter_overrides'][row['group']][row['param']] = row['value']
         flooding_results[ix] = ix
 
         # Run the model
