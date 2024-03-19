@@ -369,15 +369,13 @@ def create_grid(bbox: tuple,
     dy = scale
     minx, miny, maxx, maxy = bbox
 
-    grid = []
-    for i in range(int((maxx - minx) // dx + 1)):
-        for j in range(int((maxy - miny) // dy + 1)):
-            grid.append({'geometry' : shapely.Polygon([(minx + i * dx, 
-                                                        miny + j * dy),
-                                 (minx + (i + 1) * dx, miny + j * dy),
-                                 (minx + (i + 1) * dx, miny + (j + 1) * dy),
-                                 (minx + i * dx, miny + (j + 1) * dy)]),
-                         'sub_id' : f'{i}_{j}'})
+    grid = [{'geometry': shapely.geometry.Polygon([(minx + i * dx, miny + j * dy),
+                                        (minx + (i + 1) * dx, miny + j * dy),
+                                        (minx + (i + 1) * dx, miny + (j + 1) * dy),
+                                        (minx + i * dx, miny + (j + 1) * dy)]),
+         'sub_id': f'{i}_{j}'}
+        for i in range(int((maxx - minx) // dx + 1))
+        for j in range(int((maxy - miny) // dy + 1))]
     return gpd.GeoDataFrame(grid)
 
 @metrics.register
