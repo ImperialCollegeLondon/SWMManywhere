@@ -121,6 +121,12 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
     real_results['date'] = pd.to_datetime(real_results['date'])
 
+    # Help alignment
+    synthetic_results.id = synthetic_results.id.astype(str)
+    real_results.id = real_results.id.astype(str)
+    syn_ids = [str(x) for x in syn_ids]
+    real_ids = [str(x) for x in real_ids]
+
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
     syn_data = syn_data.loc[syn_data.id.isin(syn_ids)]
