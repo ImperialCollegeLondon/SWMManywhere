@@ -178,7 +178,6 @@ def parse_arguments():
 if __name__ == '__main__':
     jobid, nproc, config_path = parse_arguments()
     config_base = swmmanywhere.load_config(config_path)
-    if config_base['parameter_overrides'] is None:
-        config_base['parameter_overrides'] = {}
+    config_base['parameter_overrides'] = config_base.get('parameter_overrides') or {}
     flooding_results, addresses = process_parameters(jobid, nproc, config_base)
     save_results(jobid, flooding_results, addresses)
