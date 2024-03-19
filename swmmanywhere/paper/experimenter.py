@@ -12,6 +12,7 @@ import pandas as pd
 from SALib.sample import sobol
 
 from swmmanywhere import swmmanywhere
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import FilePaths, get_full_parameters_flat
 
 # Set the number of threads to 1 to avoid conflicts with parallel processing
@@ -177,6 +178,7 @@ def parse_arguments():
 
 if __name__ == '__main__':
     jobid, nproc, config_path = parse_arguments()
+    logger.add(config_path.parent / f'experimenter_{jobid}.log')
     config_base = swmmanywhere.load_config(config_path)
     config_base['parameter_overrides'] = config_base.get('parameter_overrides') or {}
     flooding_results, addresses = process_parameters(jobid, nproc, config_base)
