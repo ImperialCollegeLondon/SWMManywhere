@@ -17,7 +17,7 @@ properties:
   real:
     type: ['object', 'null']
     properties:
-      inp: {type: string}
+      inp: {type: ['string', 'null']}
       graph: {type: string}
       subcatchments: {type: string}
       results: {type: ['string', 'null']}
