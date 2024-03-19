@@ -11,9 +11,14 @@ from pathlib import Path
 import pandas as pd
 from SALib.sample import sobol
 
-from swmmanywhere import swmmanywhere
-from swmmanywhere.logging import logger
-from swmmanywhere.parameters import FilePaths, get_full_parameters_flat
+# Set the number of threads to 1 to avoid conflicts with parallel processing
+# for pysheds (at least I think that is what is happening)
+os.environ['NUMBA_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+
+from swmmanywhere import swmmanywhere  # noqa: E402
+from swmmanywhere.logging import logger  # noqa: E402
+from swmmanywhere.parameters import FilePaths, get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 

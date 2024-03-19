@@ -10,7 +10,6 @@ import itertools
 import json
 import math
 import operator
-import os
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -21,6 +20,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import pyproj
+import pysheds
 import rasterio as rst
 import rioxarray
 from pysheds import grid as pgrid
@@ -30,13 +30,6 @@ from shapely import geometry as sgeom
 from shapely import ops as sops
 from shapely.strtree import STRtree
 from tqdm import tqdm
-
-# Set the number of threads to 1 to avoid conflicts with parallel processing
-# for pysheds (at least I think that is what is happening)
-os.environ['NUMBA_NUM_THREADS'] = '1'
-os.environ['OMP_NUM_THREADS'] = '1'
-
-import pysheds  # noqa: E402
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
