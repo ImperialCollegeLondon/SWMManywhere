@@ -17,11 +17,19 @@ import pandas as pd
 import shapely
 from scipy import stats
 
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import MetricEvaluation
 
 
 class MetricRegistry(dict): 
     """Registry object.""" 
+
+    def _log_completion(self, func):
+        def _wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            logger.info(f'{func.__name__} completed')
+            return result
+        return _wrapper
     
     def register(self, func: Callable) -> Callable:
         """Register a metric."""
@@ -46,7 +54,7 @@ class MetricRegistry(dict):
                 raise ValueError(f"""{param} of {func.__name__} should be of
                                  type {allowable_params[param]}, not 
                                  {obj.__class__}.""")
-        self[func.__name__] = func
+        self[func.__name__] = self._log_completion(func)
         return func
 
     def __getattr__(self, name):
@@ -101,8 +109,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
-    df_ = df.loc[df.variable == var]
-    df_['duration'] = (df_.date - \
+    df_ = df.loc[df.variable == var].copy()
+    df_.loc[:,'duration'] = (df_.date - \
                         df_.date.min()).dt.total_seconds()
     return df_
 
@@ -110,7 +118,7 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
                   real_results: pd.DataFrame, 
                   variable: str, 
                   syn_ids: list,
-                  real_ids: list) -> float:
+                  real_ids: list) -> float | None:
     """Align and calculate NSE.
 
     Align the synthetic and real data and calculate the Nash-Sutcliffe
@@ -175,8 +183,10 @@ def create_subgraph(G: nx.Graph,
     return SG
 
 def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float:
+        yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
+    if np.std(y) == 0:
+        return None
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def median_nse_by_group(results: pd.DataFrame,
@@ -344,16 +354,15 @@ def align_by_shape(var,
     # Extract data
     real_results = extract_var(real_results, var)
     synthetic_results = extract_var(synthetic_results, var)
+    synthetic_results.id = synthetic_results.id.astype(str)
 
     # Align data
     synthetic_results = pd.merge(synthetic_results,
-                                 synthetic_joined[['id','sub_id']],
-                                 left_on='object',
-                                 right_on = 'id')
+                                 synthetic_joined[['id','sub_id']].astype(str),
+                                 on='id')
     real_results = pd.merge(real_results,
                             real_joined[['id','sub_id']],
-                            left_on='object',
-                            right_on = 'id')
+                            on='id')
     
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
@@ -502,7 +511,7 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flow.
 
     Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
@@ -531,7 +540,7 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flooding.
     
     Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
