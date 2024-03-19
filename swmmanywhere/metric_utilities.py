@@ -106,15 +106,44 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
-def align_calc_nse(synthetic_results: pd.DataFrame, 
+def nse(y: np.ndarray,
+        yhat: np.ndarray) -> float | None:
+    """Calculate Nash-Sutcliffe efficiency (NSE)."""
+    if (np.std(y) == 0):
+        return None
+    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
+
+def kge(y: np.ndarray,yhat: np.ndarray) -> float | None:
+    """Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
+    
+    Parameters:
+    y (np.array): Observed data array.
+    yhat (np.array): Simulated data array.
+    
+    Returns:
+    float: The KGE value.
+    """
+    if (np.std(y) == 0) | (np.mean(y) == 0):
+        return None
+    if np.std(yhat) == 0:
+        r = 0
+    else:
+        r = np.corrcoef(yhat, y)[0, 1]
+    alpha = np.std(yhat) / np.std(y)
+    beta = np.mean(yhat) / np.mean(y)
+    kge = 1 - np.sqrt((r - 1)**2 + (alpha - 1)**2 + (beta - 1)**2)
+    return kge
+
+def align_calc_coef(synthetic_results: pd.DataFrame, 
                   real_results: pd.DataFrame, 
                   variable: str, 
                   syn_ids: list,
-                  real_ids: list) -> float:
-    """Align and calculate NSE.
+                  real_ids: list,
+                  coef: Callable = nse) -> float:
+    """Align and calculate coef.
 
-    Align the synthetic and real data and calculate the Nash-Sutcliffe
-    efficiency (NSE) of the variable over time. In cases where the synthetic
+    Align the synthetic and real data and calculate the coef metric
+    of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
     # Format dates
@@ -142,8 +171,8 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
-    # Calculate NSE
-    return nse(df.value_real, df.value_syn)
+    # Calculate coef
+    return coef(df.value_real, df.value_syn)
 
 def create_subgraph(G: nx.Graph,
                     nodes: list) -> nx.Graph:
@@ -174,13 +203,9 @@ def create_subgraph(G: nx.Graph,
     SG.graph.update(G.graph)
     return SG
 
-def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float:
-    """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
-
-def median_nse_by_group(results: pd.DataFrame,
-                        gb_key: str) -> float:
+def median_coef_by_group(results: pd.DataFrame,
+                        gb_key: str,
+                        coef: Callable = nse) -> float:
     """Median NSE by group.
 
     Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
@@ -190,6 +215,7 @@ def median_nse_by_group(results: pd.DataFrame,
     Args:
         results (pd.DataFrame): The results dataframe.
         gb_key (str): The column to group by.
+        coef (Callable): The coefficient to calculate. Default is nse.
 
     Returns:
         float: The median NSE.
@@ -200,7 +226,7 @@ def median_nse_by_group(results: pd.DataFrame,
         .sum()
         .reset_index()
         .groupby(gb_key)
-        .apply(lambda x: nse(x.value_real, x.value_sim))
+        .apply(lambda x: coef(x.value_real, x.value_sim))
         .median()
     ) 
     return val
@@ -380,6 +406,63 @@ def create_grid(bbox: tuple,
                          'sub_id' : f'{i}_{j}'})
     return gpd.GeoDataFrame(grid)
 
+def outlet_coef_flow(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  coef: Callable = nse,
+                  **kwargs) -> float:
+    """Outlet coefficient flow.
+
+    Calculate the coefficient of flow over time, where flow is measured as the
+    total flow of all arcs that drain to the 'dominant' outlet node. The dominant
+    outlet node of the 'real' network is calculated by dominant_outlet, while the
+    dominant outlet node of the 'synthetic' network is calculated by
+    best_outlet_match.
+    """
+    # Identify synthetic and real arcs that flow into the best outlet node
+    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
+                if v == syn_outlet]
+    _, real_outlet = dominant_outlet(real_G, real_results)
+    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
+                if v == real_outlet]
+    
+    return align_calc_coef(synthetic_results, 
+                         real_results, 
+                         'flow', 
+                         syn_arc, 
+                         real_arc,
+                         coef = coef)
+
+def grid_coef_flooding(synthetic_G: nx.Graph,
+                            real_G: nx.Graph,
+                            synthetic_results: pd.DataFrame,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            metric_evaluation: MetricEvaluation,
+                            coef: Callable = nse):
+    """Grid coefficient flooding.
+
+    Classify synthetic nodes to a grid and calculate the coef of
+    flooding over time for each grid cell. The metric produced is the median
+    coef across all grid cells.
+    """
+    scale = metric_evaluation.grid_scale
+    grid = create_grid(real_subs.total_bounds,
+                       scale)
+    grid.crs = real_subs.crs
+
+    results = align_by_shape('flooding',
+                                    synthetic_results = synthetic_results,
+                                    real_results = real_results,
+                                    shapes = grid,
+                                    synthetic_G = synthetic_G,
+                                    real_G = real_G)
+    
+    return median_coef_by_group(results, 'sub_id', coef=coef)
+
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
@@ -511,20 +594,36 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
     dominant_outlet, while the dominant outlet node of the 'synthetic' network
     is calculated by best_outlet_match.
     """
-    # Identify synthetic and real arcs that flow into the best outlet node
-    _, syn_outlet = best_outlet_match(synthetic_G, real_subs)
-    syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
-                if v == syn_outlet]
-    _, real_outlet = dominant_outlet(real_G, real_results)
-    real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
-                if v == real_outlet]
-    
-    return align_calc_nse(synthetic_results, 
-                         real_results, 
-                         'flow', 
-                         syn_arc, 
-                         real_arc)
+    return outlet_coef_flow(synthetic_G,
+                            synthetic_results,
+                            real_G,
+                            real_results,
+                            real_subs,
+                            coef = nse)
+   
 
+@metrics.register
+def outlet_kge_flow(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet NSE flow.
+
+    Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
+    is measured as the total flow of all arcs that drain to the 'dominant'
+    outlet node. The dominant outlet node of the 'real' network is calculated by
+    dominant_outlet, while the dominant outlet node of the 'synthetic' network
+    is calculated by best_outlet_match.
+    """
+    return outlet_coef_flow(synthetic_G,
+                            synthetic_results,
+                            real_G,
+                            real_results,
+                            real_subs,
+                            coef = kge)
+   
 @metrics.register
 def outlet_nse_flooding(synthetic_G: nx.Graph,
                   synthetic_results: pd.DataFrame,
@@ -544,11 +643,37 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
     sg_real, _ = dominant_outlet(real_G, real_results)
     
-    return align_calc_nse(synthetic_results, 
+    return align_calc_coef(synthetic_results, 
                          real_results, 
                          'flooding', 
                          list(sg_syn.nodes),
                          list(sg_real.nodes))
+
+@metrics.register
+def outlet_kge_flooding(synthetic_G: nx.Graph,
+                  synthetic_results: pd.DataFrame,
+                  real_G: nx.Graph,
+                  real_results: pd.DataFrame,
+                  real_subs: gpd.GeoDataFrame,
+                  **kwargs) -> float:
+    """Outlet KGE flooding.
+    
+    Calculate the Kling-Gupta efficiency (NSE) of flooding over time, where
+    flooding is the total volume of flooded water across all nodes that drain
+    to the 'dominant' outlet node. The dominant outlet node of the 'real' 
+    network is calculated by dominant_outlet, while the dominant outlet node of
+    the 'synthetic' network is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return align_calc_coef(synthetic_results, 
+                         real_results, 
+                         'flooding', 
+                         list(sg_syn.nodes),
+                         list(sg_real.nodes),
+                         coef=kge)
 
 @metrics.register
 def outlet_kstest_diameters(real_G: nx.Graph,
@@ -656,7 +781,29 @@ def subcatchment_nse_flooding(synthetic_G: nx.Graph,
                                     synthetic_G = synthetic_G,
                                     real_G = real_G)
     
-    return median_nse_by_group(results, 'sub_id')
+    return median_coef_by_group(results, 'sub_id')
+
+@metrics.register
+def subcatchment_kge_flooding(synthetic_G: nx.Graph,
+                            real_G: nx.Graph,
+                            synthetic_results: pd.DataFrame,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            **kwargs) -> float:
+    """Subcatchment KGE flooding.
+    
+    Classify synthetic nodes to real subcatchments and calculate the KGE of
+    flooding over time for each subcatchment. The metric produced is the median
+    KGE across all subcatchments.
+    """
+    results = align_by_shape('flooding',
+                                    synthetic_results = synthetic_results,
+                                    real_results = real_results,
+                                    shapes = real_subs,
+                                    synthetic_G = synthetic_G,
+                                    real_G = real_G)
+    
+    return median_coef_by_group(results, 'sub_id', coef=kge)
 
 @metrics.register
 def grid_nse_flooding(synthetic_G: nx.Graph,
@@ -672,16 +819,32 @@ def grid_nse_flooding(synthetic_G: nx.Graph,
     flooding over time for each grid cell. The metric produced is the median
     NSE across all grid cells.
     """
-    scale = metric_evaluation.grid_scale
-    grid = create_grid(real_subs.total_bounds,
-                       scale)
-    grid.crs = real_subs.crs
+    return grid_coef_flooding(synthetic_G, 
+                              real_G, 
+                              synthetic_results, 
+                              real_results, 
+                              real_subs, 
+                              metric_evaluation, 
+                              coef=nse)
 
-    results = align_by_shape('flooding',
-                                    synthetic_results = synthetic_results,
-                                    real_results = real_results,
-                                    shapes = grid,
-                                    synthetic_G = synthetic_G,
-                                    real_G = real_G)
+@metrics.register
+def grid_kge_flooding(synthetic_G: nx.Graph,
+                            real_G: nx.Graph,
+                            synthetic_results: pd.DataFrame,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            metric_evaluation: MetricEvaluation,
+                            **kwargs) -> float:
+    """Grid KGE flooding.
     
-    return median_nse_by_group(results, 'sub_id')
+    Classify synthetic nodes to a grid and calculate the KGE of
+    flooding over time for each grid cell. The metric produced is the median
+    KGE across all grid cells.
+    """
+    return grid_coef_flooding(synthetic_G, 
+                              real_G, 
+                              synthetic_results, 
+                              real_results, 
+                              real_subs, 
+                              metric_evaluation, 
+                              coef=kge)

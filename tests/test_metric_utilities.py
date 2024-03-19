@@ -125,6 +125,16 @@ def test_nse():
                          yhat = np.array([3,3,3,3,3]))
     assert val == 0.0
 
+def test_kge():
+    """Test the kge metric."""
+    val = mu.kge(y = np.array([1,2,3,4,5]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert_close(val, 1.0)
+
+    val = mu.kge(y = np.array([1,2,3,4,5]),
+                 yhat = np.array([3,3,3,3,3]))
+    assert_close(val, (1-2**0.5))
+
 def test_outlet_nse_flow():
     """Test the outlet_nse_flow metric."""
     # Load data
