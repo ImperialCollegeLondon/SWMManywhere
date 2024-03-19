@@ -18,6 +18,7 @@ from swmmanywhere.parameters import FilePaths, get_full_parameters_flat
 # for pysheds (at least I think that is what is happening)
 os.environ['NUMBA_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
 def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
     """Formulate a SALib problem for a sensitivity analysis.
