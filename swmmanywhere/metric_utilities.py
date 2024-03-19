@@ -17,11 +17,18 @@ import pandas as pd
 import shapely
 from scipy import stats
 
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import MetricEvaluation
 
 
 class MetricRegistry(dict): 
     """Registry object.""" 
+    def _log_completion(self, func):
+        def _wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            logger.info(f'{func.__name__} completed')
+            return result
+        return _wrapper
     
     def register(self, func: Callable) -> Callable:
         """Register a metric."""
@@ -46,7 +53,7 @@ class MetricRegistry(dict):
                 raise ValueError(f"""{param} of {func.__name__} should be of
                                  type {allowable_params[param]}, not 
                                  {obj.__class__}.""")
-        self[func.__name__] = func
+        self[func.__name__] = self._log_completion(func)
         return func
 
     def __getattr__(self, name):
@@ -101,8 +108,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
-    df_ = df.loc[df.variable == var]
-    df_['duration'] = (df_.date - \
+    df_ = df.loc[df.variable == var].copy()
+    df_.loc[:,'duration'] = (df_.date - \
                         df_.date.min()).dt.total_seconds()
     return df_
 
@@ -117,6 +124,9 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     efficiency (NSE) of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
+    synthetic_results = synthetic_results.copy()
+    real_results = real_results.copy()
+
     # Format dates
     synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
     real_results['date'] = pd.to_datetime(real_results['date'])
@@ -351,15 +361,20 @@ def align_by_shape(var,
     real_results = extract_var(real_results, var)
     synthetic_results = extract_var(synthetic_results, var)
 
+    # Format to help alignment
+    real_results.id = real_results.id.astype(str)
+    synthetic_results.id = synthetic_results.id.astype(str)
+    real_joined.id = real_joined.id.astype(str)
+    synthetic_joined.id = synthetic_joined.id.astype(str)
+
+
     # Align data
     synthetic_results = pd.merge(synthetic_results,
                                  synthetic_joined[['id','sub_id']],
-                                 left_on='object',
-                                 right_on = 'id')
+                                 on='id')
     real_results = pd.merge(real_results,
                             real_joined[['id','sub_id']],
-                            left_on='object',
-                            right_on = 'id')
+                            on='id')
     
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
