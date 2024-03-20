@@ -135,6 +135,7 @@ def process_parameters(jobid, nproc, config_base):
         flooding_results[ix] = ix
 
         # Run the model
+        config['model_number'] = ix
         address, metrics = swmmanywhere.swmmanywhere(config)
 
         # Save the results
