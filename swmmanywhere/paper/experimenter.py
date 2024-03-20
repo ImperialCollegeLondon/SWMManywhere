@@ -18,7 +18,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 
 from swmmanywhere import swmmanywhere  # noqa: E402
 from swmmanywhere.logging import logger  # noqa: E402
-from swmmanywhere.parameters import FilePaths, get_full_parameters_flat  # noqa: E402
+from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
@@ -135,15 +135,15 @@ def process_parameters(jobid, nproc, config_base):
         flooding_results[ix] = ix
 
         # Run the model
-        addresses, metrics = swmmanywhere.swmmanywhere(config)
+        address, metrics = swmmanywhere.swmmanywhere(config)
 
         # Save the results
         flooding_results[ix] = {'iter': ix, 
                                 **metrics, 
                                 **params_.set_index('param').value.to_dict()}
-    return flooding_results, addresses
+    return flooding_results, address
 
-def save_results(jobid: int, results: list[dict], addresses: FilePaths) -> None:
+def save_results(jobid: int, results: list[dict], address: Path) -> None:
     """Save the results of the sensitivity analysis.
 
     A results directory is created in the addresses.bbox directory, and the
@@ -152,9 +152,9 @@ def save_results(jobid: int, results: list[dict], addresses: FilePaths) -> None:
     Args:
         jobid (int): The job id.
         results (list[dict]): A list of dictionaries containing the results.
-        addresses (FilePaths): The file paths.
+        address (Path): The path to the inp file
     """
-    results_fid = addresses.bbox / 'results'
+    results_fid = address.parent.parent / 'results'
     results_fid.mkdir(parents=True, exist_ok=True)
     fid_flooding = results_fid / f'{jobid}_metrics.csv'
     pd.DataFrame(results).T.to_csv(fid_flooding)
@@ -182,5 +182,5 @@ if __name__ == '__main__':
     logger.add(config_path.parent / f'experimenter_{jobid}.log')
     config_base = swmmanywhere.load_config(config_path)
     config_base['parameter_overrides'] = config_base.get('parameter_overrides') or {}
-    flooding_results, addresses = process_parameters(jobid, nproc, config_base)
-    save_results(jobid, flooding_results, addresses)
+    flooding_results, address = process_parameters(jobid, nproc, config_base)
+    save_results(jobid, flooding_results, address)
