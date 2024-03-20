@@ -3,6 +3,7 @@
 
 @author: Barney
 """
+import os
 from pathlib import Path
 
 import geopandas as gpd
@@ -80,7 +81,10 @@ def swmmanywhere(config: dict):
     # Run the model
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
-    
+    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        synthetic_results.to_parquet(addresses.model /\
+                                      f'results.{addresses.extension}')
+
     # Get the real results
     if config['real']['results']:
         # TODO.. bit messy
@@ -88,9 +92,12 @@ def swmmanywhere(config: dict):
     elif config['real']['inp']:
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
+        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            real_results.to_parquet(config['real']['inp'].parent /\
+                                     f'real_results.{addresses.extension}')
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
-        return addresses.inp
+        return addresses.inp, None
     
     # Iterate the metrics
     metrics = iterate_metrics(synthetic_results,
@@ -102,7 +109,7 @@ def swmmanywhere(config: dict):
                               config['metric_list'],
                               parameters['metric_evaluation'])
 
-    return metrics
+    return addresses.inp, metrics
 
 def check_top_level_paths(config: dict):
     """Check the top level paths in the config.

@@ -1,4 +1,5 @@
 """Tests for the main module."""
+import os
 import tempfile
 from pathlib import Path
 
@@ -82,7 +83,21 @@ def test_swmmanywhere():
         config['real']['graph'] = model_dir / 'graph.parquet'
 
         # Run swmmanywhere
-        swmmanywhere.swmmanywhere(config)
+        os.environ["SWMMANYWHERE_VERBOSE"] = "true"
+        inp, metrics = swmmanywhere.swmmanywhere(config)
+
+        # Check metrics were calculated
+        assert metrics is not None
+        for key, val in metrics.items():
+            assert isinstance(val, float)
+        
+        assert set(metrics.keys()) == set(config['metric_list'])
+
+        # Check results were saved
+        assert (inp.parent / f'{config["graphfcn_list"][-1]}_graph.json').exists()
+        assert inp.exists()
+        assert (inp.parent / 'results.parquet').exists()
+        assert (config['real']['inp'].parent / 'real_results.parquet').exists()
 
 def test_load_config_file_validation():
     """Test the file validation of the config."""
