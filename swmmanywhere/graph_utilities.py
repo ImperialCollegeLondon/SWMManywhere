@@ -177,10 +177,11 @@ def iterate_graphfcns(G: nx.Graph,
     not_exists = [g for g in graphfcn_list if g not in graphfcns]
     if not_exists:
         raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+    verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
-        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        if verbose:
             save_graph(G, addresses.model / f"{function}_graph.json")
     return G
 
