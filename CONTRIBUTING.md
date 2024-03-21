@@ -94,9 +94,9 @@ the hooks that `git` will run when making a commit. To do that just run:
 pre-commit install
 ```
 
-You can customise the checks that `ruff` will make with the settings in
-`pyproject.toml`. For `markdownlint`, you need to oedit the arguments included
-in the .`pre-commit-config.yaml` file.
+You can customise the checks that `ruff`, `mypy`, and `refurb` will make with 
+the settings in `pyproject.toml`. For `markdownlint`, you need to edit the 
+arguments included in the .`pre-commit-config.yaml` file.
 
 ## Testing and coverage
 
