@@ -12,6 +12,7 @@ from pathlib import Path
 import geopandas as gpd
 import networkx as nx
 import pandas as pd
+from filelock import FileLock
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as gu
@@ -57,8 +58,10 @@ def check_bboxes(bbox: tuple[float, float, float, float],
     # Iterate over info files
     for info_fid in info_fids:
         # Read bounding_box_info.json
-        with info_fid.open('r') as info_file:
-            bounding_info = json.load(info_file)
+        lock = FileLock(info_fid)
+        with lock:
+            with info_fid.open('r') as info_file:
+                bounding_info = json.load(info_file)
         # Check if the bounding box coordinates match
         if Counter(bounding_info.get("bbox")) == Counter(bbox):
             bbox_full_dir = info_fid.parent
@@ -125,8 +128,10 @@ def create_project_structure(bbox: tuple[float, float, float, float],
     addresses.bbox_number = bbox_number
     addresses.bbox.mkdir(parents=True, exist_ok=True)
     bounding_box_info = {"bbox": bbox, "project": project}
-    with open(addresses.bbox / 'bounding_box_info.json', 'w') as info_file:
-        json.dump(bounding_box_info, info_file, indent=2)
+    lock = FileLock(addresses.bbox / 'bounding_box_info.json')
+    with lock:
+        with open(addresses.bbox / 'bounding_box_info.json', 'w') as info_file:
+            json.dump(bounding_box_info, info_file, indent=2)
 
     # Create downloads directory
     addresses.download.mkdir(parents=True, exist_ok=True)
