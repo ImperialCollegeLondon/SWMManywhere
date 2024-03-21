@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Created 2024-01-20.
+"""Geospatial utilities module for SWMManywhere.
 
 A module containing functions to perform a variety of geospatial operations,
 such as reprojecting coordinates and handling raster data.
-
-@author: Barnaby Dobson
 """
 import itertools
 import json

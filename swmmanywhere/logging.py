@@ -1,7 +1,16 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-03-04.
+"""Logging module for SWMManywhere.
 
-@author: Barney
+Example:
+>>> import os
+>>> os.environ["SWMMANYWHERE_VERBOSE"] = "true" 
+>>> # logging is now enabled in any swmmanywhere module
+>>> from swmmanywhere.logging import logger # You can now log yourself
+>>> logger.info("This is an info message.") # Write to stdout
+This is an info message.
+>>> logger.add("file.log") # Add a log file
+>>> logger.info("This is an info message.") # Write to stdout and file.log
+This is an info message.
+>>> os.environ["SWMMANYWHERE_VERBOSE"] = "false" # Disable logging
 """
 import os
 import sys

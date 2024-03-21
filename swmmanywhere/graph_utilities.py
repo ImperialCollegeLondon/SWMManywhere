@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
+"""Graph utilities module for SWMManywhere.
 
-@author: Barney
+A module to contain graphfcns, the graphfcn registry object, and other graph
+utilities (such as save/load functions).
 """
 import json
 import os
