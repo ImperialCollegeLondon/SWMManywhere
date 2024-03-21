@@ -1,16 +1,18 @@
-# Contributing to `WSIMOD`
+# Contributing to `SWMManywhere`
 
-Thank you for considering contributing to `WSIMOD`.
+Thank you for considering contributing to `SWMManywhere`.
 
 ## Bugs
 
-Please create a new [issues](https://github.com/ImperialCollegeLondon/wsi/issues) if you may have found a bug. Please describe the bug and instructions on recreating it (including OS and Python version). It may be helpful to use examples from the [tutorials](https://imperialcollegelondon.github.io/wsi/tutorials/) or [how-to's](https://imperialcollegelondon.github.io/wsi/how-to/) to ensure that data is available.
+Please create a new [issues](https://github.com/ImperialCollegeLondon/SWMManywhere/issues)
+if you may have found a bug.
+Please describe the bug and instructions on recreating it (including OS and
+Python version).
 
-## Confusion
+## Adding new `metrics` or `graphfcns`
 
-If you are confused about how a model component works, or why it is producing results that look the way they do, please first check the [documentation](https://imperialcollegelondon.github.io/wsi/) and existing [issues](https://imperialcollegelondon.github.io/wsi/issues). If this does not answer your question, or your question has not yet been raised, then please create a new issue where we can discuss it.
-
-## Creating new functionality
+Our intention with `SWMManywhere` is that a high level of customisation to suit
+your needs
 
 Is there something in the water cycle that you would like to represent that is not included in `WSIMOD`? Whatever it is, you are probably not alone! If there is not one already, please create an [issue](https://imperialcollegelondon.github.io/wsi/issues) where we can discuss it. Do this _before_ you start developing as others may be working on the same thing!
 
