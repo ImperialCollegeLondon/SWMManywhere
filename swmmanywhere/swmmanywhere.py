@@ -40,11 +40,9 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict | None]:
     addresses = preprocessing.create_project_structure(config['bbox'],
                                 config['project'],
                                 config['base_dir'],
+                                config.get('model_number',None)
                                 )
     
-    if config.get('model_number', None):
-        addresses.model_number = config['model_number']
-
     for key, val in config.get('address_overrides', {}).items():
         setattr(addresses, key, val)
 
