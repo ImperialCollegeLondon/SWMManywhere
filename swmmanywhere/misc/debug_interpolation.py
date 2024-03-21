@@ -49,3 +49,5 @@ df = pd.merge(syn_data,
                 how='outer').sort_index()
 
 print(str(df.dropna().shape[0] / df.shape[0] * 100))
+# We find that syn_data and real_data perfect align 0.2% of the time. Thus, 
+# the interpolation in align_calc_nse is certainly needed.
