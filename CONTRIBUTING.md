@@ -80,6 +80,11 @@ that are [`ruff`](https://docs.astral.sh/ruff/),
 [`pyproject-fmt`](https://github.com/tox-dev/pyproject-fmt).
 You do not need to run them manually - unless you want to - but rather they are
 run automatically every time you make a commit thanks to `pre-commit`.
+If you want to run them manually before comitting, you can do so with:
+
+```bash
+pre-commit run --all-files
+```
 
 `pre-commit` should already have been installed when installing the `dev`
 dependencies, if you followed the instructions above, but you need to activate
