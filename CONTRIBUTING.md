@@ -80,7 +80,7 @@ that are [`ruff`](https://docs.astral.sh/ruff/),
 [`pyproject-fmt`](https://github.com/tox-dev/pyproject-fmt).
 You do not need to run them manually - unless you want to - but rather they are
 run automatically every time you make a commit thanks to `pre-commit`.
-If you want to run them manually before comitting, you can do so with:
+If you want to run them manually before committing, you can do so with:
 
 ```bash
 pre-commit run --all-files
@@ -94,8 +94,8 @@ the hooks that `git` will run when making a commit. To do that just run:
 pre-commit install
 ```
 
-You can customise the checks that `ruff`, `mypy`, and `refurb` will make with 
-the settings in `pyproject.toml`. For `markdownlint`, you need to edit the 
+You can customise the checks that `ruff`, `mypy`, and `refurb` will make with
+the settings in `pyproject.toml`. For `markdownlint`, you need to edit the
 arguments included in the .`pre-commit-config.yaml` file.
 
 ## Testing and coverage
