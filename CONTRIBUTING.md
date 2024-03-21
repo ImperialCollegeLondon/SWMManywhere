@@ -4,7 +4,7 @@ Thank you for considering contributing to `SWMManywhere`.
 
 ## Bugs
 
-Please create a new [issues](https://github.com/ImperialCollegeLondon/SWMManywhere/issues)
+Please create a new issues (insert link when published)
 if you may have found a bug.
 Please describe the bug and instructions on recreating it (including OS and
 Python version). Label the issue with `bug`.
@@ -14,7 +14,7 @@ Python version). Label the issue with `bug`.
 Our intention with `SWMManywhere` is that a high level of customisation to suit
 your needs may be achieved by adding new `graphfcns` or new `metrics`, see
 below. Other new behaviour may be tagged with `enhancement`, though please
-check existing [issues](https://github.com/ImperialCollegeLondon/SWMManywhere/issues)
+check existing issues (insert link when published)
 to see if something similar already exists.
 
 ### Take a graph give a graph: `graphfcns`
