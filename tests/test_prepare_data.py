@@ -3,16 +3,21 @@
 
 @author: Barney
 """
-
-# import pytest
+import io
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 import geopandas as gpd
+import networkx as nx
+import osmnx as ox
 import rasterio
+import yaml
+from geopy.geocoders import Nominatim
 
 from swmmanywhere import prepare_data as downloaders
 
+RUN_DOWNLOADS = False
 
 # Test get_country
 def test_get_uk():
@@ -20,14 +25,30 @@ def test_get_uk():
     # Coordinates for London, UK
     x = -0.1276
     y = 51.5074
+    if RUN_DOWNLOADS:
+        result = downloaders.get_country(x, y)
+        assert result[2] == 'GB'
+        assert result[3] == 'GBR'
+    else:       
+        # Create a mock response for geolocator.reverse
+        mock_location = mock.Mock()
+        mock_location.raw = {'address': {'country_code': 'gb'}}
 
-    result = downloaders.get_country(x, y)
-
-    assert result[2] == 'GB'
-    assert result[3] == 'GBR'
+        # Mock Nominatim
+        with mock.patch.object(Nominatim, 'reverse', return_value=mock_location):
+            # Mock yaml.safe_load
+            with mock.patch.object(yaml, 'safe_load', return_value={'GB': 'GBR'}):
+                # Call get_country
+                result = downloaders.get_country(x, y)
+        
+        assert result[2] == 'GB'
+        assert result[3] == 'GBR'
 
 def test_get_us():
     """Check a US point."""
+    if not RUN_DOWNLOADS:
+        # Skip this test as the no-download test is same as test_get_uk
+        return None
     x = -113.43318
     y = 33.81869
 
@@ -43,11 +64,27 @@ def test_building_downloader():
     y = 43.73205
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / 'temp.parquet'
-        # Download
-        response = downloaders.download_buildings(temp_fid, x,y)
+        if not RUN_DOWNLOADS:
+            mock_response = mock.Mock()
+            mock_response.status_code = 200
+            mock_response.content = b'{"features": []}'
+            with mock.patch('requests.get', 
+                            return_value=mock_response) as mock_get:
+                # Call your function that uses requests.get
+                response = downloaders.download_buildings(temp_fid, x, y)
+
+                # Assert that requests.get was called with the right arguments
+                mock_get.assert_called_once_with('https://data.source.coop/vida/google-microsoft-open-buildings/geoparquet/by_country/country_iso=MCO/MCO.parquet')
+        else:
+            # Download
+            response = downloaders.download_buildings(temp_fid, x,y)
+
         # Check response
         assert response == 200
 
+        if not RUN_DOWNLOADS:
+            return None
+        
         # Check file exists
         assert temp_fid.exists(), "Buildings data file not found after download."
         
@@ -60,6 +97,16 @@ def test_building_downloader():
 def test_street_downloader():
     """Check streets are downloaded and a specific point in the graph."""
     bbox = (-0.17929,51.49638, -0.17383,51.49846)
+
+    if not RUN_DOWNLOADS:
+        mock_graph = nx.MultiDiGraph()
+        # Mock ox.graph_from_bbox
+        with mock.patch.object(ox, 'graph_from_bbox', return_value=mock_graph):
+            # Call download_street
+            G = downloaders.download_street(bbox)
+            assert G == mock_graph
+        return None
+    
     G = downloaders.download_street(bbox)
 
     # Not sure if they they are likely to change the osmid
@@ -68,6 +115,16 @@ def test_street_downloader():
 def test_river_downloader():
     """Check rivers are downloaded and a specific point in the graph."""
     bbox = (0.0402, 51.55759, 0.09825591114207548, 51.6205)
+
+    if not RUN_DOWNLOADS:
+        mock_graph = nx.MultiDiGraph()
+        # Mock ox.graph_from_bbox
+        with mock.patch.object(ox, 'graph_from_bbox', return_value=mock_graph):
+            # Call download_street
+            G = downloaders.download_river(bbox)
+            assert G == mock_graph
+        return None
+
     G = downloaders.download_river(bbox)
 
     # Not sure if they they are likely to change the osmid
@@ -83,22 +140,36 @@ def test_elevation_downloader():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / 'temp.tif'
         
-        # Download
-        response = downloaders.download_elevation(temp_fid, bbox, test_api_key)
+        if not RUN_DOWNLOADS:
+            mock_response = mock.Mock()
+            mock_response.status_code = 200
+            mock_response.raw = io.BytesIO(b'25')
+            with mock.patch('requests.get', 
+                            return_value=mock_response) as mock_get:
+                # Call your function that uses requests.get
+                response = downloaders.download_elevation(temp_fid, 
+                                                          bbox, 
+                                                          test_api_key)
+                # Assert that requests.get was called with the right arguments
+                assert 'https://portal.opentopography.org/API/globaldem?demtype=NASADEM&south=51.49638&north=51.49846&west=-0.17929&east=-0.17383&outputFormat=GTiff&API_Key' in mock_get.call_args[0][0] # noqa: E501
+        else:
+            # Download
+            response = downloaders.download_elevation(temp_fid, bbox, test_api_key)
 
         # Check response
         assert response == 200
         
         # Check response
         assert temp_fid.exists(), "Elevation data file not found after download."
-
-        # Load data
-        with rasterio.open(temp_fid) as src:
-            data = src.read(1)  # Reading the first band as an example
-
-        # Make sure it has some values
-        assert data.size > 0, "Elevation data should have some values."
         
-        # Test some property of data (not sure if they may change this 
-        # data)
-        assert data.max().max() > 25, "Elevation data should be higher."
+        if RUN_DOWNLOADS:
+            # Load data
+            with rasterio.open(temp_fid) as src:
+                data = src.read(1)  # Reading the first band as an example
+
+            # Make sure it has some values
+            assert data.size > 0, "Elevation data should have some values."
+            
+            # Test some property of data (not sure if they may change this 
+            # data)
+            assert data.max().max() > 25, "Elevation data should be higher."
