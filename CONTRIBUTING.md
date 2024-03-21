@@ -70,7 +70,7 @@ pip install -e .
 
 ## Quality assurance and linting
 
-'SWMManywhere' uses a collection of tools that ensure that a specific code
+`SWMManywhere` uses a collection of tools that ensure that a specific code
 style and formatting is follow throughout the software. The tools we used for
 that are [`ruff`](https://docs.astral.sh/ruff/),
 [`markdownlint`](https://github.com/igorshubovych/markdownlint-cli),
