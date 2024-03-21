@@ -125,8 +125,9 @@ def create_project_structure(bbox: tuple[float, float, float, float],
     addresses.bbox_number = bbox_number
     addresses.bbox.mkdir(parents=True, exist_ok=True)
     bounding_box_info = {"bbox": bbox, "project": project}
-    with open(addresses.bbox / 'bounding_box_info.json', 'w') as info_file:
-        json.dump(bounding_box_info, info_file, indent=2)
+    if not (addresses.bbox / 'bounding_box_info.json').exists():
+        with open(addresses.bbox / 'bounding_box_info.json', 'w') as info_file:
+            json.dump(bounding_box_info, info_file, indent=2)
 
     # Create downloads directory
     addresses.download.mkdir(parents=True, exist_ok=True)
