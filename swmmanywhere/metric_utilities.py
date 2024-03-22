@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""Metric utilities module for SWMManywhere.
 
-@author: Barnaby Dobson
+A module for metrics, the metrics registry object and utilities for calculating
+metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 """
 from collections import defaultdict
 from inspect import signature

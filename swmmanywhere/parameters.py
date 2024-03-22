@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
-
-@author: Barney
-"""
+"""Parameters and file paths module for SWMManywhere."""
 
 from pathlib import Path
 
