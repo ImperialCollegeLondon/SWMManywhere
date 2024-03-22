@@ -65,6 +65,18 @@ dev = [
   "pytest-mypy",
   "ruff",
 ]
+doc = [
+  "mkdocs",
+  "mkdocs-autorefs",
+  "mkdocs-bibtex",
+  "mkdocs-coverage",
+  "mkdocs-gen-files",
+  "mkdocs-jupyter",
+  "mkdocs-material",
+  "mkdocs-material-extensions",
+  "mkdocstrings[python]",
+  "pypandoc",
+]
 
 [tool.mypy]
 disallow_any_explicit = false
