@@ -9,7 +9,7 @@ files.
 import re
 import shutil
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import geopandas as gpd
 import numpy as np
@@ -259,7 +259,7 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
     # Set the flow routing
     change_flow_routing(routing, new_input_file)
 
-def explode_polygon(row):
+def explode_polygon(row: pd.Series):
     """Explode a polygon into a DataFrame of coordinates.
     
     Args:
@@ -272,12 +272,12 @@ def explode_polygon(row):
         ...                 'geometry' : Polygon([(0,0), (1,0), 
         ...                                       (1,1), (0,1)])})
         >>> explode_polygon(df)
-           x  y subcatchment
-        0  0  0            1
-        1  1  0            1
-        2  1  1            1
-        3  0  1            1
-        4  0  0            1
+             x    y subcatchment
+        0  0.0  0.0            1
+        1  1.0  0.0            1
+        2  1.0  1.0            1
+        3  0.0  1.0            1
+        4  0.0  0.0            1
     """
     # Get the vertices of the polygon
     vertices = list(row['geometry'].exterior.coords)
@@ -288,12 +288,12 @@ def explode_polygon(row):
     df['subcatchment'] = row['subcatchment']
     return df
 
-def format_to_swmm_dict(nodes,
-                        outfalls,
-                        conduits,
-                        subs,
-                        event,
-                        symbol):
+def format_to_swmm_dict(nodes: pd.DataFrame,
+                        outfalls: pd.DataFrame,
+                        conduits: pd.DataFrame,
+                        subs: gpd.GeoDataFrame,
+                        event: dict[str, Any],
+                        symbol: dict[str, Any]) -> dict[str, np.ndarray]:
     """Format data to a dictionary of data arrays with columns matching SWMM.
 
     These data are the parameters of all assets that are written to the SWMM
@@ -318,8 +318,9 @@ def format_to_swmm_dict(nodes,
             'x', 'y', 'name'.
     
     Example:
+        >>> import os
         >>> import geopandas as gpd
-        >>> from shapely.geometry import Point
+        >>> from shapely.geometry import Point, Polygon
         >>> nodes = gpd.GeoDataFrame({'id' : ['node1', 'node2'],
         ...                        'x' : [0, 1],
         ...                        'y' : [0, 1],
@@ -347,8 +348,10 @@ def format_to_swmm_dict(nodes,
         ...                                'rc' : [1],
         ...                                'width' : [1],
         ...                                'slope' : [0.001],
-        ...                                'geometry' : [sgeom.Polygon([(0,0), (1,0), 
-        ...                                                            (1,1), (0,1)])]})
+        ...                                'geometry' : [Polygon([(0.0,0.0), 
+        ...                                                       (1.0,0.0), 
+        ...                                                       (1.0,1.0), 
+        ...                                                       (0.0,1.0)])]})
         >>> rain_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         ...                '..',
         ...                    'swmmanywhere',
@@ -361,7 +364,7 @@ def format_to_swmm_dict(nodes,
         >>> symbol = {'x' : 0,
         ...            'y' : 0,
         ...            'name' : 'name'}
-        >>> data_dict = stt.format_to_swmm_dict(nodes,
+        >>> data_dict = format_to_swmm_dict(nodes,
         ...                                    outfalls,
         ...                                    conduits,
         ...                                    subs,
