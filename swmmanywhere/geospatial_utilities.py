@@ -192,8 +192,9 @@ def get_transformer(source_crs: str,
     
     Example:
         >>> transformer = get_transformer('EPSG:4326', 'EPSG:32630')
-        >>> transformer.transform(-0.1276, 51.5074)
-        (699330.1106898375, 5710164.30300683)
+        >>> x, y = transformer.transform(-0.1276, 51.5074)
+        >>> print(f"{x:.6f}, {y:.6f}")
+        699330.110690, 5710164.303007
     """
     return pyproj.Transformer.from_crs(source_crs, 
                                        target_crs, 
