@@ -186,11 +186,12 @@ def check_parameters_to_sample(config: dict):
             raise ValueError(f"{param} not found in parameters dictionary.")
     return config
 
-def load_config(config_path: Path):
+def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
 
     Args:
         config_path (Path): The path to the configuration file.
+        validation (bool, optional): Whether to validate the configuration.
 
     Returns:
         dict: The configuration.
@@ -204,6 +205,9 @@ def load_config(config_path: Path):
         # Load the config
         config = yaml.safe_load(f)
 
+    if not validation:
+        return config
+    
     # Validate the config
     jsonschema.validate(instance = config, schema = schema)
 
