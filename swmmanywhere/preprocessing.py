@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
+"""Preprocessing module for SWMManywhere.
 
-@author: Barney
+A module to call downloads, preprocess these downloads into formats suitable
+for graphfcns, and some other utilities (such as creating a project folder 
+structure or create the starting graph from rivers/streets).
 """
 
 import json

@@ -29,6 +29,7 @@ def test_logger():
         assert temp_file.read() != b""
         logger.remove()
     fid.unlink()
+    os.environ["SWMMANYWHERE_VERBOSE"] = "false"
 
 def test_logger_disable():    
     """Test the disable function."""
@@ -68,3 +69,4 @@ def test_logger_again():
         assert temp_file.read() != b""
         logger.remove()
     fid.unlink()
+    os.environ["SWMMANYWHERE_VERBOSE"] = "false"

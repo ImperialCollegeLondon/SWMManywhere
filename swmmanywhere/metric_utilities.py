@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""Metric utilities module for SWMManywhere.
 
-@author: Barnaby Dobson
+A module for metrics, the metrics registry object and utilities for calculating
+metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 """
 from collections import defaultdict
 from inspect import signature
+from itertools import product
 from typing import Callable, Optional
 
 import cytoolz.curried as tlz
@@ -388,21 +389,31 @@ def align_by_shape(var,
     return results
 
 def create_grid(bbox: tuple,
-                scale: float):
-    """Create a grid of polygons."""
-    dx = scale
-    dy = scale
+                scale: float | tuple[float,float]) -> gpd.GeoDataFrame:
+    """Create a grid of polygons.
+    
+    Create a grid of polygons based on the bounding box and scale.
+
+    Args:
+        bbox (tuple): The bounding box coordinates in the format (minx, miny, 
+            maxx, maxy).
+        scale (float | tuple): The scale of the grid. If a tuple, the scale is 
+            (dx, dy). Otherwise, the scale is dx = dy = scale.
+    
+    Returns:
+        gpd.GeoDataFrame: A geodataframe of the grid.
+    """
     minx, miny, maxx, maxy = bbox
 
-    grid = []
-    for i in range(int((maxx - minx) // dx + 1)):
-        for j in range(int((maxy - miny) // dy + 1)):
-            grid.append({'geometry' : shapely.Polygon([(minx + i * dx, 
-                                                        miny + j * dy),
-                                 (minx + (i + 1) * dx, miny + j * dy),
-                                 (minx + (i + 1) * dx, miny + (j + 1) * dy),
-                                 (minx + i * dx, miny + (j + 1) * dy)]),
-                         'sub_id' : f'{i}_{j}'})
+    if isinstance(scale, tuple):
+        dx, dy = scale
+    else: 
+        dx = dy = scale
+    xmins = np.arange(minx, maxx, dx)
+    ymins = np.arange(minx, maxy, dy)
+    grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
+             'sub_id' : i} for i, (x, y) in enumerate(product(xmins, ymins))]
+
     return gpd.GeoDataFrame(grid)
 
 @metrics.register
@@ -604,12 +615,22 @@ def outlet_pbias_length(real_G: nx.Graph,
                         real_results: pd.DataFrame,
                         real_subs: gpd.GeoDataFrame,
                         **kwargs) -> float:
-    """Outlet PBIAS length.
+    r"""Outlet PBIAS length.
 
     Calculate the percent bias of the total edge length in the subgraph that
     drains to the dominant outlet node. The dominant outlet node of the 'real'
     network is calculated by dominant_outlet, while the dominant outlet node of
     the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_length - real\_length}}{{real\_length}}
+
+    where:
+    - :math:`syn\_length` is the synthetic length,
+    - :math:`real\_length` is the real length.
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
@@ -626,12 +647,22 @@ def outlet_pbias_nmanholes(real_G: nx.Graph,
                            real_results: pd.DataFrame,
                            real_subs: gpd.GeoDataFrame,
                            **kwargs) -> float:
-    """Outlet PBIAS number of manholes (nodes).
+    r"""Outlet PBIAS number of manholes (nodes).
 
     Calculate the percent bias of the total number of nodes in the subgraph
     that drains to the dominant outlet node. The dominant outlet node of the
     'real' network is calculated by dominant_outlet, while the dominant outlet
     node of the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nnodes - real\_nnodes}}{{real\_nnodes}}
+
+    where:
+    - :math:`syn\_nnodes` is the number of synthetic nodes,
+    - :math:`real\_nnodes` is the real number of nodes.
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
@@ -646,12 +677,23 @@ def outlet_pbias_npipes(real_G: nx.Graph,
                         real_results: pd.DataFrame,
                         real_subs: gpd.GeoDataFrame,
                         **kwargs) -> float:
-    """Outlet PBIAS number of pipes (edges).
+    r"""Outlet PBIAS number of pipes (edges).
 
     Calculate the percent bias of the total number of edges in the subgraph
     that drains to the dominant outlet node. The dominant outlet node of the
     'real' network is calculated by dominant_outlet, while the dominant outlet
     node of the 'synthetic' network is calculated by best_outlet_match.
+
+    
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nedges - real\_nedges}}{{real\_nedges}}
+
+    where:
+    - :math:`syn\_nedges` is the number of synthetic edges,
+    - :math:`real\_nedges` is the real number of edges.
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
