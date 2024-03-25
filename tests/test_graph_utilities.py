@@ -16,7 +16,6 @@ from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
-os.environ['SWMMANYWHERE_VERBOSE'] = "false"
 
 def load_street_network():
     """Load a street network."""
@@ -252,6 +251,7 @@ def test_iterate_graphfcns():
                                     project_name = None,
                                     bbox_number = None,
                                     model_number = None)
+    os.environ['SWMMANYWHERE_VERBOSE'] = "false"
     G = iterate_graphfcns(G, 
                              ['assign_id',
                               'format_osmnx_lanes'],
