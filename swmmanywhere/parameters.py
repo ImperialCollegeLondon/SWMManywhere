@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
-
-@author: Barney
-"""
+"""Parameters and file paths module for SWMManywhere."""
 
 from pathlib import Path
 
@@ -16,7 +12,8 @@ def get_full_parameters():
         "subcatchment_derivation": SubcatchmentDerivation(),
         "outlet_derivation": OutletDerivation(),
         "topology_derivation": TopologyDerivation(),
-        "hydraulic_design": HydraulicDesign()
+        "hydraulic_design": HydraulicDesign(),
+        "metric_evaluation": MetricEvaluation()
     }
 
 class SubcatchmentDerivation(BaseModel):
@@ -61,25 +58,25 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
-    weights: list = Field(default = ['surface_slope',
-                                      'chahinan_angle',
+    weights: list = Field(default = ['chahinian_slope',
+                                      'chahinian_angle',
                                       'length',
                                       'contributing_area'],
                         min_items = 1,
                         unit = "-",
                         description = "Weights for topo derivation")
 
-    surface_slope_scaling: float = Field(default = 1,
+    chahinian_slope_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to surface slope in topo derivation")
     
-    chahinan_angle_scaling: float = Field(default = 1,
+    chahinian_angle_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
-        description = "Constant to apply to chahinan angle in topo derivation")
+        description = "Constant to apply to chahinian angle in topo derivation")
     
     length_scaling: float = Field(default = 1,
         le = 1,
@@ -93,17 +90,17 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Constant to apply to contributing area in topo derivation")
     
-    surface_slope_exponent: float = Field(default = 1,
+    chahinian_slope_exponent: float = Field(default = 1,
         le = 2,
         ge = -2,
         unit = "-",
         description = "Exponent to apply to surface slope in topo derivation")
     
-    chahinan_angle_exponent: float = Field(default = 1,
+    chahinian_angle_exponent: float = Field(default = 1,
         le = 2,
         ge = -2,
         unit = "-",
-        description = "Exponent to apply to chahinan angle in topo derivation")
+        description = "Exponent to apply to chahinian angle in topo derivation")
 
     length_exponent: float = Field(default = 1,
         le = 2,
@@ -129,18 +126,6 @@ class TopologyDerivation(BaseModel):
                         raise ValueError(f"Missing {weight}_exponent")
         return values
 
-# TODO move this to tests and run it if we're happy with this way of doing things
-class NewTopo(TopologyDerivation):
-     """Demo for changing weights that should break the validator."""
-     weights: list = Field(default = ['surface_slope',
-                                      'chahinan_angle',
-                                      'length',
-                                      'contributing_area',
-                                'test'],
-                        min_items = 1,
-                        unit = "-",
-                        description = "Weights for topo derivation")
-
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
     diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
@@ -149,47 +134,53 @@ class HydraulicDesign(BaseModel):
                             description = """Diameters to consider in 
                             pipe by pipe method""")
     max_fr: float = Field(default = 0.8,
-		upper_limit = 1,
-		lower_limit = 0,
+		le = 1,
+		ge = 0,
 		unit = "-",
 		description = "Maximum filling ratio in pipe by pipe method")
     min_shear: float = Field(default = 2,
-		upper_limit = 3,
-		lower_limit = 0,
+		le = 3,
+		ge = 0,
 		unit = "Pa",
 		description = "Minimum wall shear stress in pipe by pipe method")
     min_v: float = Field(default = 0.75,
-		upper_limit = 2,
-		lower_limit = 0,
+		le = 2,
+		ge = 0,
 		unit = "m/s",
 		description = "Minimum velocity in pipe by pipe method")
     max_v: float = Field(default = 5,
-		upper_limit = 10,
-		lower_limit = 3,
+		le = 10,
+		ge = 3,
 		unit = "m/s",
 		description = "Maximum velocity in pipe by pipe method")
     min_depth: float = Field(default = 0.5,
-		upper_limit = 1,
-		lower_limit = 0,
+		le = 1,
+		ge = 0,
 		unit = "m",
 		description = "Minimum excavation depth in pipe by pipe method")
     max_depth: float = Field(default = 5,
-		upper_limit = 10,
-		lower_limit = 2,
+		le = 10,
+		ge = 2,
 		unit = "m",
 		description = "Maximum excavation depth in pipe by pipe method")
     precipitation: float = Field(default = 0.006,
-		upper_limit = 0.010,
-		lower_limit = 0.001,
+		le = 0.010,
+		ge = 0.001,
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
 
-class FilePaths:
-    """Parameters for file path lookup.
+class MetricEvaluation(BaseModel):
+    """Parameters for metric evaluation."""
+    grid_scale: float = Field(default = 100,
+                        le = 10,
+                        ge = 5000,
+                        unit = "m",
+                        description = "Scale of the grid for metric evaluation")
 
-    TODO: this doesn't validate file paths to allow for un-initialised data
-    (e.g., subcatchments are created by a graph and so cannot be validated).
-    """
+
+
+class FilePaths:
+    """Parameters for file path lookup."""
 
     def __init__(self, 
                  base_dir: Path, 
@@ -229,10 +220,10 @@ class FilePaths:
         """
         if property_name in self.__dict__.keys():
              return self.__dict__[property_name]
-        else:
-            return self._generate_path(self.project_name, 
-                                       getattr(self, location),
-                                       property_name)
+        
+        return self._generate_path(self.project_name, 
+                                    getattr(self, location),
+                                    property_name)
 
     def _generate_project(self):
         return self._generate_path(self.project_name)
@@ -249,8 +240,20 @@ class FilePaths:
     def _generate_model(self):
         return self._generate_property(f'model_{self.model_number}', 
                                         'bbox')
+    def _generate_inp(self):
+        return self._generate_property(f'model_{self.model_number}.inp',
+                                        'model')
     def _generate_subcatchments(self):
-        return self._generate_property(f'subcatchments.{self.extension}', 
+        return self._generate_property(f'subcatchments.geo{self.extension}', 
+                                        'model')
+    def _generate_graph(self):
+        return self._generate_property(f'graph.{self.extension}', 
+                                        'model')
+    def _generate_nodes(self):
+        return self._generate_property(f'nodes.geo{self.extension}', 
+                                        'model')
+    def _generate_edges(self):
+        return self._generate_property(f'edges.geo{self.extension}', 
                                         'model')
     def _generate_download(self):
         return self._generate_property('download', 
@@ -264,7 +267,7 @@ class FilePaths:
     def _generate_elevation(self):
         return self._generate_property('elevation.tif', 'download')
     def _generate_building(self):
-        return self._generate_property(f'building.{self.extension}', 
+        return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 

@@ -1,6 +1,9 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+  "setuptools-scm",
+]
 
 [tool.setuptools.packages.find]
 exclude = ["htmlcov"] # Exclude the coverage report file from setuptools package finder
@@ -13,44 +16,54 @@ authors = [
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
 ]
 requires-python = ">=3.10"
-dependencies = [ # TODO definitely don't need all of these
-                "cdsapi",
-                "fastparquet",
-                "fiona",
-                "geopandas",
-                "geopy",
-                "GitPython",
-                "matplotlib",
-                "netcdf4",
-                "networkx",
-                "numpy",
-                "osmnx",
-                "pandas",
-                "pyarrow",
-                "pydantic",
-                "pysheds",
-                "pyswmm",
-                "PyYAML",
-                "rasterio",
-                "rioxarray",
-                "SALib",
-                "SciPy",
-                "shapely",
-                "snkit",
-                "tqdm",
-                "xarray"
-                ]
-
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  # TODO definitely don't need all of these
+  "cdsapi",
+  "cytoolz",
+  "fastparquet",
+  "fiona",
+  "geopandas",
+  "geopy",
+  "GitPython",
+  "joblib",
+  "jsonschema",
+  "loguru",
+  "matplotlib",
+  "netcdf4",
+  "netcomp@ git+https://github.com/barneydobson/NetComp.git",
+  "networkx",
+  "numpy",
+  "osmnx",
+  "pandas",
+  "pyarrow",
+  "pydantic",
+  "pysheds",
+  "pyswmm",
+  "PyYAML",
+  "rasterio",
+  "rioxarray",
+  "SALib",
+  "SciPy",
+  "shapely",
+  "tqdm",
+  "xarray",
+]
 [project.optional-dependencies]
 dev = [
-    "ruff",
-    "mypy",
-    "pip-tools",
-    "pre-commit",
-    "pytest",
-    "pytest-cov",
-    "pytest-mypy",
-    "pytest-mock"
+  "mypy",
+  "pip-tools",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-mypy",
+  "ruff",
 ]
 
 [tool.mypy]
@@ -66,7 +79,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
-# addopts = "-v --mypy -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/__main__.py"
+addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/__main__.py"
 
 [tool.ruff]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
@@ -76,3 +89,13 @@ select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
 [tool.ruff.pydocstyle]
 convention = "google"
+
+[tool.codespell]
+skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
+ignore-words-list = "gage,gages"
+
+[tool.refurb]
+ignore = [
+        184, # Because some frankly bizarre suggestions
+        109  # Because pyyaml doesn't support tuples
+        ]

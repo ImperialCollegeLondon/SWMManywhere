@@ -1,16 +1,19 @@
 import difflib
 import filecmp
-import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
+from swmmanywhere import parameters
 from swmmanywhere import post_processing as stt
 
+fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
+          'basic_drainage_all_bits.inp'
 
 def test_overwrite_section():
     """Test the overwrite_section function.
@@ -18,44 +21,31 @@ def test_overwrite_section():
     All this tests is that the data is written to the file.
     """
     # Copy the example file to a temporary file
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    temp_fid = 'temp.inp'
-    shutil.copy(fid, temp_fid)
-    try:
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fname = Path(temp_dir) / 'temp.inp'
+        shutil.copy(fid, temp_fname)
         data = [["1","1","1","1.166","100","500","0.5","0","empty"],
                 ["2","1","1","1.1","100","500","0.5","0","empty"],
                 ["subca_3","1","1","2","100","400","0.5","0","empty"]]
         
         section = '[SUBCATCHMENTS]'
-        stt.overwrite_section(data, section, temp_fid)
-        with open(temp_fid, 'r') as file:
+        stt.overwrite_section(data, section, temp_fname)
+        with temp_fname.open('r') as file:
             content = file.read()
         assert 'subca_3' in content
-    finally:
-        os.remove(temp_fid)
 
 def test_change_flow_routing():
     """Test the change_flow_routing function."""
     # Copy the example file to a temporary file
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    temp_fid = 'temp.inp'
-    shutil.copy(fid, temp_fid)
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.inp'
+        shutil.copy(fid, temp_fid)
         new_routing = 'STEADY'
         stt.change_flow_routing(new_routing, temp_fid)
-        with open(temp_fid, 'r') as file:
+        with temp_fid.open('r') as file:
             content = file.read()
         assert 'STEADY' in content
-    finally:
-        os.remove(temp_fid)
 
 def test_data_input_dict_to_inp():
     """Test the data_input_dict_to_inp function.
@@ -68,22 +58,16 @@ def test_data_input_dict_to_inp():
                   ["subca_3","1","1","2","100","400","0.5","0","empty"]]
                   }
     
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    temp_fid = 'temp.inp'
-    shutil.copy(fid, temp_fid)
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / 'temp.inp'
+        shutil.copy(fid, temp_fid)
         stt.data_dict_to_inp(data_dict,
                              fid,
                              temp_fid)
-        with open(temp_fid, 'r') as file:
+        with temp_fid.open('r') as file:
             content = file.read()
         assert 'subca_3' in content
-    finally:
-        os.remove(temp_fid)
+
 
 def test_explode_polygon():
     """Test the explode_polygon function."""
@@ -146,50 +130,46 @@ def generate_data_dict():
 def test_synthetic_write():
     """Test the synthetic_write function."""
     data_dict = generate_data_dict()    
-    model_dir = tempfile.mkdtemp('_1')
-    try:
+    with tempfile.TemporaryDirectory() as model_dir:
+        model_dir = Path(model_dir)
+        addresses = parameters.FilePaths(base_dir = model_dir,
+                                        project_name = 'test',
+                                        bbox_number = 1,
+                                        extension = 'json',
+                                        model_number = 0)
+        addresses.model.mkdir(parents=True, exist_ok=True)
+        addresses.precipitation = 'storm.dat'
         # Write the model with synthetic_write
         nodes = gpd.GeoDataFrame(data_dict['nodes'])
         nodes.geometry = gpd.points_from_xy(nodes.x, nodes.y)
-        nodes.to_file(
-            os.path.join(
-                model_dir, 
-                'pipe_by_pipe_nodes.geojson'))
+        nodes.to_file(addresses.nodes)
         nodes = nodes.set_index('id')
         edges = gpd.GeoDataFrame(pd.DataFrame(data_dict['conduits']).iloc[[0]])
         edges.geometry = [sgeom.LineString([nodes.loc[u,'geometry'],
                                             nodes.loc[v,'geometry']]) 
                           for u,v in zip(edges.u, edges.v)]
-        edges.to_file(
-            os.path.join(
-                model_dir,
-                'pipe_by_pipe_edges.geojson'))
+        edges.to_file(addresses.edges)
         subs = data_dict['subs'].copy()
         subs['subcatchment'] = ['node1']
-        subs.to_file(os.path.join(model_dir, 
-                                                'subcatchments.geojson'))
-        stt.synthetic_write(model_dir)
+        subs.to_file(addresses.subcatchments)
+        stt.synthetic_write(addresses)
 
         # Write the model with data_dict_to_inp
-        comparison_file = os.path.join(model_dir, "model_base.inp")
-        template_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
+        comparison_file = addresses.model / "model_base.inp"
+        template_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
+            'basic_drainage_all_bits.inp'
         stt.data_dict_to_inp(stt.format_to_swmm_dict(**data_dict),
                              template_fid,
                              comparison_file)
         
         # Compare
-        new_input_file = os.path.join(model_dir, "model_1.inp")
+        new_input_file = addresses.inp
         are_files_identical = filecmp.cmp(new_input_file,
                                            comparison_file, 
                                            shallow=False)
         if not are_files_identical:
-            with open(new_input_file, 
-                      'r') as file1, open(comparison_file, 
-                                          'r') as file2:
+            with new_input_file.open('r') as file1,\
+                comparison_file.open('r') as file2:
                 diff = difflib.unified_diff(
                     file1.readlines(),
                     file2.readlines(),
@@ -198,9 +178,6 @@ def test_synthetic_write():
                 )
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"
-    finally:
-        pass
-        # shutil.rmtree(model_dir)
 
 def test_format_to_swmm_dict():
     """Test the format_format_to_swmm_dict function.
@@ -211,27 +188,18 @@ def test_format_to_swmm_dict():
     data_dict = generate_data_dict()
     data_dict = stt.format_to_swmm_dict(**data_dict)
     
-    
-    fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'basic_drainage_all_bits.inp')
-    rain_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       '..',
-                        'swmmanywhere',
-                        'defs',
-                        'storm.dat')
-    temp_dir = tempfile.mkdtemp()
-    shutil.copy(rain_fid, os.path.join(temp_dir,'storm.dat'))
-    temp_fid = os.path.join(temp_dir,'temp.inp')
-    try:
+    rain_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
+          'storm.dat'
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        shutil.copy(rain_fid, temp_dir / 'storm.dat')
+        temp_fid = temp_dir / 'temp.inp'
         stt.data_dict_to_inp(data_dict,
-                             fid,
-                             temp_fid)
-        with pyswmm.Simulation(temp_fid) as sim:
+                            fid,
+                            temp_fid)
+        with pyswmm.Simulation(str(temp_fid)) as sim:
             for ind, step in enumerate(sim):
                 pass
-    finally:
-        shutil.rmtree(temp_dir)
         
+        
+

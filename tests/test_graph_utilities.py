@@ -4,6 +4,7 @@
 @author: Barney
 """
 import math
+import os
 import tempfile
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import load_graph, save_graph
+from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
 
 def load_street_network():
@@ -40,7 +41,7 @@ def test_assign_id():
     G = gu.assign_id(G)
     for u, v, data in G.edges(data=True):
         assert 'id' in data.keys()
-        assert isinstance(data['id'], int)
+        assert isinstance(data['id'], str)
 
 def test_double_directed():
     """Test the double_directed function."""
@@ -104,7 +105,7 @@ def test_derive_subcatchments():
             assert isinstance(data['contributing_area'], float)
 
 def test_set_elevation_and_slope():
-    """Test the set_elevation and set_surface_slope function."""
+    """Test the set_elevation, set_surface_slope, chahinian_slope function."""
     G, _ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -116,22 +117,42 @@ def test_set_elevation_and_slope():
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         G = gu.set_elevation(G, addresses)
         for id_, data in G.nodes(data=True):
-            assert 'elevation' in data.keys()
-            assert math.isfinite(data['elevation'])
-            assert data['elevation'] > 0
+            assert 'surface_elevation' in data.keys()
+            assert math.isfinite(data['surface_elevation'])
+            assert data['surface_elevation'] > 0
         
         G = gu.set_surface_slope(G)
         for u, v, data in G.edges(data=True):
             assert 'surface_slope' in data.keys()
             assert math.isfinite(data['surface_slope'])
 
-def test_chahinan_angle():
-    """Test the chahinan_angle function."""
+        
+        G = gu.set_chahinian_slope(G)
+        for u, v, data in G.edges(data=True):
+            assert 'chahinian_slope' in data.keys()
+            assert math.isfinite(data['chahinian_slope'])
+        
+        slope_vals = {-2 : 1,
+                      0.3 : 0,
+                      0.4 : 0,
+                      12 : 1}
+        for slope, expected in slope_vals.items():
+            first_edge = list(G.edges)[0]
+            G.edges[first_edge]['surface_slope'] = slope / 100
+            G = gu.set_chahinian_slope(G)
+            assert G.edges[first_edge]['chahinian_slope'] == expected
+
+
+
+def test_chahinian_angle():
+    """Test the chahinian_angle function."""
     G, _ = load_street_network()
-    G = gu.set_chahinan_angle(G)
+    G = gu.set_chahinian_angle(G)
     for u, v, data in G.edges(data=True):
-        assert 'chahinan_angle' in data.keys()
-        assert math.isfinite(data['chahinan_angle'])
+        assert 'chahinian_angle' in data.keys()
+        assert math.isfinite(data['chahinian_angle'])
+
+
 
 def test_calculate_weights():
     """Test the calculate_weights function."""
@@ -208,7 +229,7 @@ def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     for ix, (u,d) in enumerate(G.nodes(data=True)):
-        d['elevation'] = ix
+        d['surface_elevation'] = ix
         d['contributing_area'] = ix
     
     params = parameters.HydraulicDesign()
@@ -222,3 +243,36 @@ def test_pipe_by_pipe():
         assert 'chamber_floor_elevation' in d.keys()
         assert math.isfinite(d['chamber_floor_elevation'])
         
+def test_iterate_graphfcns():
+    """Test the iterate_graphfcns function."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    params = parameters.get_full_parameters()
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    os.environ['SWMMANYWHERE_VERBOSE'] = "false"
+    G = iterate_graphfcns(G, 
+                             ['assign_id',
+                              'format_osmnx_lanes'],
+                              params, 
+                              addresses)
+    for u, v, d in G.edges(data=True):
+        assert 'id' in d.keys()
+        assert 'width' in d.keys()
+
+def test_fix_geometries():
+    """Test the fix_geometries function."""
+    # Create a graph with edge geometry not matching node coordinates
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    
+    # Test doesn't work if this isn't true
+    assert G.get_edge_data(107733, 25472373,0)['geometry'].coords[0] != \
+        (G.nodes[107733]['x'], G.nodes[107733]['y'])
+
+    # Run the function
+    G_fixed = gu.fix_geometries(G)
+
+    # Check that the edge geometry now matches the node coordinates
+    assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
+        (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])

@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
+"""Graph utilities module for SWMManywhere.
 
-@author: Barney
+A module to contain graphfcns, the graphfcn registry object, and other graph
+utilities (such as save/load functions).
 """
 import json
+import os
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -22,6 +23,7 @@ from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
+from swmmanywhere.logging import logger
 
 
 def load_graph(fid: Path) -> nx.Graph:
@@ -45,8 +47,7 @@ def load_graph(fid: Path) -> nx.Graph:
 def _serialize_line_string(obj):
     if isinstance(obj, shapely.LineString):
         return obj.wkt
-    else:
-        return obj
+    return obj
 def save_graph(G: nx.Graph, 
                fid: Path) -> None:
     """Save a graph to a file.
@@ -57,7 +58,7 @@ def save_graph(G: nx.Graph,
     """
     json_data = nx.node_link_data(G)
     
-    with open(fid, 'w') as file:
+    with fid.open('w') as file:
         json.dump(json_data, 
                   file,
                   default = _serialize_line_string)
@@ -73,10 +74,10 @@ class BaseGraphFunction(ABC):
     their requirements and additions a-priori when the list is provided.
     """
     
-    required_edge_attributes: List[str] = list()
-    adds_edge_attributes: List[str] = list()
-    required_node_attributes: List[str] = list()
-    adds_node_attributes: List[str] = list()
+    required_edge_attributes: List[str] = []
+    adds_edge_attributes: List[str] = []
+    required_node_attributes: List[str] = []
+    adds_node_attributes: List[str] = []
     def __init_subclass__(cls, 
                           required_edge_attributes: Optional[List[str]] = None,
                           adds_edge_attributes: Optional[List[str]] = None,
@@ -84,14 +85,10 @@ class BaseGraphFunction(ABC):
                           adds_node_attributes : Optional[List[str]] = None
                           ):
         """Set the required and added attributes for the subclass."""
-        cls.required_edge_attributes = required_edge_attributes if \
-            required_edge_attributes else []
-        cls.adds_edge_attributes = adds_edge_attributes if \
-            adds_edge_attributes  else []
-        cls.required_node_attributes = required_node_attributes if \
-            required_node_attributes else []
-        cls.adds_node_attributes = adds_node_attributes if \
-            adds_node_attributes  else []
+        cls.required_edge_attributes = required_edge_attributes or []
+        cls.adds_edge_attributes = adds_edge_attributes or []
+        cls.required_node_attributes = required_node_attributes or []
+        cls.adds_node_attributes = adds_node_attributes or []
 
     @abstractmethod
     def __call__(self, 
@@ -161,9 +158,35 @@ def get_osmid_id(data: dict) -> Hashable:
         id_ = id_[0]
     return id_
 
+def iterate_graphfcns(G: nx.Graph, 
+                      graphfcn_list: list[str], 
+                      params: dict,
+                      addresses: parameters.FilePaths) -> nx.Graph:
+    """Iterate a list of graph functions over a graph.
+
+    Args:
+        G (nx.Graph): The graph to iterate over.
+        graphfcn_list (list[str]): A list of graph functions to iterate.
+        params (dict): A dictionary of parameters to pass to the graph
+            functions.
+        addresses (parameters.FilePaths): A FilePaths parameter object
+
+    Returns:
+        nx.Graph: The graph after the graph functions have been applied.
+    """
+    not_exists = [g for g in graphfcn_list if g not in graphfcns]
+    if not_exists:
+        raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+    verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
+    for function in graphfcn_list:
+        G = graphfcns[function](G, addresses = addresses, **params)
+        logger.info(f"graphfcn: {function} completed.")
+        if verbose:
+            save_graph(G, addresses.model / f"{function}_graph.json")
+    return G
+
 @register_graphfcn
 class assign_id(BaseGraphFunction, 
-                required_edge_attributes = ['osmid'], 
                 adds_edge_attributes = ['id']
                 ):
     """assign_id class."""
@@ -184,8 +207,16 @@ class assign_id(BaseGraphFunction,
         Returns:
             G (nx.Graph): The same graph with an ID assigned to each edge
         """
-        for u, v, data in G.edges(data=True):
-            data['id'] = get_osmid_id(data)
+        edge_ids: set[str] = set()
+        edges_to_remove = []
+        for u, v, key, data in G.edges(data=True, keys = True):
+            data['id'] = f'{u}-{v}'
+            if data['id'] in edge_ids:
+                logger.warning(f"Duplicate edge ID: {data['id']}")
+                edges_to_remove.append((u, v, key))
+            edge_ids.add(data['id'])
+        for u, v, key in edges_to_remove:
+            G.remove_edge(u, v, key)
         return G
 
 @register_graphfcn
@@ -243,7 +274,7 @@ class double_directed(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        #TODO the geometry is left as is currently - should be reveresed, however
+        #TODO the geometry is left as is currently - should be reversed, however
         # in original osmnx geometry there are some incorrectly directed ones
         # someone with more patience might check start and end Points to check
         # which direction the line should be going in...
@@ -383,6 +414,39 @@ class split_long_edges(BaseGraphFunction,
         return graph
 
 @register_graphfcn
+class fix_geometries(BaseGraphFunction,
+                     required_edge_attributes = ['geometry'],
+                     required_node_attributes = ['x', 'y']):
+    """fix_geometries class."""
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Fix the geometries of the edges.
+
+        This function fixes the geometries of the edges. The geometries are
+        recalculated from the node coordinates.
+
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+        for u, v, data in G.edges(data=True):
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
+            start_point_edge = data['geometry'].coords[0]
+            end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
+            end_point_edge = data['geometry'].coords[-1]
+            if (start_point_edge == end_point_node) & \
+                    (end_point_edge == start_point_node):
+                data['geometry'] = data['geometry'].reverse()
+            elif (start_point_edge != start_point_node) | \
+                    (end_point_edge != end_point_node):
+                data['geometry'] = shapely.LineString([start_point_node,
+                                                       end_point_node])
+        return G
+
+@register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
                                 required_edge_attributes = ['id', 'geometry', 'width'],
                                 adds_edge_attributes = ['contributing_area'],
@@ -427,7 +491,7 @@ class calculate_contributing_area(BaseGraphFunction,
             subs_gdf = go.derive_subcatchments(G,temp_fid)
 
         # Calculate runoff coefficient (RC)
-        if addresses.building.suffix == '.parquet':
+        if addresses.building.suffix in ('.geoparquet','.parquet'):
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
@@ -455,7 +519,7 @@ class calculate_contributing_area(BaseGraphFunction,
 @register_graphfcn
 class set_elevation(BaseGraphFunction,
                     required_node_attributes = ['x', 'y'],
-                    adds_node_attributes = ['elevation']):
+                    adds_node_attributes = ['surface_elevation']):
     """set_elevation class."""
     
     def __call__(self, G: nx.Graph, 
@@ -481,12 +545,12 @@ class set_elevation(BaseGraphFunction,
                                                     y, 
                                                     addresses.elevation)
         elevations_dict = {id_: elev for id_, elev in zip(G.nodes, elevations)}
-        nx.set_node_attributes(G, elevations_dict, 'elevation')
+        nx.set_node_attributes(G, elevations_dict, 'surface_elevation')
         return G
 
 @register_graphfcn
 class set_surface_slope(BaseGraphFunction,
-                        required_node_attributes = ['elevation'],
+                        required_node_attributes = ['surface_elevation'],
                         adds_edge_attributes = ['surface_slope']):
     """set_surface_slope class."""
 
@@ -506,25 +570,63 @@ class set_surface_slope(BaseGraphFunction,
         """
         G = G.copy()
         # Compute the slope for each edge
-        slope_dict = {(u, v, k): (G.nodes[u]['elevation'] - G.nodes[v]['elevation']) 
+        slope_dict = {(u, v, k): (G.nodes[u]['surface_elevation'] - \
+                                  G.nodes[v]['surface_elevation']) 
                         / d['length'] for u, v, k, d in G.edges(data=True,
                                                                 keys=True)}
 
         # Set the 'surface_slope' attribute for all edges
         nx.set_edge_attributes(G, slope_dict, 'surface_slope')
         return G
-
+    
 @register_graphfcn
-class set_chahinan_angle(BaseGraphFunction,
+class set_chahinian_slope(BaseGraphFunction,
+                          required_edge_attributes = ['surface_slope'],
+                          adds_edge_attributes = ['chahinian_slope']):
+    """set_chahinian_slope class."""
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """set_chahinian_slope class.
+            
+        This function sets the Chahinian slope for each edge. The Chahinian slope is
+        calculated from the surface slope and weighted according to the slope
+        (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
+        
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Values where the weight of the angle can be matched to the values 
+        # in weights
+        angle_points = [-1, 0.3, 0.7, 10] 
+        weights = [1, 0, 0, 1]
+
+        # Calculate weights
+        slope = nx.get_edge_attributes(G, "surface_slope")
+        weights = np.interp(np.asarray(list(slope.values())) * 100, 
+                            angle_points,
+                            weights, 
+                            left=1, 
+                            right=1)
+        nx.set_edge_attributes(G, dict(zip(slope, weights)), "chahinian_slope")
+        
+        return G
+    
+@register_graphfcn
+class set_chahinian_angle(BaseGraphFunction,
                          required_node_attributes = ['x','y'],
-                         adds_edge_attributes = ['chahinan_angle']):
-    """set_chahinan_angle class."""
+                         adds_edge_attributes = ['chahinian_angle']):
+    """set_chahinian_angle class."""
 
     def __call__(self, G: nx.Graph, 
                        **kwargs) -> nx.Graph:
-        """Set the Chahinan angle for each edge.
+        """Set the Chahinian angle for each edge.
 
-        This function sets the Chahinan angle for each edge. The Chahinan angle is
+        This function sets the Chahinian angle for each edge. The Chahinian angle is
         calculated from the geometry of the edge and weighted according to the 
         angle (based on: https://doi.org/10.1016/j.compenvurbsys.2019.101370)
 
@@ -548,14 +650,14 @@ class set_chahinan_angle(BaseGraphFunction,
                 p2 = (G.nodes[v]['x'], G.nodes[v]['y'])
                 p3 = (G.nodes[node]['x'], G.nodes[node]['y'])
                 angle = go.calculate_angle(p1,p2,p3)
-                chahinan_weight = np.interp(angle,
+                chahinian_weight = np.interp(angle,
                                             [0, 90, 135, 180, 225, 270, 360],
                                             [1, 0.2, 0.7, 0, 0.7, 0.2, 1]
                                             )
-                min_weight = min(chahinan_weight, min_weight)
+                min_weight = min(chahinian_weight, min_weight)
             if min_weight == float('inf'):
                 min_weight = 0
-            d['chahinan_angle'] = min_weight
+            d['chahinian_angle'] = min_weight
         return G
 
 @register_graphfcn
@@ -734,8 +836,7 @@ class derive_topology(BaseGraphFunction,
                 if d['edge_type'] == 'outlet':
                     nodes_to_remove.append(v)
                 else:
-                    nodes_to_remove.append(u)
-                    nodes_to_remove.append(v)
+                    nodes_to_remove.extend((u,v))
 
         isolated_nodes = list(nx.isolates(G))
 
@@ -779,7 +880,7 @@ class derive_topology(BaseGraphFunction,
                 # Push the neighbor to the heap
                 heappush(heap, (alt_dist, neighbor))
 
-        edges_to_keep = set()
+        edges_to_keep: set = set()
         for path in paths.values():
             # Assign outlet
             outlet = path[0]
@@ -788,10 +889,9 @@ class derive_topology(BaseGraphFunction,
                 G.nodes[node]['shortest_path'] = shortest_paths[node]
 
             # Store path
-            for i in range(len(path) - 1):
-                edges_to_keep.add((path[i+1], path[i]))
-
-        # Remvoe edges not on paths
+            edges_to_keep.update(zip(path[1:], path[:-1]))
+            
+        # Remove edges not on paths
         new_graph = G.copy()
         for u,v in G.edges():
             if (u,v) not in edges_to_keep:
@@ -940,14 +1040,15 @@ def process_successors(G: nx.Graph,
         edge_diams[(node,ds_node,0)] = diam
         chamber_floor[ds_node] = surface_elevations[ds_node] - depth
         if ix > 0:
-            print('''a node has multiple successors, 
+            logger.warning('''a node has multiple successors, 
                 not sure how that can happen if using shortest path
                 to derive topology''')
 
 @register_graphfcn
 class pipe_by_pipe(BaseGraphFunction,
-                   required_edge_attributes = ['length', 'elevation'],
-                   required_node_attributes = ['contributing_area', 'elevation'],
+                   required_edge_attributes = ['length'],
+                   required_node_attributes = ['contributing_area', 
+                                               'surface_elevation'],
                    adds_edge_attributes = ['diameter'],
                    adds_node_attributes = ['chamber_floor_elevation']):
     """pipe_by_pipe class."""
@@ -984,7 +1085,7 @@ class pipe_by_pipe(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         G = G.copy()
-        surface_elevations = {n : d['elevation'] for n, d in G.nodes(data=True)}
+        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}

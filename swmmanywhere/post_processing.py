@@ -1,28 +1,26 @@
-# -*- coding: utf-8 -*-
-"""Created 2024-01-22.
+"""Post processing module for SWMManywhere.
 
-A module containing functions to format and write processed data into SWMM .inp 
+A module containing functions to format and write processed data into SWMM .inp
 files.
-
-@author: Barnaby Dobson
 """
-import os
 import re
 import shutil
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import yaml
 
+from swmmanywhere.parameters import FilePaths
 
-def synthetic_write(model_dir: str):
+
+def synthetic_write(addresses: FilePaths):
     """Load synthetic data and write to SWMM input file.
 
     Loads nodes, edges and subcatchments from synthetic data, assumes that 
-    these are all located in `model_dir`. Fills in appropriate default values 
+    these are all located in `addresses`. Fills in appropriate default values 
     for many SWMM parameters. More parameters are available to edit (see 
     defs/swmm_conversion.yml). Identifies outfalls and automatically ensures
     that they have only one link to them (as is required by SWMM). Formats
@@ -30,20 +28,17 @@ def synthetic_write(model_dir: str):
     a SWMM input (.inp) file.
 
     Args:
-        model_dir (str): model directory address. Assumes a format along the 
-            lines of 'model_2', where the number is the model number.
+        addresses (FilePaths): A dictionary of file paths.
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_nodes.geojson'))
-    edges = gpd.read_file(os.path.join(model_dir, 
-                                       'pipe_by_pipe_edges.geojson'))
-    subs = gpd.read_file(os.path.join(model_dir, 
-                                       'subcatchments.geojson'))
-    
+    nodes = gpd.read_file(addresses.nodes)
+    edges = gpd.read_file(addresses.edges)
+    subs = gpd.read_file(addresses.subcatchments)
+    subs = subs.loc[subs.id.isin(nodes.id)]
+
     # Extract SWMM relevant data
-    edges = edges[['u','v','diameter','length']]
+    edges = edges[['id','u','v','diameter','length']]
     nodes = nodes[['id',
                     'x',
                     'y',
@@ -87,14 +82,12 @@ def synthetic_write(model_dir: str):
     new_edges = edges.iloc[0:outfalls.shape[0]].copy()
     new_edges['u'] = outfalls['id'].str.replace('_outfall','').values
     new_edges['v'] = outfalls['id'].values
+    new_edges['id'] = [f'{u}-{v}' for u,v in zip(new_edges['u'], new_edges['v'])]
     new_edges['diameter'] = 15 # TODO .. big pipe to enable all outfall...
     new_edges['length'] = 1
 
     # Append new edges
     edges = pd.concat([edges, new_edges], ignore_index = True)
-
-    # Name all edges
-    edges['id'] = edges.u.astype(str) + '-' + edges.v.astype(str)
 
     # Create event
     # TODO will need some updating if multiple rain gages
@@ -102,7 +95,7 @@ def synthetic_write(model_dir: str):
     event = {'name' : '1',
              'unit' : 'mm',
              'interval' : '01:00',
-             'fid' : 'storm.dat' # overwritten at runtime
+             'fid' : str(addresses.precipitation)
                                  }
 
     # Locate raingage(s) on the map
@@ -112,14 +105,8 @@ def synthetic_write(model_dir: str):
                }
 
     # Template SWMM input file
-    existing_input_file = os.path.join(os.path.dirname(__file__),
-                                    'defs',
-                                    'basic_drainage_all_bits.inp')
-    
-    # New input file
-    model_number = model_dir.split('_')[-1]
-    new_input_file = os.path.join(model_dir, 
-                                  'model_{0}.inp'.format(model_number))
+    existing_input_file = Path(__file__).parent / 'defs' /\
+          'basic_drainage_all_bits.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
@@ -130,18 +117,18 @@ def synthetic_write(model_dir: str):
                                     symbol)
     
     # Write new input file
-    data_dict_to_inp(data_dict, existing_input_file, new_input_file)
+    data_dict_to_inp(data_dict, existing_input_file, addresses.inp)
 
 
 def overwrite_section(data: np.ndarray,
                       section: str,
-                      fid: str):
+                      fid: Path):
     """Overwrite a section of a SWMM .inp file with new data.
 
     Args:
         data (np.ndarray): Data array to be written to the SWMM .inp file.
         section (str): Section of the SWMM .inp file to be overwritten.
-        fid (str): File path to the SWMM .inp file.
+        fid (Path): File path to the SWMM .inp file.
         
     Example:
         data = np.array([
@@ -153,14 +140,14 @@ def overwrite_section(data: np.ndarray,
         overwrite_section(data, section, fid)
     """
     # Read the existing SWMM .inp file
-    with open(fid, 'r') as infile:
+    with fid.open('r') as infile:
         lines = infile.readlines()
     
     # Create a flag to indicate whether we are within the target section
     within_target_section = False
     
     # Iterate through the lines and make modifications as needed
-    with open(fid, 'w') as outfile:
+    with fid.open('w') as outfile:
         for ix, line in enumerate(lines):
             if line.strip() != section and re.search(r'\[.*?\]', line):
                 within_target_section = False
@@ -193,7 +180,7 @@ def overwrite_section(data: np.ndarray,
             # Calculate the space counts by taking the length of each match
             space_counts = [len(x) + len(y) 
                             for x, y in zip(matches, example_line.split())]
-            if len(space_counts) == 0:
+            if not space_counts:
                 if data.shape[0] != 0:
                     print('no template for data?')
                 continue
@@ -219,21 +206,20 @@ def overwrite_section(data: np.ndarray,
             outfile.write('\n')
 
 def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
-                        file_path: str | Path)-> None:
+                        file_path: Path)-> None:
     """Replace the flow routing method in a SWMM inp file with a new method, in-place.
     
     Args:
-        file_path : str or Path
+        file_path : Path
             Path to the SWMM inp file to be modified.
         routing_method : {"KINWAVE", "DYNWAVE", "STEADY"}
             The new flow routing method to be used. Available options are:
             ``KINWAVE``, ``DYNWAVE``, or ``STEADY``.
     """
-    if routing_method.upper() not in ["KINWAVE", "DYNWAVE", "STEADY"]:
+    if routing_method.upper() not in ("KINWAVE", "DYNWAVE", "STEADY"):
         raise ValueError(
             "routing_method must be one of 'KINWAVE', 'DYNWAVE', or 'STEADY'."
         )
-    file_path = Path(file_path)
     updated_contents = re.sub(
         r'^FLOW_ROUTING\s+.*$',
         f'FLOW_ROUTING {routing_method.upper()}',
@@ -243,8 +229,8 @@ def change_flow_routing(routing_method: Literal["KINWAVE", "DYNWAVE", "STEADY"],
     file_path.write_text(updated_contents)
 
 def data_dict_to_inp(data_dict: dict[str, np.ndarray],
-                     base_input_file: str, 
-                     new_input_file: str, 
+                     base_input_file: Path, 
+                     new_input_file: Path, 
                      routing: Literal["KINWAVE", "DYNWAVE", "STEADY"] = "DYNWAVE"):
     """Write a SWMM .inp file from a dictionary of data arrays.
 
@@ -253,8 +239,8 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
             each key is a SWMM section and each value is a numpy array of
             data to be written to that section. The existing section is 
             overwritten
-        base_input_file (str): File path to the example/template .inp file.
-        new_input_file (str): File path to the new SWMM .inp file.
+        base_input_file (Path): File path to the example/template .inp file.
+        new_input_file (Path): File path to the new SWMM .inp file.
         routing (str, optional): Flow routing method (KINWAVE, DYNWAVE,
             STEADY). Defaults to "DYNWAVE".
     """
@@ -270,7 +256,7 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
     # Set the flow routing
     change_flow_routing(routing, new_input_file)
 
-def explode_polygon(row):
+def explode_polygon(row: pd.Series):
     """Explode a polygon into a DataFrame of coordinates.
     
     Args:
@@ -283,12 +269,12 @@ def explode_polygon(row):
         ...                 'geometry' : Polygon([(0,0), (1,0), 
         ...                                       (1,1), (0,1)])})
         >>> explode_polygon(df)
-           x  y subcatchment
-        0  0  0            1
-        1  1  0            1
-        2  1  1            1
-        3  0  1            1
-        4  0  0            1
+             x    y subcatchment
+        0  0.0  0.0            1
+        1  1.0  0.0            1
+        2  1.0  1.0            1
+        3  0.0  1.0            1
+        4  0.0  0.0            1
     """
     # Get the vertices of the polygon
     vertices = list(row['geometry'].exterior.coords)
@@ -299,12 +285,12 @@ def explode_polygon(row):
     df['subcatchment'] = row['subcatchment']
     return df
 
-def format_to_swmm_dict(nodes,
-                        outfalls,
-                        conduits,
-                        subs,
-                        event,
-                        symbol):
+def format_to_swmm_dict(nodes: pd.DataFrame,
+                        outfalls: pd.DataFrame,
+                        conduits: pd.DataFrame,
+                        subs: gpd.GeoDataFrame,
+                        event: dict[str, Any],
+                        symbol: dict[str, Any]) -> dict[str, np.ndarray]:
     """Format data to a dictionary of data arrays with columns matching SWMM.
 
     These data are the parameters of all assets that are written to the SWMM
@@ -329,8 +315,9 @@ def format_to_swmm_dict(nodes,
             'x', 'y', 'name'.
     
     Example:
+        >>> import os
         >>> import geopandas as gpd
-        >>> from shapely.geometry import Point
+        >>> from shapely.geometry import Point, Polygon
         >>> nodes = gpd.GeoDataFrame({'id' : ['node1', 'node2'],
         ...                        'x' : [0, 1],
         ...                        'y' : [0, 1],
@@ -358,8 +345,10 @@ def format_to_swmm_dict(nodes,
         ...                                'rc' : [1],
         ...                                'width' : [1],
         ...                                'slope' : [0.001],
-        ...                                'geometry' : [sgeom.Polygon([(0,0), (1,0), 
-        ...                                                            (1,1), (0,1)])]})
+        ...                                'geometry' : [Polygon([(0.0,0.0), 
+        ...                                                       (1.0,0.0), 
+        ...                                                       (1.0,1.0), 
+        ...                                                       (0.0,1.0)])]})
         >>> rain_fid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         ...                '..',
         ...                    'swmmanywhere',
@@ -372,7 +361,7 @@ def format_to_swmm_dict(nodes,
         >>> symbol = {'x' : 0,
         ...            'y' : 0,
         ...            'name' : 'name'}
-        >>> data_dict = stt.format_to_swmm_dict(nodes,
+        >>> data_dict = format_to_swmm_dict(nodes,
         ...                                    outfalls,
         ...                                    conduits,
         ...                                    subs,
@@ -380,17 +369,14 @@ def format_to_swmm_dict(nodes,
         ...                                    symbol)
     """
     # Get the directory of the current module
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(__file__).parent
     
     # TODO use 'load_yaml_from_defs'
     # Create the path to iso_converter.yml
-    iso_path = os.path.join(current_dir,
-                            "defs", 
-                            "swmm_conversion.yml")
-
+    iso_path = current_dir / "defs" / "swmm_conversion.yml"
 
     # Load conversion mapping from YAML file
-    with open(iso_path, "r") as file:
+    with iso_path.open("r") as file:
         conversion_dict = yaml.safe_load(file)
 
     ## Create nodes, coordinates and map dimensions

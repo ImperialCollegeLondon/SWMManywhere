@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-"""Created 2024-01-20.
+"""Geospatial utilities module for SWMManywhere.
 
 A module containing functions to perform a variety of geospatial operations,
 such as reprojecting coordinates and handling raster data.
-
-@author: Barnaby Dobson
 """
+import itertools
 import json
 import math
+import operator
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -190,8 +189,9 @@ def get_transformer(source_crs: str,
     
     Example:
         >>> transformer = get_transformer('EPSG:4326', 'EPSG:32630')
-        >>> transformer.transform(-0.1276, 51.5074)
-        (699330.1106898375, 5710164.30300683)
+        >>> x, y = transformer.transform(-0.1276, 51.5074)
+        >>> print(f"{x:.6f}, {y:.6f}")
+        699330.110690, 5710164.303007
     """
     return pyproj.Transformer.from_crs(source_crs, 
                                        target_crs, 
@@ -248,14 +248,15 @@ def reproject_graph(G: nx.Graph,
     # Convert and add edges with 'geometry' property
     for u, v, data in G_new.edges(data=True):
         if 'geometry' in data.keys():
-            data['geometry'] = sgeom.LineString(transformer.transform(x, y) 
-                                      for x, y in data['geometry'].coords)
+            data['geometry'] = sgeom.LineString(
+                itertools.starmap(transformer.transform,
+                                  data['geometry'].coords))
         else:
             data['geometry'] = sgeom.LineString([[G_new.nodes[u]['x'],
                                         G_new.nodes[u]['y']],
                                        [G_new.nodes[v]['x'],
                                         G_new.nodes[v]['y']]])
-    
+    G_new.graph['crs'] = target_crs
     return G_new
 
 
@@ -416,7 +417,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         # Snap the node to the nearest grid cell
         x, y = data['x'], data['y']
         grid_ = deepcopy(grid)
-        x_snap, y_snap = grid_.snap_to_mask(flow_acc > 5, (x, y))
+        x_snap, y_snap = grid_.snap_to_mask(flow_acc >= 0, (x, y))
         
         # Delineate the catchment
         catch = grid_.catchment(x=x_snap, 
@@ -440,7 +441,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         polys.append({'id': id, 
                       'geometry': catchment_polygon,
                       'area': catchment_polygon.area})
-    polys = sorted(polys, key=lambda d: d['area'], reverse=True)
+    polys.sort(key=operator.itemgetter("area"), reverse=True)
     return gpd.GeoDataFrame(polys, crs = grid.crs)
 
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -461,9 +462,11 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     result_polygons = polys.copy()
     
     # Sort the polygons by area (smallest first)
-    result_polygons['area'] = result_polygons.geometry.area
-    result_polygons = result_polygons.sort_values('area', ascending=True)
-    result_polygons = result_polygons.reset_index(drop=True)
+    result_polygons = (
+        result_polygons.assign(area=result_polygons.geometry.area)
+        .sort_values('area', ascending=True)
+        .reset_index(drop=True)
+    )
 
     # Store the area of 'trimmed' polygons into a combined geometry, starting
     # with the smallest area polygon
@@ -480,8 +483,10 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     
     # Sort the polygons by area (largest first) - this is just to conform to
     # the unit test and is not strictly essential
-    result_polygons = result_polygons.sort_values('area', ascending=False)
-    result_polygons = result_polygons.drop('area', axis=1)
+    result_polygons = (
+        result_polygons.sort_values('area', ascending=False)
+        .drop('area', axis=1)
+    )
 
     return result_polygons
 
@@ -592,7 +597,7 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
 
     # Remove zero area subareas and attach to nearest polygon
-    removed_subareas: List[sgeom.Polygon] = list() # needed for mypy
+    removed_subareas: List[sgeom.Polygon] = [] # needed for mypy
     def remove_(mp): return remove_zero_area_subareas(mp, removed_subareas)
     polys_gdf['geometry'] = polys_gdf['geometry'].apply(remove_)
     polys_gdf = attach_unconnected_subareas(polys_gdf, removed_subareas)
@@ -614,7 +619,7 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     impervious area is calculated by overlaying the subcatchments with building
     footprints and all edges in G buffered by their width parameter (i.e., to
     calculate road area).
-    
+
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
@@ -632,12 +637,15 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     ## Format as swmm type catchments 
 
     # TODO think harder about lane widths (am I double counting here?)
-    lines = []
-    for u, v, x in G.edges(data=True):
-        lines.append({'geometry' : x['geometry'].buffer(x['width'], 
-                                                                cap_style = 2, 
-                                                                join_style=2),
-                            'id' : x['id']})
+    lines = [
+        {
+            'geometry': x['geometry'].buffer(x['width'], 
+                                             cap_style=2, 
+                                             join_style=2),
+            'id': x['id']
+        }
+        for u, v, x in G.edges(data=True)
+    ]
     lines_df = pd.DataFrame(lines)
     lines_gdf = gpd.GeoDataFrame(lines_df, 
                                 geometry=lines_df.geometry,
@@ -741,20 +749,23 @@ def edges_to_features(G: nx.Graph):
     return features
 
 def graph_to_geojson(graph: nx.Graph, 
-                     fid: Path, 
+                     fid_nodes: Path, 
+                     fid_edges: Path,
                      crs: str):
     """Write a graph to a GeoJSON file.
 
     Args:
         graph (nx.Graph): The input graph.
-        fid (Path): The filepath to save the GeoJSON file.
+        fid_nodes (Path): The filepath to save the nodes GeoJSON file.
+        fid_edges (Path): The filepath to save the edges GeoJSON file.
         crs (str): The CRS of the graph.
     """
     graph = graph.copy()
     nodes = nodes_to_features(graph)
     edges = edges_to_features(graph)
     
-    for iterable, label in zip([nodes, edges], ['nodes', 'edges']):
+    for iterable, fid in zip([nodes, edges], 
+                             [fid_nodes, fid_edges]):
         geojson = {
             'type': 'FeatureCollection',
             'features' : iterable,
@@ -765,7 +776,6 @@ def graph_to_geojson(graph: nx.Graph,
                 }
             }
             }
-        fid_ = fid.with_stem(fid.stem + f'_{label}').with_suffix('.geojson')
 
-        with fid_.open('w') as output_file:
+        with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)

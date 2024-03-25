@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
+"""Preprocessing module for SWMManywhere.
 
-@author: Barney
+A module to call downloads, preprocess these downloads into formats suitable
+for graphfcns, and some other utilities (such as creating a project folder 
+structure or create the starting graph from rivers/streets).
 """
 
 import json
@@ -16,6 +17,7 @@ import pandas as pd
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as gu
 from swmmanywhere import parameters, prepare_data
+from swmmanywhere.logging import logger
 
 
 def next_directory(keyword: str, directory: Path) -> int:
@@ -56,7 +58,7 @@ def check_bboxes(bbox: tuple[float, float, float, float],
     # Iterate over info files
     for info_fid in info_fids:
         # Read bounding_box_info.json
-        with open(info_fid, 'r') as info_file:
+        with info_fid.open('r') as info_file:
             bounding_info = json.load(info_file)
         # Check if the bounding box coordinates match
         if Counter(bounding_info.get("bbox")) == Counter(bbox):
@@ -87,8 +89,7 @@ def get_next_bbox_number(bbox: tuple[float, float, float, float],
     bbox_number = check_bboxes(bbox, data_dir)
     if not bbox_number:
         return next_directory('bbox', data_dir)
-    else:
-        return bbox_number
+    return bbox_number
 
 def create_project_structure(bbox: tuple[float, float, float, float],
                              project: str,
@@ -145,7 +146,7 @@ def write_df(df: pd.DataFrame | gpd.GeoDataFrame,
         df (DataFrame): DataFrame to write to a file.
         fid (Path): Path to the file.
     """
-    if fid.suffix == '.parquet':
+    if fid.suffix in ('.geoparquet','.parquet'):
         df.to_parquet(fid)
     elif fid.suffix == '.json':
         if isinstance(df, gpd.GeoDataFrame):
@@ -161,25 +162,22 @@ def prepare_precipitation(bbox: tuple[float, float, float, float],
     """Download and reproject precipitation data."""
     if addresses.precipitation.exists():
         return
-    print(f'downloading precipitation to {addresses.precipitation}')
+    logger.info(f'downloading precipitation to {addresses.precipitation}')
     precip = prepare_data.download_precipitation(bbox,
                                                     api_keys['cds_username'],
                                                     api_keys['cds_api_key'])
     precip = precip.reset_index()
-    precip = go.reproject_df(precip,
-                                source_crs, 
-                                target_crs)
-    write_df(precip, 
-                addresses.precipitation)
+    precip = go.reproject_df(precip, source_crs, target_crs)
+    write_df(precip, addresses.precipitation)
     
-def prepare_elvation(bbox: tuple[float, float, float, float],
+def prepare_elevation(bbox: tuple[float, float, float, float],
                     addresses: parameters.FilePaths,
                     api_keys: dict[str, str],
                     target_crs: str):
     """Download and reproject elevation data."""
     if addresses.elevation.exists():
         return
-    print(f'downloading elevation to {addresses.elevation}')
+    logger.info(f'downloading elevation to {addresses.elevation}')
     with tempfile.TemporaryDirectory() as temp_dir:
         fid = Path(temp_dir) / 'elevation.tif'
         prepare_data.download_elevation(fid,
@@ -198,12 +196,12 @@ def prepare_building(bbox: tuple[float, float, float, float],
         return
     
     if not addresses.national_building.exists():  
-        print(f'downloading buildings to {addresses.national_building}')
+        logger.info(f'downloading buildings to {addresses.national_building}')
         prepare_data.download_buildings(addresses.national_building, 
                                         bbox[0],
                                         bbox[1])
         
-    print(f'trimming buildings to {addresses.building}')
+    logger.info(f'trimming buildings to {addresses.building}')
     national_buildings = gpd.read_parquet(addresses.national_building)
     buildings = national_buildings.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]] # type: ignore 
     
@@ -217,7 +215,7 @@ def prepare_street(bbox: tuple[float, float, float, float],
     """Download and reproject street graph."""
     if addresses.street.exists():
         return
-    print(f'downloading street network to {addresses.street}')
+    logger.info(f'downloading street network to {addresses.street}')
     street_network = prepare_data.download_street(bbox)
     street_network = go.reproject_graph(street_network, 
                                         source_crs, 
@@ -231,7 +229,7 @@ def prepare_river(bbox: tuple[float, float, float, float],
     """Download and reproject river graph."""
     if addresses.river.exists():
         return
-    print(f'downloading river network to {addresses.river}')
+    logger.info(f'downloading river network to {addresses.river}')
     river_network = prepare_data.download_river(bbox)
     river_network = go.reproject_graph(river_network, 
                                         source_crs,
@@ -259,7 +257,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
     prepare_precipitation(bbox, addresses, api_keys, target_crs)
     
     # Download elevation data
-    prepare_elvation(bbox, addresses, api_keys, target_crs)
+    prepare_elevation(bbox, addresses, api_keys, target_crs)
     
     # Download building data
     prepare_building(bbox, addresses, target_crs)
