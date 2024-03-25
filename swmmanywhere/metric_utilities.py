@@ -517,6 +517,121 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                          list(sg_syn.nodes),
                          list(sg_real.nodes))
 
+@metrics.register
+def outlet_kstest_diameters(real_G: nx.Graph,
+                            synthetic_G: nx.Graph,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            **kwargs) -> float:
+    """Outlet KStest diameters.
+
+    Calculate the Kolmogorov-Smirnov statistic of the diameters in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    # Extract the diameters
+    syn_diameters = nx.get_edge_attributes(sg_syn, 'diameter')
+    real_diameters = nx.get_edge_attributes(sg_real, 'diameter')
+    return stats.ks_2samp(list(syn_diameters.values()),
+                         list(real_diameters.values())).statistic
+
+@metrics.register
+def outlet_pbias_length(real_G: nx.Graph,
+                        synthetic_G: nx.Graph,
+                        real_results: pd.DataFrame,
+                        real_subs: gpd.GeoDataFrame,
+                        **kwargs) -> float:
+    r"""Outlet PBIAS length.
+
+    Calculate the percent bias of the total edge length in the subgraph that
+    drains to the dominant outlet node. The dominant outlet node of the 'real'
+    network is calculated by dominant_outlet, while the dominant outlet node of
+    the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_length - real\_length}}{{real\_length}}
+
+    where:
+    - :math:`syn\_length` is the synthetic length,
+    - :math:`real\_length` is the real length.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    # Calculate the percent bias
+    syn_length = sum([d['length'] for u,v,d in sg_syn.edges(data=True)])
+    real_length = sum([d['length'] for u,v,d in sg_real.edges(data=True)])
+    return (syn_length - real_length) / real_length
+
+@metrics.register
+def outlet_pbias_nmanholes(real_G: nx.Graph,
+                           synthetic_G: nx.Graph,
+                           real_results: pd.DataFrame,
+                           real_subs: gpd.GeoDataFrame,
+                           **kwargs) -> float:
+    r"""Outlet PBIAS number of manholes (nodes).
+
+    Calculate the percent bias of the total number of nodes in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nnodes - real\_nnodes}}{{real\_nnodes}}
+
+    where:
+    - :math:`syn\_nnodes` is the number of synthetic nodes,
+    - :math:`real\_nnodes` is the real number of nodes.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return (sg_syn.number_of_nodes() - sg_real.number_of_nodes()) \
+        / sg_real.number_of_nodes()
+
+@metrics.register
+def outlet_pbias_npipes(real_G: nx.Graph,
+                        synthetic_G: nx.Graph,
+                        real_results: pd.DataFrame,
+                        real_subs: gpd.GeoDataFrame,
+                        **kwargs) -> float:
+    r"""Outlet PBIAS number of pipes (edges).
+
+    Calculate the percent bias of the total number of edges in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+
+    
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nedges - real\_nedges}}{{real\_nedges}}
+
+    where:
+    - :math:`syn\_nedges` is the number of synthetic edges,
+    - :math:`real\_nedges` is the real number of edges.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return (sg_syn.number_of_edges() - sg_real.number_of_edges()) \
+        / sg_real.number_of_edges()
 
 
 @metrics.register

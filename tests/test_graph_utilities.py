@@ -4,6 +4,7 @@
 @author: Barney
 """
 import math
+import os
 import tempfile
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
+os.environ['SWMMANYWHERE_VERBOSE'] = "false"
 
 def load_street_network():
     """Load a street network."""
