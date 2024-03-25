@@ -4,6 +4,7 @@
 @author: Barney
 """
 import math
+import os
 import tempfile
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
+os.environ['SWMMANYWHERE_VERBOSE'] = "false"
 
 def load_street_network():
     """Load a street network."""
@@ -258,3 +260,19 @@ def test_iterate_graphfcns():
     for u, v, d in G.edges(data=True):
         assert 'id' in d.keys()
         assert 'width' in d.keys()
+
+def test_fix_geometries():
+    """Test the fix_geometries function."""
+    # Create a graph with edge geometry not matching node coordinates
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    
+    # Test doesn't work if this isn't true
+    assert G.get_edge_data(107733, 25472373,0)['geometry'].coords[0] != \
+        (G.nodes[107733]['x'], G.nodes[107733]['y'])
+
+    # Run the function
+    G_fixed = gu.fix_geometries(G)
+
+    # Check that the edge geometry now matches the node coordinates
+    assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
+        (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
