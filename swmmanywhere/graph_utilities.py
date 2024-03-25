@@ -437,7 +437,10 @@ class fix_geometries(BaseGraphFunction,
             start_point_edge = data['geometry'].coords[0]
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
             end_point_edge = data['geometry'].coords[-1]
-            if (start_point_edge != start_point_node) | \
+            if (start_point_edge == end_point_node) & \
+                    (end_point_edge == start_point_node):
+                data['geometry'] = data['geometry'].reverse()
+            elif (start_point_edge != start_point_node) | \
                     (end_point_edge != end_point_node):
                 data['geometry'] = shapely.LineString([start_point_node,
                                                        end_point_node])
