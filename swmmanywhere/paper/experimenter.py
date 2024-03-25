@@ -34,19 +34,21 @@ def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
     """
     # Get all parameters schema
     parameters = get_full_parameters_flat()
-    
-    names = bounds = dists = groups = []
+    names = []
+    bounds = []
+    dists = []
+    groups = []
 
     for parameter in parameters_to_select:
         if isinstance(parameter, dict):
-            bounds = list(parameter.values())[0]
+            bound = list(parameter.values())[0]
             parameter = list(parameter.keys())[0]
         else:
-            bounds = [parameters[parameter]['minimum'],
+            bound = [parameters[parameter]['minimum'],
                       parameters[parameter]['maximum']]
         
         names.append(parameter)
-        bounds.append(bounds)
+        bounds.append(bound)
         dists.append(parameters[parameter].get('dist', 'unif'))
         groups.append(parameters[parameter]['category'])
     return {'num_vars': len(names), 'names': names, 'bounds': bounds,
