@@ -108,6 +108,14 @@ pytest # run all tests
 pytest tests/test_file.py # run a specific file's tests
 ```
 
+By default the `tests/tests_prepare_data.py` does not test the actual downloads
+themselves (since this relies on external APIs actually working at the time of
+testing), however downloads can be enabled when testing:
+
+```bash
+pytest tests/tests_prepare_data.py -m downloads
+```
+
 You can check the coverage for these tests by running:
 
 ```bash
