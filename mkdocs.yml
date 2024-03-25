@@ -2,14 +2,13 @@ site_name: SWMManywhere docs
 
 theme:
   name: "material"
-
+  
 extra_css:
   - stylesheets/extra.css
 
-
 plugins:
   - mkdocstrings
-  - mkdocs-jupyter:
+  - mkdocs-jupyter: 
       execute: true
   - search
   # - bibtex:
@@ -21,10 +20,17 @@ plugins:
       html_report_dir: htmlcov  # default
   # - gen-files:
     #  scripts:
-        # - docs/create_class_page.py
-
+        # - docs/create_class_page.py 
+        
 markdown_extensions:
   - footnotes
+  - pymdownx.arithmatex:
+      generic: true
+ 
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - Contributing: CONTRIBUTING.md

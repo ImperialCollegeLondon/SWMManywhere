@@ -599,13 +599,15 @@ def outlet_pbias_length(real_G: nx.Graph,
 
     The percentage bias is calculated as:
 
-    .. math::
-
-        pbias = \\frac{{syn\_length - real\_length}}{{real\_length}}
+    $$
+    pbias = \frac{{syn_{length} - real_{length}}}{{real_{length}}}
+    $$
 
     where:
-    - :math:`syn\_length` is the synthetic length,
-    - :math:`real\_length` is the real length.
+
+    - $syn_{length}$ is the synthetic length,
+    - $real_{length}$ is the real length.
+ 
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
@@ -631,13 +633,15 @@ def outlet_pbias_nmanholes(real_G: nx.Graph,
 
     The percentage bias is calculated as:
 
-    .. math::
-
-        pbias = \\frac{{syn\_nnodes - real\_nnodes}}{{real\_nnodes}}
+    $$
+    pbias = \frac{{syn_{nnodes} - real_{nnodes}}}{{real_{nnodes}}}
+    $$
 
     where:
-    - :math:`syn\_nnodes` is the number of synthetic nodes,
-    - :math:`real\_nnodes` is the real number of nodes.
+
+    - $syn_{nnodes}$ is the number of synthetic nodes,
+    - $real_{nnodes}$ is the real number of nodes.
+    
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
@@ -662,13 +666,15 @@ def outlet_pbias_npipes(real_G: nx.Graph,
     
     The percentage bias is calculated as:
 
-    .. math::
-
-        pbias = \\frac{{syn\_nedges - real\_nedges}}{{real\_nedges}}
+    $$
+    pbias = \frac{{syn_{nedges} - real_{nedges}}}{{real_{nedges}}}
+    $$
 
     where:
-    - :math:`syn\_nedges` is the number of synthetic edges,
-    - :math:`real\_nedges` is the real number of edges.
+
+    - $syn_{nedges}$ is the number of synthetic edges,
+    - $real_{nedges}$ is the real number of edges.
+
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
