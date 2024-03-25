@@ -43,7 +43,7 @@ python we want to use, but you can use any other tool you are familiar with.
 Just make sure you use a version of Python compatible with SWMManywhere.
 
 ```bash
-conda create --name wsimod python=3.10
+conda create --name swmmanywhere python=3.10
 conda activate swmmanywhere
 ```
 
