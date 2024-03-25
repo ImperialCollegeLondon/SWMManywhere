@@ -417,7 +417,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         # Snap the node to the nearest grid cell
         x, y = data['x'], data['y']
         grid_ = deepcopy(grid)
-        x_snap, y_snap = grid_.snap_to_mask(flow_acc > 5, (x, y))
+        x_snap, y_snap = grid_.snap_to_mask(flow_acc >= 0, (x, y))
         
         # Delineate the catchment
         catch = grid_.catchment(x=x_snap, 
