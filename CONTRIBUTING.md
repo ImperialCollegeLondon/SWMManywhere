@@ -64,7 +64,7 @@ the conflicts. To install the development dependencies and then `SWMManywhere`
 in development mode run:
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r dev-requirements.txt
 pip install -e .
 ```
 
