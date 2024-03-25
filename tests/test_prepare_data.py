@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Created on Tue Oct 18 10:35:51 2022.
+"""Test the prepare_data module.
 
-@author: Barney
+By default downloads themselves are mocked, but these can be enabled with the
+following test command:
+
+pytest -m downloads
 """
 
 import io
