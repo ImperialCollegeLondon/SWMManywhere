@@ -161,7 +161,9 @@ def save_results(jobid: int, results: list[dict], address: Path) -> None:
     results_fid = address.parent.parent / 'results'
     results_fid.mkdir(parents=True, exist_ok=True)
     fid_flooding = results_fid / f'{jobid}_metrics.csv'
-    pd.DataFrame(results).T.to_csv(fid_flooding, index=False)
+    df = pd.DataFrame(results).T
+    df['jobid'] = jobid
+    df.to_csv(fid_flooding, index=False)
 
 def parse_arguments():
     """Parse the command line arguments.
