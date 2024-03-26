@@ -43,7 +43,7 @@ python we want to use, but you can use any other tool you are familiar with.
 Just make sure you use a version of Python compatible with SWMManywhere.
 
 ```bash
-conda create --name wsimod python=3.10
+conda create --name swmmanywhere python=3.10
 conda activate swmmanywhere
 ```
 
@@ -64,7 +64,7 @@ the conflicts. To install the development dependencies and then `SWMManywhere`
 in development mode run:
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r dev-requirements.txt
 pip install -e .
 ```
 
@@ -106,6 +106,14 @@ to the folder and running:
 ```bash
 pytest # run all tests
 pytest tests/test_file.py # run a specific file's tests
+```
+
+By default the `tests/tests_prepare_data.py` does not test the actual downloads
+themselves (since this relies on external APIs actually working at the time of
+testing), however downloads can be enabled when testing:
+
+```bash
+pytest tests/tests_prepare_data.py -m downloads
 ```
 
 You can check the coverage for these tests by running:
