@@ -27,7 +27,9 @@ def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
-            the analysis. Defaults to [].
+            the analysis, if a list entry is a dictionary, the value is the
+            bounds, otherwise the bounds are taken from the parameters file.
+            Defaults to [].
 
     Returns:
         dict: A dictionary containing the problem formulation.
@@ -54,17 +56,19 @@ def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
     return {'num_vars': len(names), 'names': names, 'bounds': bounds,
             'dists': dists, 'groups': groups}
 
-def generate_samples(N = None,
-                     parameters_to_select = None,
-                     seed = 1,
-                     groups = False,
-                     calc_second_order = True):
+def generate_samples(N: int | None = None,
+                     parameters_to_select: list[str | dict] = [],
+                     seed: int  = 1,
+                     groups: bool = False,
+                     calc_second_order: bool = True):
     """Generate samples for a sensitivity analysis.
 
     Args:
         N (int, optional): Number of samples to generate. Defaults to None.
         parameters_to_select (list, optional): List of parameters to include in 
-            the analysis. Defaults to None.
+            the analysis, if a list entry is a dictionary, the value is the
+            bounds, otherwise the bounds are taken from the parameters file.
+            Defaults to [].
         seed (int, optional): Random seed. Defaults to 1.
         groups (bool, optional): Whether to sample by group, True, or by 
             parameter, False (significantly changes how many samples are taken). 
