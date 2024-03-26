@@ -83,16 +83,21 @@ def generate_samples(N: int | None = None,
     
     if N is None:
         N = 2 ** (problem['num_vars'] - 1) 
+    
+    # If we are not grouping, we need to remove the groups from the problem to
+    # pass to SAlib, but we retain the groups information for the output 
+    # regardless
     problem_ = problem.copy()
     
     if not groups:
         del problem_['groups']
     
+    # Sample
     param_values = sobol.sample(problem_, 
                                 N, 
                                 calc_second_order=calc_second_order,
                                 seed = seed)
-    # attach names:
+    # Store samples
     X = []
     for ix, params in enumerate(param_values):
         for x,y,z in zip(problem['groups'],
