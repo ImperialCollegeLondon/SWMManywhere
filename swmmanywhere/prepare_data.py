@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""Prepare data module for SWMManywhere.
 
-@author: Barnaby Dobson
+A module to download data needed for SWMManywhere.
 """
 
 import shutil

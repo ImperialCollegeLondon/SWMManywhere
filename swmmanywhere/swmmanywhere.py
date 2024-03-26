@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Created on 2024-01-26.
-
-@author: Barney
-"""
+"""The main SWMManywhere module to generate and run a synthetic network."""
 import os
 from pathlib import Path
 

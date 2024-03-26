@@ -4,6 +4,7 @@
 @author: Barney
 """
 import math
+import os
 import tempfile
 from pathlib import Path
 
@@ -250,6 +251,7 @@ def test_iterate_graphfcns():
                                     project_name = None,
                                     bbox_number = None,
                                     model_number = None)
+    os.environ['SWMMANYWHERE_VERBOSE'] = "false"
     G = iterate_graphfcns(G, 
                              ['assign_id',
                               'format_osmnx_lanes'],
