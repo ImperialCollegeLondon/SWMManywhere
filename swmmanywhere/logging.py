@@ -1,6 +1,7 @@
 """Logging module for SWMManywhere.
 
 Example:
+```python
 >>> import os
 >>> os.environ["SWMMANYWHERE_VERBOSE"] = "true" 
 >>> # logging is now enabled in any swmmanywhere module
@@ -11,6 +12,7 @@ This is an info message.
 >>> logger.info("This is an info message.") # Write to stdout and file.log
 This is an info message.
 >>> os.environ["SWMMANYWHERE_VERBOSE"] = "false" # Disable logging
+```
 """
 import os
 import sys
