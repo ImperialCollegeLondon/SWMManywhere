@@ -16,7 +16,7 @@ from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
 
 
-def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict | None]:
+def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     """Run SWMManywhere processes.
     
     This function runs the SWMManywhere processes, including downloading data,
@@ -30,7 +30,7 @@ def swmmanywhere(config: dict) -> tuple[parameters.FilePaths, dict | None]:
         config (dict): The loaded config as a dict.
 
     Returns:
-        tuple[parameters.FilePaths, dict | None]: The addresses and metrics.
+        tuple[Path, dict | None]: The address of generated .inp and metrics.
     """
     # Create the project structure
     addresses = preprocessing.create_project_structure(config['bbox'],

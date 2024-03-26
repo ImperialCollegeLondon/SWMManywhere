@@ -22,7 +22,7 @@ from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
-def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
+def formulate_salib_problem(parameters_to_select: list[str | dict] = []) -> dict:
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
@@ -60,7 +60,7 @@ def generate_samples(N: int | None = None,
                      parameters_to_select: list[str | dict] = [],
                      seed: int  = 1,
                      groups: bool = False,
-                     calc_second_order: bool = True):
+                     calc_second_order: bool = True) -> list[dict]:
     """Generate samples for a sensitivity analysis.
 
     Args:
@@ -109,7 +109,9 @@ def generate_samples(N: int | None = None,
                     'group' : x})
     return X
 
-def process_parameters(jobid, nproc, config_base):
+def process_parameters(jobid: int, 
+                       nproc: int | None, 
+                       config_base: dict) -> tuple[dict[int, dict], Path]:
     """Generate and run parameter samples for the sensitivity analysis.
 
     This function generates parameter samples and runs the swmmanywhere model
@@ -117,18 +119,20 @@ def process_parameters(jobid, nproc, config_base):
 
     Args:
         jobid (int): The job id.
-        nproc (int): The number of processors to use.
+        nproc (int | None): The number of processors to use. If None, the number
+            of samples is used (i.e., only one model is simulated).
         config_base (dict): The base configuration dictionary.
 
     Returns:
-        dict: A list of dictionaries containing the results.
+        dict[dict]: A dict (keys as models) of dictionaries containing the results.
+        Path: The path to the inp file.
     """
     # Generate samples
     X = generate_samples(parameters_to_select=config_base['parameters_to_sample'],
                          N=2**config_base['sample_magnitude'])
     
-    X = pd.DataFrame(X)
-    gb = X.groupby('iter')
+    df = pd.DataFrame(X)
+    gb = df.groupby('iter')
     
     flooding_results = {}
     nproc = nproc if nproc is not None else len(X)
@@ -151,13 +155,16 @@ def process_parameters(jobid, nproc, config_base):
         config['model_number'] = ix
         address, metrics = swmmanywhere.swmmanywhere(config)
 
+        if metrics is None:
+            raise ValueError(f"Model run {ix} failed.")
+        
         # Save the results
         flooding_results[ix] = {'iter': ix, 
                                 **metrics, 
                                 **params_.set_index('param').value.to_dict()}
     return flooding_results, address
 
-def save_results(jobid: int, results: list[dict], address: Path) -> None:
+def save_results(jobid: int, results: dict[int, dict], address: Path) -> None:
     """Save the results of the sensitivity analysis.
 
     A results directory is created in the addresses.bbox directory, and the
@@ -165,7 +172,7 @@ def save_results(jobid: int, results: list[dict], address: Path) -> None:
 
     Args:
         jobid (int): The job id.
-        results (list[dict]): A list of dictionaries containing the results.
+        results (dict[str, dict]): A list of dictionaries containing the results.
         address (Path): The path to the inp file
     """
     results_fid = address.parent.parent / 'results'
@@ -175,7 +182,7 @@ def save_results(jobid: int, results: list[dict], address: Path) -> None:
     df['jobid'] = jobid
     df.to_csv(fid_flooding, index=False)
 
-def parse_arguments():
+def parse_arguments() -> tuple[int, int | None, Path]:
     """Parse the command line arguments.
 
     Returns:
