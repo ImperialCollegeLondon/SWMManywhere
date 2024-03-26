@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Created 2024-01-22.
+"""Post processing module for SWMManywhere.
 
-A module containing functions to format and write processed data into SWMM .inp 
+A module containing functions to format and write processed data into SWMM .inp
 files.
-
-@author: Barnaby Dobson
 """
 import re
 import shutil

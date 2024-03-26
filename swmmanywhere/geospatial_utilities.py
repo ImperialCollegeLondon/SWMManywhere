@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Created 2024-01-20.
+"""Geospatial utilities module for SWMManywhere.
 
 A module containing functions to perform a variety of geospatial operations,
 such as reprojecting coordinates and handling raster data.
-
-@author: Barnaby Dobson
 """
 import itertools
 import json
@@ -420,7 +417,7 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         # Snap the node to the nearest grid cell
         x, y = data['x'], data['y']
         grid_ = deepcopy(grid)
-        x_snap, y_snap = grid_.snap_to_mask(flow_acc > 5, (x, y))
+        x_snap, y_snap = grid_.snap_to_mask(flow_acc >= 0, (x, y))
         
         # Delineate the catchment
         catch = grid_.catchment(x=x_snap, 

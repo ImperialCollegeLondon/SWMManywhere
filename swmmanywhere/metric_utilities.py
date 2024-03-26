@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""Metric utilities module for SWMManywhere.
 
-@author: Barnaby Dobson
+A module for metrics, the metrics registry object and utilities for calculating
+metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 """
 from collections import defaultdict
 from inspect import signature
+from itertools import product
 from typing import Callable, Optional
 
 import cytoolz.curried as tlz
@@ -14,7 +15,10 @@ import netcomp
 import networkx as nx
 import numpy as np
 import pandas as pd
+import shapely
 from scipy import stats
+
+from swmmanywhere.parameters import MetricEvaluation
 
 
 class MetricRegistry(dict): 
@@ -30,7 +34,8 @@ class MetricRegistry(dict):
                             "synthetic_subs": gpd.GeoDataFrame,
                             "real_subs": gpd.GeoDataFrame,
                             "synthetic_G": nx.Graph,
-                            "real_G": nx.Graph}
+                            "real_G": nx.Graph,
+                            "metric_evaluation": MetricEvaluation}
 
         sig = signature(func)
         for param, obj in sig.parameters.items():
@@ -61,7 +66,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
                     real_results: pd.DataFrame,
                     real_subs: gpd.GeoDataFrame,
                     real_G: nx.Graph,
-                    metric_list: list[str]) -> dict[str, float]:
+                    metric_list: list[str],
+                    metric_evaluation: MetricEvaluation) -> dict[str, float]:
     """Iterate a list of metrics over a graph.
 
     Args:
@@ -72,6 +78,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
         real_subs (gpd.GeoDataFrame): The real subcatchments.
         real_G (nx.Graph): The real graph.
         metric_list (list[str]): A list of metrics to iterate.
+        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
 
     Returns:
         dict[str, float]: The results of the metrics.
@@ -87,6 +94,7 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
         "real_results": real_results,
         "real_subs": real_subs,
         "real_G": real_G,
+        "metric_evaluation": metric_evaluation
     }
 
     return {m : metrics[m](**kwargs) for m in metric_list}
@@ -313,18 +321,26 @@ def edge_betweenness_centrality(G: nx.Graph,
             bt_c[n] += v
     return bt_c
 
-def align_by_subcatchment(var,
+def align_by_shape(var,
                           synthetic_results: pd.DataFrame,
                           real_results: pd.DataFrame,
-                          real_subs: gpd.GeoDataFrame,
+                          shapes: gpd.GeoDataFrame,
                           synthetic_G: nx.Graph,
                           real_G: nx.Graph) -> pd.DataFrame:
     """Align by subcatchment.
 
-    Align synthetic and real results by subcatchment and return the results.
+    Align synthetic and real results by shape and return the results.
+
+    Args:
+        var (str): The variable to align.
+        synthetic_results (pd.DataFrame): The synthetic results.
+        real_results (pd.DataFrame): The real results.
+        shapes (gpd.GeoDataFrame): The shapes to align by (e.g., grid or real_subs).
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_G (nx.Graph): The real graph.
     """
-    synthetic_joined = nodes_to_subs(synthetic_G, real_subs)
-    real_joined = nodes_to_subs(real_G, real_subs)
+    synthetic_joined = nodes_to_subs(synthetic_G, shapes)
+    real_joined = nodes_to_subs(real_G, shapes)
 
     # Extract data
     real_results = extract_var(real_results, var)
@@ -346,6 +362,34 @@ def align_by_subcatchment(var,
                             suffixes = ('_real', '_sim')
                             )
     return results
+
+def create_grid(bbox: tuple,
+                scale: float | tuple[float,float]) -> gpd.GeoDataFrame:
+    """Create a grid of polygons.
+    
+    Create a grid of polygons based on the bounding box and scale.
+
+    Args:
+        bbox (tuple): The bounding box coordinates in the format (minx, miny, 
+            maxx, maxy).
+        scale (float | tuple): The scale of the grid. If a tuple, the scale is 
+            (dx, dy). Otherwise, the scale is dx = dy = scale.
+    
+    Returns:
+        gpd.GeoDataFrame: A geodataframe of the grid.
+    """
+    minx, miny, maxx, maxy = bbox
+
+    if isinstance(scale, tuple):
+        dx, dy = scale
+    else: 
+        dx = dy = scale
+    xmins = np.arange(minx, maxx, dx)
+    ymins = np.arange(minx, maxy, dy)
+    grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
+             'sub_id' : i} for i, (x, y) in enumerate(product(xmins, ymins))]
+
+    return gpd.GeoDataFrame(grid)
 
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
@@ -517,6 +561,121 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                          list(sg_syn.nodes),
                          list(sg_real.nodes))
 
+@metrics.register
+def outlet_kstest_diameters(real_G: nx.Graph,
+                            synthetic_G: nx.Graph,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            **kwargs) -> float:
+    """Outlet KStest diameters.
+
+    Calculate the Kolmogorov-Smirnov statistic of the diameters in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    # Extract the diameters
+    syn_diameters = nx.get_edge_attributes(sg_syn, 'diameter')
+    real_diameters = nx.get_edge_attributes(sg_real, 'diameter')
+    return stats.ks_2samp(list(syn_diameters.values()),
+                         list(real_diameters.values())).statistic
+
+@metrics.register
+def outlet_pbias_length(real_G: nx.Graph,
+                        synthetic_G: nx.Graph,
+                        real_results: pd.DataFrame,
+                        real_subs: gpd.GeoDataFrame,
+                        **kwargs) -> float:
+    r"""Outlet PBIAS length.
+
+    Calculate the percent bias of the total edge length in the subgraph that
+    drains to the dominant outlet node. The dominant outlet node of the 'real'
+    network is calculated by dominant_outlet, while the dominant outlet node of
+    the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_length - real\_length}}{{real\_length}}
+
+    where:
+    - :math:`syn\_length` is the synthetic length,
+    - :math:`real\_length` is the real length.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    # Calculate the percent bias
+    syn_length = sum([d['length'] for u,v,d in sg_syn.edges(data=True)])
+    real_length = sum([d['length'] for u,v,d in sg_real.edges(data=True)])
+    return (syn_length - real_length) / real_length
+
+@metrics.register
+def outlet_pbias_nmanholes(real_G: nx.Graph,
+                           synthetic_G: nx.Graph,
+                           real_results: pd.DataFrame,
+                           real_subs: gpd.GeoDataFrame,
+                           **kwargs) -> float:
+    r"""Outlet PBIAS number of manholes (nodes).
+
+    Calculate the percent bias of the total number of nodes in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nnodes - real\_nnodes}}{{real\_nnodes}}
+
+    where:
+    - :math:`syn\_nnodes` is the number of synthetic nodes,
+    - :math:`real\_nnodes` is the real number of nodes.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return (sg_syn.number_of_nodes() - sg_real.number_of_nodes()) \
+        / sg_real.number_of_nodes()
+
+@metrics.register
+def outlet_pbias_npipes(real_G: nx.Graph,
+                        synthetic_G: nx.Graph,
+                        real_results: pd.DataFrame,
+                        real_subs: gpd.GeoDataFrame,
+                        **kwargs) -> float:
+    r"""Outlet PBIAS number of pipes (edges).
+
+    Calculate the percent bias of the total number of edges in the subgraph
+    that drains to the dominant outlet node. The dominant outlet node of the
+    'real' network is calculated by dominant_outlet, while the dominant outlet
+    node of the 'synthetic' network is calculated by best_outlet_match.
+
+    
+    The percentage bias is calculated as:
+
+    .. math::
+
+        pbias = \\frac{{syn\_nedges - real\_nedges}}{{real\_nedges}}
+
+    where:
+    - :math:`syn\_nedges` is the number of synthetic edges,
+    - :math:`real\_nedges` is the real number of edges.
+    """
+    # Identify synthetic and real outlet arcs
+    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    sg_real, _ = dominant_outlet(real_G, real_results)
+    
+    return (sg_syn.number_of_edges() - sg_real.number_of_edges()) \
+        / sg_real.number_of_edges()
 
 
 @metrics.register
@@ -532,10 +691,38 @@ def subcatchment_nse_flooding(synthetic_G: nx.Graph,
     flooding over time for each subcatchment. The metric produced is the median
     NSE across all subcatchments.
     """
-    results = align_by_subcatchment('flooding',
+    results = align_by_shape('flooding',
                                     synthetic_results = synthetic_results,
                                     real_results = real_results,
-                                    real_subs = real_subs,
+                                    shapes = real_subs,
+                                    synthetic_G = synthetic_G,
+                                    real_G = real_G)
+    
+    return median_nse_by_group(results, 'sub_id')
+
+@metrics.register
+def grid_nse_flooding(synthetic_G: nx.Graph,
+                            real_G: nx.Graph,
+                            synthetic_results: pd.DataFrame,
+                            real_results: pd.DataFrame,
+                            real_subs: gpd.GeoDataFrame,
+                            metric_evaluation: MetricEvaluation,
+                            **kwargs) -> float:
+    """Grid NSE flooding.
+    
+    Classify synthetic nodes to a grid and calculate the NSE of
+    flooding over time for each grid cell. The metric produced is the median
+    NSE across all grid cells.
+    """
+    scale = metric_evaluation.grid_scale
+    grid = create_grid(real_subs.total_bounds,
+                       scale)
+    grid.crs = real_subs.crs
+
+    results = align_by_shape('flooding',
+                                    synthetic_results = synthetic_results,
+                                    real_results = real_results,
+                                    shapes = grid,
                                     synthetic_G = synthetic_G,
                                     real_G = real_G)
     
