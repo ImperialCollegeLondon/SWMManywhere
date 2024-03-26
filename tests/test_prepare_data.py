@@ -117,32 +117,42 @@ def test_elevation_downloader_download():
         # Test some property of data (not sure if they may change this 
         # data)
         assert data.max().max() > 25, "Elevation data should be higher."
-
-def test_get_uk():
-    """Check a UK point."""
-    # Coordinates for London, UK
-    x = -0.1276
-    y = 51.5074
-      
-    # Create a mock response for geolocator.reverse
+        
+@pytest.fixture
+def setup_mocks():
+    """Set up get_country mock for the tests."""
+    # Mock for geolocator.reverse
     mock_location = mock.Mock()
     mock_location.raw = {'address': {'country_code': 'gb'}}
 
     # Mock Nominatim
-    with mock.patch.object(Nominatim, 'reverse', return_value=mock_location):
-        # Mock yaml.safe_load
-        with mock.patch.object(yaml, 'safe_load', return_value={'GB': 'GBR'}):
-            # Call get_country
-            result = downloaders.get_country(x, y)
+    nominatim_patch = mock.patch.object(Nominatim, 
+                                        'reverse', 
+                                        return_value=mock_location)
+    # Mock yaml.safe_load
+    yaml_patch = mock.patch.object(yaml, 'safe_load', return_value={'GB': 'GBR'})
+    
+    with nominatim_patch, yaml_patch:
+        yield
+
+def test_get_uk(setup_mocks):
+    """Check a UK point."""
+    # Coordinates for London, UK
+    x = -0.1276
+    y = 51.5074
+    
+    # Call get_country
+    result = downloaders.get_country(x, y)
     
     assert result[2] == 'GB'
     assert result[3] == 'GBR'
 
-def test_building_downloader():
+def test_building_downloader(setup_mocks):
     """Check buildings are downloaded."""
-    # Coordinates for small country (VAT)
-    x = 7.41839
-    y = 43.73205
+    # Coordinates
+    x = -0.1276
+    y = 51.5074
+    
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / 'temp.parquet'
         mock_response = mock.Mock()
@@ -154,7 +164,7 @@ def test_building_downloader():
             response = downloaders.download_buildings(temp_fid, x, y)
 
             # Assert that requests.get was called with the right arguments
-            mock_get.assert_called_once_with('https://data.source.coop/vida/google-microsoft-open-buildings/geoparquet/by_country/country_iso=MCO/MCO.parquet')
+            mock_get.assert_called_once_with('https://data.source.coop/vida/google-microsoft-open-buildings/geoparquet/by_country/country_iso=GBR/GBR.parquet')
      
         # Check response
         assert response == 200
