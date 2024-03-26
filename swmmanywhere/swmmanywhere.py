@@ -180,10 +180,23 @@ def check_parameters_to_sample(config: dict):
     """
     params = parameters.get_full_parameters_flat()
     for param in config.get('parameters_to_sample',{}):
+        # If the parameter is a dictionary, the values are bounds, all we are 
+        # checking here is that the parameter exists, we only need the first 
+        # entry.
         if isinstance(param, dict):
             param = list(param.keys())[0]
+
+        # Check that the parameter is available
         if param not in params:
             raise ValueError(f"{param} not found in parameters dictionary.")
+        
+        # Check that the parameter is sample-able
+        required_attrs = set(['minimum', 'maximum', 'default', 'category'])
+        correct_attrs = required_attrs.intersection(params[param])
+        missing_attrs = required_attrs.difference(correct_attrs)
+        if any(missing_attrs):
+            raise ValueError(f"{param} missing {missing_attrs} so cannot be sampled.")
+        
     return config
 
 def load_config(config_path: Path):
