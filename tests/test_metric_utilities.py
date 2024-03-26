@@ -8,6 +8,7 @@ import shapely
 
 from swmmanywhere import metric_utilities as mu
 from swmmanywhere.graph_utilities import load_graph
+from swmmanywhere.parameters import MetricEvaluation
 
 
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
@@ -279,6 +280,60 @@ def test_outlet_nse_flooding():
                                     real_subs = subs)
     assert val == 0.0
 
+def test_design_params():
+    """Test the design param related metrics."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    nx.set_edge_attributes(G, 0.15, 'diameter')
+    subs = get_subs()
+
+    # Mock results (only needed for dominant outlet)
+    results = pd.DataFrame([{'id' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 10,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                             {'id' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                             ])
+    
+    # Target results
+    design_results = {'outlet_kstest_diameters' : 0.0625,
+               'outlet_pbias_length' : -0.15088965,
+               'outlet_pbias_nmanholes' : -0.05,
+               'outlet_pbias_npipes' : -0.15789473}
+    
+    # Iterate for G = G, i.e., perfect results
+    metrics = mu.iterate_metrics(synthetic_G = G,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = subs,
+                                 real_results = results,
+                                 metric_list = design_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
+    for metric, val in metrics.items():
+        assert metric in design_results
+        assert np.isclose(val, 0)
+
+    # edit the graph for target results
+    G_ = G.copy()
+    G_.remove_node(list(G.nodes)[0])
+    G_.edges[list(G_.edges)[0]]['diameter'] = 0.3
+
+    metrics = mu.iterate_metrics(synthetic_G = G_,
+                                 synthetic_subs = None,
+                                 synthetic_results = None,
+                                 real_G = G,
+                                 real_subs = subs,
+                                 real_results = results,
+                                 metric_list = design_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
+
+    for metric, val in metrics.items():
+        assert metric in design_results
+        assert np.isclose(val, design_results[metric]), metric
+        
 def test_netcomp_iterate():
     """Test the netcomp metrics and iterate_metrics."""
     netcomp_results = {'nc_deltacon0' : 0.00129408,
@@ -294,7 +349,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, 0)
@@ -306,7 +362,8 @@ def test_netcomp_iterate():
                                  real_G = G,
                                  real_subs = None,
                                  real_results = None,
-                                 metric_list = netcomp_results.keys())
+                                 metric_list = netcomp_results.keys(),
+                                 metric_evaluation = MetricEvaluation())
     for metric, val in metrics.items():
         assert metric in netcomp_results
         assert np.isclose(val, netcomp_results[metric])
@@ -394,3 +451,18 @@ def test_subcatchment_nse_flooding():
                                     real_results = results,
                                     real_subs = subs)
     assert val == 1.0
+
+    # Test gridded
+    val = mu.metrics.grid_nse_flooding(synthetic_G = G_,
+                                    synthetic_results = results_,
+                                    real_G = G,
+                                    real_results = results,
+                                    real_subs = subs,
+                                    metric_evaluation = MetricEvaluation())
+    assert val == 1.0
+
+def test_create_grid():
+    """Test the create_grid function."""
+    grid = mu.create_grid((0,0,1,1), 1/3 - 0.001)
+    assert grid.shape[0] == 16
+    assert set(grid.columns) == {'sub_id','geometry'}
