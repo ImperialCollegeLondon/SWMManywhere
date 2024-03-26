@@ -126,8 +126,7 @@ def process_parameters(jobid, nproc, config_base):
     gb = X.groupby('iter')
     
     flooding_results = {}
-    if nproc is None:
-        nproc = len(X)
+    nproc = nproc if nproc is not None else len(X)
 
     # Iterate over the samples, running the model when the jobid matches the
     # processor number
