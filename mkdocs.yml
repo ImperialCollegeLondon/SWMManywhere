@@ -9,7 +9,7 @@ extra_css:
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: true
+      execute: false
   - search
   # - bibtex:
       # bib_file: "./docs/paper/paper.bib"
@@ -33,6 +33,8 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
+  - Home: index.md
+  - Quickstart: notebooks/quickstart.py
   - Contributing: CONTRIBUTING.md
   - API reference:
     - SWMManywhere: reference.md
