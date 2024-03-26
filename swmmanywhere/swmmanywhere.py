@@ -184,6 +184,11 @@ def check_parameters_to_sample(config: dict):
         # checking here is that the parameter exists, we only need the first 
         # entry.
         if isinstance(param, dict):
+            if len(param) > 1:
+                raise ValueError("""If providing new bounds in the config, a dict 
+                                 of len 1 is required, where the key is the 
+                                 parameter to change and the values are 
+                                 (new_lower_bound, new_upper_bound).""")
             param = list(param.keys())[0]
 
         # Check that the parameter is available
