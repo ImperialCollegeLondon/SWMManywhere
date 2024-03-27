@@ -31,6 +31,7 @@ def swmmanywhere(config: dict):
         pd.DataFrame: A DataFrame containing the results.
     """
     # Create the project structure
+    logger.info("Creating project structure.")
     addresses = preprocessing.create_project_structure(config['bbox'],
                                                        config['project'],
                                                        config['base_dir']
@@ -40,6 +41,7 @@ def swmmanywhere(config: dict):
         setattr(addresses, key, val)
 
     # Run downloads
+    logger.info("Running downloads.")
     api_keys = yaml.safe_load(config['api_keys'].open('r'))
     preprocessing.run_downloads(config['bbox'],
                                 addresses,
@@ -47,24 +49,28 @@ def swmmanywhere(config: dict):
                                 )
 
     # Identify the starting graph
+    logger.info("Iterating graphs.")
     if config['starting_graph']:
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
 
     # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
     parameters = get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
             setattr(parameters[category], key, val)
 
     # Iterate the graph functions
+    logger.info("Iterating graph functions.")
     G = iterate_graphfcns(G, 
                           config['graphfcn_list'], 
                           parameters,
                           addresses)
 
     # Save the final graph
+    logger.info("Saving final graph and writing inp file.")
     go.graph_to_geojson(G, 
                         addresses.nodes,
                         addresses.edges,
@@ -75,17 +81,21 @@ def swmmanywhere(config: dict):
     synthetic_write(addresses)
                     
     # Run the model
+    logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
     if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        logger.info("Writing synthetic results.")
         synthetic_results.to_parquet(addresses.model /\
                                       f'results.{addresses.extension}')
 
     # Get the real results
     if config['real']['results']:
+        logger.info("Loading real results.")
         # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])
     elif config['real']['inp']:
+        logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
         if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
@@ -96,6 +106,7 @@ def swmmanywhere(config: dict):
         return addresses.inp, None
     
     # Iterate the metrics
+    logger.info("Iterating metrics.")
     metrics = iterate_metrics(synthetic_results,
                               gpd.read_file(addresses.subcatchments),
                               G,
@@ -104,7 +115,7 @@ def swmmanywhere(config: dict):
                               load_graph(config['real']['graph']),
                               config['metric_list'],
                               parameters['metric_evaluation'])
-
+    logger.info("Complete")
     return addresses.inp, metrics
 
 def check_top_level_paths(config: dict):
@@ -219,6 +230,7 @@ def run(model: Path,
     """
     with pyswmm.Simulation(str(model)) as sim:
         sim.start()
+        logger.info(f"{model} initialised in pyswmm")
 
         # Define the variables to store
         variables = {
@@ -270,5 +282,5 @@ def run(model: Path,
                                 'id' : getattr(storevar['object'],
                                                storevar['id'])})
             
-            
+    logger.info("Model run complete.")
     return pd.DataFrame(results)
