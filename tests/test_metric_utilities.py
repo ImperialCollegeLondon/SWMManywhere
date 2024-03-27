@@ -311,7 +311,8 @@ def test_design_params():
                                  real_subs = subs,
                                  real_results = results,
                                  metric_list = design_results.keys(),
-                                 metric_evaluation = MetricEvaluation())
+                                 metric_evaluation = MetricEvaluation()
+    )
     for metric, val in metrics.items():
         assert metric in design_results
         assert np.isclose(val, 0)
@@ -328,7 +329,8 @@ def test_design_params():
                                  real_subs = subs,
                                  real_results = results,
                                  metric_list = design_results.keys(),
-                                 metric_evaluation = MetricEvaluation())
+                                 metric_evaluation = MetricEvaluation()
+                                 )
 
     for metric, val in metrics.items():
         assert metric in design_results
@@ -375,51 +377,51 @@ def test_subcatchment_nse_flooding():
     subs = get_subs()
 
     # Mock results
-    results = pd.DataFrame([{'object' : 4253560,
+    results = pd.DataFrame([{'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                             {'object' : 4253560,
+                             {'id' : 4253560,
                              'variable' : 'flow',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                             {'object' : 1696030874,
+                             {'id' : 1696030874,
                              'variable' : 'flooding',
                              'value' : 4.5,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 770549936,
+                            {'id' : 770549936,
                              'variable' : 'flooding',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 107736,
+                            {'id' : 107736,
                              'variable' : 'flooding',
                              'value' : 10,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 107733,
+                            {'id' : 107733,
                              'variable' : 'flooding',
                              'value' : 1,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 107737,
+                            {'id' : 107737,
                              'variable' : 'flooding',
                              'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'object' : 1696030874,
+                            {'id' : 1696030874,
                              'variable' : 'flooding',
                              'value' : 0,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 770549936,
+                            {'id' : 770549936,
                              'variable' : 'flooding',
                              'value' : 5,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 107736,
+                            {'id' : 107736,
                              'variable' : 'flooding',
                              'value' : 15,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 107733,
+                            {'id' : 107733,
                              'variable' : 'flooding',
                              'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'object' : 107737,
+                            {'id' : 107737,
                              'variable' : 'flooding',
                              'value' : 2,
                              'date' : pd.to_datetime('2021-01-01 00:00:05')}])
@@ -443,7 +445,7 @@ def test_subcatchment_nse_flooding():
     G_ = nx.relabel_nodes(G_, mapping)
 
     results_ = results.copy()
-    results_.object = results_.object.replace(mapping)
+    results_.id = results_.id.replace(mapping)
 
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G_,
                                     synthetic_results = results_,

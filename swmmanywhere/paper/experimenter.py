@@ -1,8 +1,8 @@
-# mypy: ignore-errors
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""The experimenter module is used to sample and run SWMManywhere.
 
-@author: Barnaby Dobson
+This module is designed to be run in parallel as a jobarray. It generates
+parameter samples and runs the SWMManywhere model for each sample. The results
+are saved to a csv file in a results directory.
 """
 import os
 import sys
@@ -22,50 +22,59 @@ from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
-def formulate_salib_problem(parameters_to_select: list[str | dict] = []):
+def formulate_salib_problem(parameters_to_select: list[str | dict] = []) -> dict:
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
-            the analysis. Defaults to [].
+            the analysis, if a list entry is a dictionary, the value is the
+            bounds, otherwise the bounds are taken from the parameters file.
+            Defaults to [].
 
     Returns:
         dict: A dictionary containing the problem formulation.
     """
     # Get all parameters schema
     parameters = get_full_parameters_flat()
-
-    problem = {'names': [], 'bounds': [], 'groups': [], 'dists': [], 
-               'num_vars' : len(parameters_to_select)}
+    names = []
+    bounds = []
+    dists = []
+    groups = []
 
     for parameter in parameters_to_select:
         if isinstance(parameter, dict):
-            bounds = list(parameter.values())[0]
+            bound = list(parameter.values())[0]
             parameter = list(parameter.keys())[0]
         else:
-            bounds = [parameters[parameter]['minimum'],
+            bound = [parameters[parameter]['minimum'],
                       parameters[parameter]['maximum']]
         
-        problem['names'].append(parameter)
-        problem['bounds'].append(bounds)
-        problem['dists'].append(parameters[parameter].get('dist', 'unif'))
-        problem['groups'].append(parameters[parameter]['category'])
-    return problem
+        names.append(parameter)
+        bounds.append(bound)
+        dists.append(parameters[parameter].get('dist', 'unif'))
+        groups.append(parameters[parameter]['category'])
+    return {'num_vars': len(names), 'names': names, 'bounds': bounds,
+            'dists': dists, 'groups': groups}
 
-def generate_samples(N = None,
-                     parameters_to_select = None,
-                     seed = 1,
-                     groups = False):
+def generate_samples(N: int | None = None,
+                     parameters_to_select: list[str | dict] = [],
+                     seed: int  = 1,
+                     groups: bool = False,
+                     calc_second_order: bool = True) -> list[dict]:
     """Generate samples for a sensitivity analysis.
 
     Args:
         N (int, optional): Number of samples to generate. Defaults to None.
         parameters_to_select (list, optional): List of parameters to include in 
-            the analysis. Defaults to None.
+            the analysis, if a list entry is a dictionary, the value is the
+            bounds, otherwise the bounds are taken from the parameters file.
+            Defaults to [].
         seed (int, optional): Random seed. Defaults to 1.
-        groups (bool, optional): Whether to include the group names in the
-            sampling (significantly changes how many samples are taken). 
+        groups (bool, optional): Whether to sample by group, True, or by 
+            parameter, False (significantly changes how many samples are taken). 
             Defaults to False.
+        calc_second_order (bool, optional): Whether to calculate second order
+            indices. Defaults to True.
 
     Returns:
         list: A list of dictionaries containing the parameter values.
@@ -74,16 +83,21 @@ def generate_samples(N = None,
     
     if N is None:
         N = 2 ** (problem['num_vars'] - 1) 
+    
+    # If we are not grouping, we need to remove the groups from the problem to
+    # pass to SAlib, but we retain the groups information for the output 
+    # regardless
     problem_ = problem.copy()
     
     if not groups:
         del problem_['groups']
     
+    # Sample
     param_values = sobol.sample(problem_, 
                                 N, 
-                                calc_second_order=True,
+                                calc_second_order=calc_second_order,
                                 seed = seed)
-    # attach names:
+    # Store samples
     X = []
     for ix, params in enumerate(param_values):
         for x,y,z in zip(problem['groups'],
@@ -95,7 +109,9 @@ def generate_samples(N = None,
                     'group' : x})
     return X
 
-def process_parameters(jobid, nproc, config_base):
+def process_parameters(jobid: int, 
+                       nproc: int | None, 
+                       config_base: dict) -> tuple[dict[int, dict], Path]:
     """Generate and run parameter samples for the sensitivity analysis.
 
     This function generates parameter samples and runs the swmmanywhere model
@@ -103,22 +119,23 @@ def process_parameters(jobid, nproc, config_base):
 
     Args:
         jobid (int): The job id.
-        nproc (int): The number of processors to use.
+        nproc (int | None): The number of processors to use. If None, the number
+            of samples is used (i.e., only one model is simulated).
         config_base (dict): The base configuration dictionary.
 
     Returns:
-        dict: A list of dictionaries containing the results.
+        dict[dict]: A dict (keys as models) of dictionaries containing the results.
+        Path: The path to the inp file.
     """
     # Generate samples
     X = generate_samples(parameters_to_select=config_base['parameters_to_sample'],
                          N=2**config_base['sample_magnitude'])
     
-    X = pd.DataFrame(X)
-    gb = X.groupby('iter')
+    df = pd.DataFrame(X)
+    gb = df.groupby('iter')
     
     flooding_results = {}
-    if nproc is None:
-        nproc = len(X)
+    nproc = nproc if nproc is not None else len(X)
 
     # Iterate over the samples, running the model when the jobid matches the
     # processor number
@@ -139,13 +156,16 @@ def process_parameters(jobid, nproc, config_base):
         logger.info(f"Running swmmanywhere for model {ix}")
         address, metrics = swmmanywhere.swmmanywhere(config)
 
+        if metrics is None:
+            raise ValueError(f"Model run {ix} failed.")
+        
         # Save the results
         flooding_results[ix] = {'iter': ix, 
                                 **metrics, 
                                 **params_.set_index('param').value.to_dict()}
     return flooding_results, address
 
-def save_results(jobid: int, results: list[dict], address: Path) -> None:
+def save_results(jobid: int, results: dict[int, dict], address: Path) -> None:
     """Save the results of the sensitivity analysis.
 
     A results directory is created in the addresses.bbox directory, and the
@@ -153,15 +173,17 @@ def save_results(jobid: int, results: list[dict], address: Path) -> None:
 
     Args:
         jobid (int): The job id.
-        results (list[dict]): A list of dictionaries containing the results.
+        results (dict[str, dict]): A list of dictionaries containing the results.
         address (Path): The path to the inp file
     """
     results_fid = address.parent.parent / 'results'
     results_fid.mkdir(parents=True, exist_ok=True)
     fid_flooding = results_fid / f'{jobid}_metrics.csv'
-    pd.DataFrame(results).T.to_csv(fid_flooding, index=False)
+    df = pd.DataFrame(results).T
+    df['jobid'] = jobid
+    df.to_csv(fid_flooding, index=False)
 
-def parse_arguments():
+def parse_arguments() -> tuple[int, int | None, Path]:
     """Parse the command line arguments.
 
     Returns:
@@ -180,9 +202,21 @@ def parse_arguments():
     return jobid, nproc, config_path
 
 if __name__ == '__main__':
+    # Get args
     jobid, nproc, config_path = parse_arguments()
+
+    # Set up logging
     logger.add(config_path.parent / f'experimenter_{jobid}.log')
+
+    # Load the configuration
     config_base = swmmanywhere.load_config(config_path)
+
+    # Ensure the parameter overrides are set, since these are the way the 
+    # sampled parameter values are implemented
     config_base['parameter_overrides'] = config_base.get('parameter_overrides') or {}
+
+    # Sample and run
     flooding_results, address = process_parameters(jobid, nproc, config_base)
+
+    # Save the results
     save_results(jobid, flooding_results, address)

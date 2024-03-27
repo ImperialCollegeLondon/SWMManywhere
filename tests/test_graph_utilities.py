@@ -4,7 +4,6 @@
 @author: Barney
 """
 import math
-import os
 import tempfile
 from pathlib import Path
 
@@ -247,19 +246,23 @@ def test_iterate_graphfcns():
     """Test the iterate_graphfcns function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     params = parameters.get_full_parameters()
-    addresses = parameters.FilePaths(base_dir = None,
-                                    project_name = None,
-                                    bbox_number = None,
-                                    model_number = None)
-    os.environ['SWMMANYWHERE_VERBOSE'] = "false"
-    G = iterate_graphfcns(G, 
-                             ['assign_id',
-                              'format_osmnx_lanes'],
-                              params, 
-                              addresses)
-    for u, v, d in G.edges(data=True):
-        assert 'id' in d.keys()
-        assert 'width' in d.keys()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        addresses = parameters.FilePaths(base_dir = None,
+                                        project_name = None,
+                                        bbox_number = None,
+                                        model_number = None)
+        # Needed if VERBOSE is on.. maybe I should turn it off at the top of 
+        # each test, not sure
+        addresses.model = temp_path
+        G = iterate_graphfcns(G, 
+                                ['assign_id',
+                                'format_osmnx_lanes'],
+                                params, 
+                                addresses)
+        for u, v, d in G.edges(data=True):
+            assert 'id' in d.keys()
+            assert 'width' in d.keys()
 
 def test_fix_geometries():
     """Test the fix_geometries function."""

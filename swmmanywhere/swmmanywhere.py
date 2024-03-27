@@ -9,34 +9,37 @@ import pyswmm
 import yaml
 
 import swmmanywhere.geospatial_utilities as go
-from swmmanywhere import preprocessing
+from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 from swmmanywhere.logging import logger
 from swmmanywhere.metric_utilities import iterate_metrics
-from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import synthetic_write
 
 
-def swmmanywhere(config: dict):
+def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     """Run SWMManywhere processes.
     
     This function runs the SWMManywhere processes, including downloading data,
     preprocessing the graphfcns, running the model, and comparing the results 
-    to real data using metrics.
+    to real data using metrics. The function will always return the path to 
+    the generated .inp file. If real data (either a results file or the .inp, 
+    as well as graph, and subcatchments) is provided, the function will also 
+    return the metrics comparing the synthetic network with the real.
 
     Args:
         config (dict): The loaded config as a dict.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the results.
+        tuple[Path, dict | None]: The address of generated .inp and metrics.
     """
     # Create the project structure
     logger.info("Creating project structure.")
     addresses = preprocessing.create_project_structure(config['bbox'],
-                                                       config['project'],
-                                                       config['base_dir']
-                                                       )
-
+                                config['project'],
+                                config['base_dir'],
+                                config.get('model_number',None)
+                                )
+    
     for key, val in config.get('address_overrides', {}).items():
         setattr(addresses, key, val)
 
@@ -57,16 +60,16 @@ def swmmanywhere(config: dict):
 
     # Load the parameters and perform any manual overrides
     logger.info("Loading and setting parameters.")
-    parameters = get_full_parameters()
+    params = parameters.get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
-            setattr(parameters[category], key, val)
+            setattr(params[category], key, val)
 
     # Iterate the graph functions
     logger.info("Iterating graph functions.")
     G = iterate_graphfcns(G, 
                           config['graphfcn_list'], 
-                          parameters,
+                          params,
                           addresses)
 
     # Save the final graph
@@ -114,8 +117,8 @@ def swmmanywhere(config: dict):
                               gpd.read_file(config['real']['subcatchments']),
                               load_graph(config['real']['graph']),
                               config['metric_list'],
-                              parameters['metric_evaluation'])
-    logger.info("Complete")
+                              params['metric_evaluation'])
+    logger.info("Metrics complete")
     return addresses.inp, metrics
 
 def check_top_level_paths(config: dict):
@@ -176,11 +179,48 @@ def check_real_network_paths(config: dict):
 
     return config
 
-def load_config(config_path: Path):
+def check_parameters_to_sample(config: dict):
+    """Check the parameters to sample in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a parameter to sample is not in the parameters
+            dictionary.
+    """
+    params = parameters.get_full_parameters_flat()
+    for param in config.get('parameters_to_sample',{}):
+        # If the parameter is a dictionary, the values are bounds, all we are 
+        # checking here is that the parameter exists, we only need the first 
+        # entry.
+        if isinstance(param, dict):
+            if len(param) > 1:
+                raise ValueError("""If providing new bounds in the config, a dict 
+                                 of len 1 is required, where the key is the 
+                                 parameter to change and the values are 
+                                 (new_lower_bound, new_upper_bound).""")
+            param = list(param.keys())[0]
+
+        # Check that the parameter is available
+        if param not in params:
+            raise ValueError(f"{param} not found in parameters dictionary.")
+        
+        # Check that the parameter is sample-able
+        required_attrs = set(['minimum', 'maximum', 'default', 'category'])
+        correct_attrs = required_attrs.intersection(params[param])
+        missing_attrs = required_attrs.difference(correct_attrs)
+        if any(missing_attrs):
+            raise ValueError(f"{param} missing {missing_attrs} so cannot be sampled.")
+        
+    return config
+
+def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
 
     Args:
         config_path (Path): The path to the configuration file.
+        validation (bool, optional): Whether to validate the configuration.
 
     Returns:
         dict: The configuration.
@@ -194,6 +234,9 @@ def load_config(config_path: Path):
         # Load the config
         config = yaml.safe_load(f)
 
+    if not validation:
+        return config
+    
     # Validate the config
     jsonschema.validate(instance = config, schema = schema)
 
@@ -206,6 +249,9 @@ def load_config(config_path: Path):
     # Check real network paths
     config = check_real_network_paths(config)
     
+    # Check the parameters to sample
+    config = check_parameters_to_sample(config)
+
     return config
 
 

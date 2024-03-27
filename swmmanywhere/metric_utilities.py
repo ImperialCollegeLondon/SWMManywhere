@@ -18,11 +18,18 @@ import pandas as pd
 import shapely
 from scipy import stats
 
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import MetricEvaluation
 
 
 class MetricRegistry(dict): 
     """Registry object.""" 
+    def _log_completion(self, func):
+        def _wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            logger.info(f'{func.__name__} completed')
+            return result
+        return _wrapper
     
     def register(self, func: Callable) -> Callable:
         """Register a metric."""
@@ -47,7 +54,7 @@ class MetricRegistry(dict):
                 raise ValueError(f"""{param} of {func.__name__} should be of
                                  type {allowable_params[param]}, not 
                                  {obj.__class__}.""")
-        self[func.__name__] = func
+        self[func.__name__] = self._log_completion(func)
         return func
 
     def __getattr__(self, name):
@@ -102,8 +109,8 @@ def iterate_metrics(synthetic_results: pd.DataFrame,
 def extract_var(df: pd.DataFrame,
                      var: str) -> pd.DataFrame:
     """Extract var from a dataframe."""
-    df_ = df.loc[df.variable == var]
-    df_['duration'] = (df_.date - \
+    df_ = df.loc[df.variable == var].copy()
+    df_.loc[:,'duration'] = (df_.date - \
                         df_.date.min()).dt.total_seconds()
     return df_
 
@@ -111,16 +118,25 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
                   real_results: pd.DataFrame, 
                   variable: str, 
                   syn_ids: list,
-                  real_ids: list) -> float:
+                  real_ids: list) -> float | None:
     """Align and calculate NSE.
 
     Align the synthetic and real data and calculate the Nash-Sutcliffe
     efficiency (NSE) of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
+    synthetic_results = synthetic_results.copy()
+    real_results = real_results.copy()
+
     # Format dates
     synthetic_results['date'] = pd.to_datetime(synthetic_results['date'])
     real_results['date'] = pd.to_datetime(real_results['date'])
+
+    # Help alignment
+    synthetic_results.id = synthetic_results.id.astype(str)
+    real_results.id = real_results.id.astype(str)
+    syn_ids = [str(x) for x in syn_ids]
+    real_ids = [str(x) for x in real_ids]
 
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
@@ -176,12 +192,14 @@ def create_subgraph(G: nx.Graph,
     return SG
 
 def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float:
+        yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
+    if np.std(y) == 0:
+        return None
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def median_nse_by_group(results: pd.DataFrame,
-                        gb_key: str) -> float:
+                        gb_key: str) -> float | None:
     """Median NSE by group.
 
     Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
@@ -203,7 +221,9 @@ def median_nse_by_group(results: pd.DataFrame,
         .groupby(gb_key)
         .apply(lambda x: nse(x.value_real, x.value_sim))
         .median()
-    ) 
+    )
+    if not isinstance(val, float):
+        return None
     return val
 
 
@@ -346,15 +366,20 @@ def align_by_shape(var,
     real_results = extract_var(real_results, var)
     synthetic_results = extract_var(synthetic_results, var)
 
+    # Format to help alignment
+    real_results.id = real_results.id.astype(str)
+    synthetic_results.id = synthetic_results.id.astype(str)
+    real_joined.id = real_joined.id.astype(str)
+    synthetic_joined.id = synthetic_joined.id.astype(str)
+
+
     # Align data
     synthetic_results = pd.merge(synthetic_results,
                                  synthetic_joined[['id','sub_id']],
-                                 left_on='object',
-                                 right_on = 'id')
+                                 on='id')
     real_results = pd.merge(real_results,
                             real_joined[['id','sub_id']],
-                            left_on='object',
-                            right_on = 'id')
+                            on='id')
     
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
@@ -513,7 +538,7 @@ def outlet_nse_flow(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flow.
 
     Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
@@ -542,7 +567,7 @@ def outlet_nse_flooding(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flooding.
     
     Calculate the Nash-Sutcliffe efficiency (NSE) of flooding over time, where
@@ -684,7 +709,7 @@ def subcatchment_nse_flooding(synthetic_G: nx.Graph,
                             synthetic_results: pd.DataFrame,
                             real_results: pd.DataFrame,
                             real_subs: gpd.GeoDataFrame,
-                            **kwargs) -> float:
+                            **kwargs) -> float | None:
     """Subcatchment NSE flooding.
     
     Classify synthetic nodes to real subcatchments and calculate the NSE of
@@ -707,7 +732,7 @@ def grid_nse_flooding(synthetic_G: nx.Graph,
                             real_results: pd.DataFrame,
                             real_subs: gpd.GeoDataFrame,
                             metric_evaluation: MetricEvaluation,
-                            **kwargs) -> float:
+                            **kwargs) -> float | None:
     """Grid NSE flooding.
     
     Classify synthetic nodes to a grid and calculate the NSE of

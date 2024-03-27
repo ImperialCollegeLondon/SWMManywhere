@@ -489,6 +489,7 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
+            subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
         if addresses.building.suffix in ('.geoparquet','.parquet'):
@@ -699,7 +700,8 @@ class calculate_weights(BaseGraphFunction,
             total_weight = 0
             for attr, bds in bounds.items():
                 # Normalise
-                weight = (d[attr] - bds[0]) / (bds[1] - bds[0])
+                weight = max((d[attr] - bds[0]) / (bds[1] - bds[0]), 
+                             np.finfo(float).eps)
                 # Exponent
                 weight = weight ** getattr(topology_derivation,f'{attr}_exponent')
                 # Scaling
@@ -845,7 +847,7 @@ class derive_topology(BaseGraphFunction,
 
         # Check for negative cycles
         if nx.negative_edge_cycle(G, weight = 'weight'):
-            raise ValueError('Graph contains negative cycle')
+            logger.warning('Graph contains negative cycle')
 
         # Initialize the dictionary with infinity for all nodes
         shortest_paths = {node: float('inf') for node in G.nodes}
