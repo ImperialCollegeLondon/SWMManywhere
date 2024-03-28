@@ -410,7 +410,7 @@ def create_grid(bbox: tuple,
     else: 
         dx = dy = scale
     xmins = np.arange(minx, maxx, dx)
-    ymins = np.arange(minx, maxy, dy)
+    ymins = np.arange(miny, maxy, dy)
     grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
              'sub_id' : i} for i, (x, y) in enumerate(product(xmins, ymins))]
 
