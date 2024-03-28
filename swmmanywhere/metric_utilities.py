@@ -384,7 +384,8 @@ def align_by_shape(var,
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
                             on = ['date','sub_id'],
-                            suffixes = ('_real', '_sim')
+                            suffixes = ('_real', '_sim'),
+                            how = 'outer'
                             )
     return results
 
