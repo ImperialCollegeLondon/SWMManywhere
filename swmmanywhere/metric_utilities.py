@@ -222,7 +222,7 @@ def create_subgraph(G: nx.Graph,
 
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
-                        coef: Callable = nse) -> float:
+                        coef: Callable = nse) -> float | None:
     """Median NSE by group.
 
     Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
@@ -446,7 +446,7 @@ def outlet_coef_flow(synthetic_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
                   coef: Callable = nse,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet coefficient flow.
 
     Calculate the coefficient of flow over time, where flow is measured as the
@@ -689,7 +689,7 @@ def outlet_kge_flooding(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet KGE flooding.
     
     Calculate the Kling-Gupta efficiency (NSE) of flooding over time, where
