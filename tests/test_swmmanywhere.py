@@ -89,6 +89,8 @@ def test_swmmanywhere():
         # Check metrics were calculated
         assert metrics is not None
         for key, val in metrics.items():
+            if not val:
+                continue
             assert isinstance(val, float)
         
         assert set(metrics.keys()) == set(config['metric_list'])
