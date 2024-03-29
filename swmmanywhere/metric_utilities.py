@@ -220,14 +220,6 @@ def create_subgraph(G: nx.Graph,
     SG.graph.update(G.graph)
     return SG
 
-
-def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float | None:
-    """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    if np.std(y) == 0:
-        return None
-    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
-
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
                         coef: Callable = nse) -> float:
