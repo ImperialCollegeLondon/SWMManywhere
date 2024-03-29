@@ -642,7 +642,7 @@ def outlet_kge_flow(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flow.
 
     Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
@@ -854,7 +854,7 @@ def subcatchment_kge_flooding(synthetic_G: nx.Graph,
                             synthetic_results: pd.DataFrame,
                             real_results: pd.DataFrame,
                             real_subs: gpd.GeoDataFrame,
-                            **kwargs) -> float:
+                            **kwargs) -> float | None:
     """Subcatchment KGE flooding.
     
     Classify synthetic nodes to real subcatchments and calculate the KGE of
