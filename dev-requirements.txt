@@ -320,7 +320,7 @@ tzdata==2024.1
     # via pandas
 urllib3==2.1.0
     # via requests
-virtualenv==20.24.5
+virtualenv==20.25.1
     # via pre-commit
 wheel==0.41.3
     # via pip-tools
