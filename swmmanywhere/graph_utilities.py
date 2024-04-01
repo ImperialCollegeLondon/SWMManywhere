@@ -697,12 +697,12 @@ class calculate_weights(BaseGraphFunction,
             bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
 
         G = G.copy()
+        eps = np.finfo(float).eps
         for u, v, d in G.edges(data=True):
             total_weight = 0
             for attr, bds in bounds.items():
                 # Normalise
-                weight = max((d[attr] - bds[0]) / (bds[1] - bds[0]), 
-                             np.finfo(float).eps)
+                weight = max((d[attr] - bds[0]) / (bds[1] - bds[0]), eps)
                 # Exponent
                 weight = weight ** getattr(topology_derivation,f'{attr}_exponent')
                 # Scaling
