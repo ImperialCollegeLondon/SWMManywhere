@@ -124,7 +124,7 @@ networkx==3.2.1
     #   swmmanywhere (pyproject.toml)
 numba==0.58.1
     # via pysheds
-numpy==1.26.3
+numpy==1.26.4
     # via
     #   cftime
     #   contourpy

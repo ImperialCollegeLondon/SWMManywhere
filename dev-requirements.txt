@@ -154,7 +154,7 @@ nodeenv==1.8.0
     # via pre-commit
 numba==0.58.1
     # via pysheds
-numpy==1.26.3
+numpy==1.26.4
     # via
     #   cftime
     #   contourpy
