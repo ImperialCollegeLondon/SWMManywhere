@@ -6,9 +6,8 @@ metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 from __future__ import annotations
 
 from collections import defaultdict
-from inspect import signature
 from itertools import product
-from typing import Callable, Optional
+from typing import Callable, Optional, get_type_hints
 
 import cytoolz.curried as tlz
 import geopandas as gpd
@@ -46,16 +45,19 @@ class MetricRegistry(dict):
                             "real_G": nx.Graph,
                             "metric_evaluation": MetricEvaluation}
 
-        sig = signature(func)
-        for param, obj in sig.parameters.items():
-            if param == 'kwargs':
+        # Use get_type_hints to resolve annotations, 
+        # considering 'from __future__ import annotations'
+        type_hints = get_type_hints(func)
+
+        for param, annotation in type_hints.items():
+            if param in ('kwargs', 'return'):
                 continue
             if param not in allowable_params:
                 raise ValueError(f"{param} of {func.__name__} not allowed.")
-            if obj.annotation != allowable_params[param]:
+            if annotation != allowable_params[param]:
                 raise ValueError(f"""{param} of {func.__name__} should be of
                                  type {allowable_params[param]}, not 
-                                 {obj.__class__}.""")
+                                 {annotation}.""")
         self[func.__name__] = self._log_completion(func)
         return func
 
@@ -197,7 +199,7 @@ def nse(y: np.ndarray,
         yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
     if np.std(y) == 0:
-        return None
+        return np.inf
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def median_nse_by_group(results: pd.DataFrame,
@@ -224,7 +226,7 @@ def median_nse_by_group(results: pd.DataFrame,
         .apply(lambda x: nse(x.value_real, x.value_sim))
         .median()
     )
-    if not isinstance(val, float):
+    if not np.isfinite(val):
         return None
     return val
 
