@@ -6,7 +6,6 @@ are saved to a csv file in a results directory.
 """
 import argparse
 import os
-import sys
 from pathlib import Path
 
 import pandas as pd
