@@ -121,8 +121,8 @@ def extract_var(df: pd.DataFrame,
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    if (np.std(y) == 0):
-        return None
+    if np.std(y) == 0:
+        return np.inf
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def kge(y: np.ndarray,yhat: np.ndarray) -> float | None:
@@ -223,14 +223,6 @@ def create_subgraph(G: nx.Graph,
             for nbr, d in nbrs.items() if nbr in nodes)
     SG.graph.update(G.graph)
     return SG
-
-
-def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float | None:
-    """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    if np.std(y) == 0:
-        return np.inf
-    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
