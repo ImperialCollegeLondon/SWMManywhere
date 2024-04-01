@@ -163,20 +163,24 @@ def test_outlet_nse_flow():
 
     # Calculate NSE (perfect results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G,
+                                     synthetic_subs = None,
                                     synthetic_results = results,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[[0,2],'value'] = 7.5
     val = mu.metrics.outlet_nse_flow(synthetic_G = G,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Change the graph
@@ -190,20 +194,24 @@ def test_outlet_nse_flow():
 
     # Calculate NSE (mean results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G_,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Test time interpolation
     results_.loc[2,'date'] = pd.to_datetime('2021-01-01 00:00:10')
     results_.loc[[0,2], 'value'] = [0,30]
     val = mu.metrics.outlet_nse_flow(synthetic_G = G_,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == -15.0
 
 def test_outlet_nse_flooding():
@@ -248,20 +256,24 @@ def test_outlet_nse_flooding():
     
     # Calculate NSE (perfect results)
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G,
+                                         synthetic_subs = None,
                                     synthetic_results = results,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[results_.id.isin([770549936, 25472468]),'value'] = [14.5 / 4] * 4
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G,
+                                         synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Change the graph
@@ -275,10 +287,12 @@ def test_outlet_nse_flooding():
 
     # Calculate NSE (mean results)
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G_,
+                                         synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Test time interpolation
@@ -287,9 +301,11 @@ def test_outlet_nse_flooding():
     
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G_,
                                     synthetic_results = results_,
+                                    synthetic_subs = None,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
 def test_design_params():
@@ -440,10 +456,12 @@ def test_subcatchment_nse_flooding():
     
     # Calculate NSE (perfect results)
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G,
+                                               synthetic_subs = None,
                                                real_G = G,
                                                 synthetic_results = results,
                                                 real_results = results,
-                                                real_subs = subs)
+                                                real_subs = subs,
+                                                metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (remapped node)
@@ -460,14 +478,17 @@ def test_subcatchment_nse_flooding():
     results_.id = results_.id.replace(mapping)
 
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G_,
+                                               synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Test gridded
     val = mu.metrics.grid_nse_flooding(synthetic_G = G_,
+                                    synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
