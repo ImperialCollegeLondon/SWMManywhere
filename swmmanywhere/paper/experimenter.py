@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
+import toolz as tlz
 from SALib.sample import sobol
 
 # Set the number of threads to 1 to avoid conflicts with parallel processing
@@ -24,18 +25,22 @@ from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
-def formulate_salib_problem(parameters_to_select: list[str | dict] = []) -> dict:
+def formulate_salib_problem(parameters_to_select: 
+                            list[str | dict] | None = None) -> dict:
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis, if a list entry is a dictionary, the value is the
             bounds, otherwise the bounds are taken from the parameters file.
-            Defaults to [].
+            Defaults to None.
 
     Returns:
         dict: A dictionary containing the problem formulation.
     """
+    # Set as empty by default
+    parameters_to_select = [] if parameters_to_select is None else parameters_to_select
+
     # Get all parameters schema
     parameters = get_full_parameters_flat()
     names = []
@@ -100,15 +105,11 @@ def generate_samples(N: int | None = None,
                                 calc_second_order=calc_second_order,
                                 seed = seed)
     # Store samples
-    X = []
-    for ix, params in enumerate(param_values):
-        for x,y,z in zip(problem['groups'],
-                         problem['names'],
-                         params):
-            X.append({'param' : y,
-                    'value' : z,
-                    'iter' : ix,
-                    'group' : x})
+    X = [
+        {'param': y, 'value': z, 'iter': ix, 'group': x}
+        for ix, params in enumerate(param_values)
+        for x, y, z in zip(problem['groups'], problem['names'], params, strict=True)
+    ]
     return X
 
 def process_parameters(jobid: int, 
@@ -139,12 +140,21 @@ def process_parameters(jobid: int,
     flooding_results = {}
     nproc = nproc if nproc is not None else len(X)
 
+    # Assign jobs based on jobid
+    job_iter = tlz.partition_all(nproc, range(len(X)))
+    for _ in range(jobid + 1):
+        job_idx = next(job_iter, None)
+
+    if job_idx is None:
+        raise ValueError(f"Jobid {jobid} is required.")
+
+    config = config_base.copy()
+
     # Iterate over the samples, running the model when the jobid matches the
     # processor number
-    for ix, params_ in gb:
-        if ix % nproc != jobid:
-            continue
+    for ix in job_idx:
         config = config_base.copy()
+        params_ = gb.get_group(ix)
 
         # Update the parameters
         for _, row in params_.iterrows():
