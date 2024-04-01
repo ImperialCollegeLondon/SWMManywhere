@@ -50,8 +50,8 @@ def formulate_salib_problem(parameters_to_select:
 
     for parameter in parameters_to_select:
         if isinstance(parameter, dict):
-            bound = list(parameter.values())[0]
-            parameter = list(parameter.keys())[0]
+            bound = next(iter(parameter.values()))
+            parameter = next(iter(parameter))
         else:
             bound = [parameters[parameter]['minimum'],
                       parameters[parameter]['maximum']]
