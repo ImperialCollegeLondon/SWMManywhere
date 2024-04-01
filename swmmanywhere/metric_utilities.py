@@ -3,10 +3,11 @@
 A module for metrics, the metrics registry object and utilities for calculating
 metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 """
+from __future__ import annotations
+
 from collections import defaultdict
-from inspect import signature
 from itertools import product
-from typing import Callable, Optional
+from typing import Callable, Optional, get_type_hints
 
 import cytoolz.curried as tlz
 import geopandas as gpd
@@ -44,16 +45,19 @@ class MetricRegistry(dict):
                             "real_G": nx.Graph,
                             "metric_evaluation": MetricEvaluation}
 
-        sig = signature(func)
-        for param, obj in sig.parameters.items():
-            if param == 'kwargs':
+        # Use get_type_hints to resolve annotations, 
+        # considering 'from __future__ import annotations'
+        type_hints = get_type_hints(func)
+
+        for param, annotation in type_hints.items():
+            if param in ('kwargs', 'return'):
                 continue
             if param not in allowable_params:
                 raise ValueError(f"{param} of {func.__name__} not allowed.")
-            if obj.annotation != allowable_params[param]:
+            if annotation != allowable_params[param]:
                 raise ValueError(f"""{param} of {func.__name__} should be of
                                  type {allowable_params[param]}, not 
-                                 {obj.__class__}.""")
+                                 {annotation}.""")
         self[func.__name__] = self._log_completion(func)
         return func
 
@@ -162,18 +166,18 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
     real_results['date'] = pd.to_datetime(real_results['date'])
 
     # Help alignment
-    synthetic_results.id = synthetic_results.id.astype(str)
-    real_results.id = real_results.id.astype(str)
+    synthetic_results["id"] = synthetic_results["id"].astype(str)
+    real_results["id"] = real_results["id"].astype(str)
     syn_ids = [str(x) for x in syn_ids]
     real_ids = [str(x) for x in real_ids]
 
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
-    syn_data = syn_data.loc[syn_data.id.isin(syn_ids)]
+    syn_data = syn_data.loc[syn_data["id"].isin(syn_ids)]
     syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
-    real_data = real_data.loc[real_data.id.isin(real_ids)]
+    real_data = real_data.loc[real_data["id"].isin(real_ids)]
     real_data = real_data.groupby('date').value.sum()
     
     # Align data
@@ -225,7 +229,7 @@ def nse(y: np.ndarray,
         yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
     if np.std(y) == 0:
-        return None
+        return np.inf
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def median_coef_by_group(results: pd.DataFrame,
@@ -254,7 +258,7 @@ def median_coef_by_group(results: pd.DataFrame,
         .apply(lambda x: coef(x.value_real, x.value_sim))
         .median()
     )
-    if not isinstance(val, float):
+    if not np.isfinite(val):
         return None
     return val
 
@@ -336,7 +340,7 @@ def dominant_outlet(G: nx.DiGraph,
     
     # Identify the outlet with the highest flow
     outlet_flows = results.loc[(results.variable == 'flow') &
-                               (results.id.isin(outlet_arcs))]
+                               (results["id"].isin(outlet_arcs))]
     max_outlet_arc = outlet_flows.groupby('id').value.median().idxmax()
     max_outlet = [v for u,v,d in G.edges(data=True) 
                   if d['id'] == max_outlet_arc][0]
@@ -399,10 +403,10 @@ def align_by_shape(var,
     synthetic_results = extract_var(synthetic_results, var)
 
     # Format to help alignment
-    real_results.id = real_results.id.astype(str)
-    synthetic_results.id = synthetic_results.id.astype(str)
-    real_joined.id = real_joined.id.astype(str)
-    synthetic_joined.id = synthetic_joined.id.astype(str)
+    real_results["id"] = real_results["id"].astype(str)
+    synthetic_results["id"] = synthetic_results["id"].astype(str)
+    real_joined["id"] = real_joined["id"].astype(str)
+    synthetic_joined["id"] = synthetic_joined["id"].astype(str)
 
 
     # Align data

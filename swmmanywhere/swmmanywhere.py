@@ -1,4 +1,6 @@
 """The main SWMManywhere module to generate and run a synthetic network."""
+from __future__ import annotations
+
 import os
 from pathlib import Path
 

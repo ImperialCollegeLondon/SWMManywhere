@@ -3,6 +3,8 @@
 
 @author: Barnaby Dobson
 """
+from __future__ import annotations
+
 from pathlib import Path
 from time import time
 

@@ -3,6 +3,8 @@
 A module containing functions to format and write processed data into SWMM .inp
 files.
 """
+from __future__ import annotations
+
 import re
 import shutil
 from pathlib import Path
