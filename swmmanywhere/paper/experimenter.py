@@ -4,6 +4,7 @@ This module is designed to be run in parallel as a jobarray. It generates
 parameter samples and runs the SWMManywhere model for each sample. The results
 are saved to a csv file in a results directory.
 """
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -189,16 +190,24 @@ def parse_arguments() -> tuple[int, int | None, Path]:
         tuple: A tuple containing the job id, number of processors, and the
             configuration file path.
     """
-    if len(sys.argv) > 1:
-        jobid = int(sys.argv[1])
-        nproc = int(sys.argv[2])
-        config_path = Path(sys.argv[3])
-    else:
-        jobid = 1
-        nproc = None
-        config_path = Path(__file__).parent.parent.parent / 'tests' /\
-              'test_data' / 'demo_config_sa.yml'
-    return jobid, nproc, config_path
+    parser = argparse.ArgumentParser(description='Process command line arguments.')
+    parser.add_argument('--jobid', 
+                        type=int, 
+                        default=1, 
+                        help='Job ID')
+    parser.add_argument('--nproc', 
+                        type=int, 
+                        default=None, 
+                        help='Number of processors')
+    parser.add_argument('--config_path', 
+                        type=Path, 
+                        default=Path(__file__).parent.parent.parent / 'tests' /\
+                                    'test_data' / 'demo_config_sa.yml',
+                        help='Configuration file path')
+
+    args = parser.parse_args()
+
+    return args.jobid, args.nproc, args.config_path
 
 if __name__ == '__main__':
     # Get args
