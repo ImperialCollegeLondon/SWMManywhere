@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -157,11 +158,15 @@ def process_parameters(jobid: int,
         params_ = gb.get_group(ix)
 
         # Update the parameters
-        for _, row in params_.iterrows():
-            if row['group'] not in config['parameter_overrides']:
-                config['parameter_overrides'][row['group']] = {}
-            config['parameter_overrides'][row['group']][row['param']] = row['value']
-        flooding_results[ix] = ix
+        overrides: dict = defaultdict(dict)
+        for grp, param, val in params_[["group", 
+                                        "param", 
+                                        "value"]].itertuples(index=False, 
+                                                             name=None):
+            if grp not in overrides:
+                overrides[grp] = {}
+            overrides[grp][param] = val
+        config['parameter_overrides'].update(overrides)
 
         # Run the model
         config['model_number'] = ix
