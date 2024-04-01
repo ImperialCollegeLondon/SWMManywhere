@@ -120,22 +120,17 @@ def extract_var(df: pd.DataFrame,
 
 def pbias(y: np.ndarray,
           yhat: np.ndarray) -> float | None:
-    r"""Outlet PBIAS length.
+    r"""PBIAS.
 
-    Calculate the percent bias of the total edge length in the subgraph that
-    drains to the dominant outlet node. The dominant outlet node of the 'real'
-    network is calculated by dominant_outlet, while the dominant outlet node of
-    the 'synthetic' network is calculated by best_outlet_match.
-
-    The percentage bias is calculated as:
+    Calculate the percent bias:
 
     .. math::
 
-        pbias = \\frac{{syn\_length - real\_length}}{{real\_length}}
+        pbias = \\frac{{\sum(synthetic) - \sum(real)}}{{\sum(real)}}
 
     where:
-    - :math:`syn\_length` is the synthetic length,
-    - :math:`real\_length` is the real length.
+    - :math:`synthetic` is the synthetic data,
+    - :math:`real` is the real data.
     """
     return (yhat.sum() - y.sum()) / y.sum()
 
@@ -248,9 +243,9 @@ def create_subgraph(G: nx.Graph,
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
                         coef: Callable = nse) -> float | None:
-    """Median NSE by group.
+    """Median coef value by group.
 
-    Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
+    Calculate the median coef value of a variable over time
     for each group in the results dataframe, and return the median of these
     values.
 
@@ -260,7 +255,7 @@ def median_coef_by_group(results: pd.DataFrame,
         coef (Callable): The coefficient to calculate. Default is nse.
 
     Returns:
-        float: The median NSE.
+        float: The median coef value.
     """
     val = (
         results
@@ -477,8 +472,9 @@ def subcatchment(synthetic_results: pd.DataFrame,
                 ):
     """Subcatchment scale metric.
 
-    Calculate the coefficient of a variable over time for each real subcatchment.
-    The metric produced is the median coef across all subcatchments.
+    Calculate the coefficient (coef) of a variable over time for aggregated to real 
+    subcatchment scale. The metric produced is the median coef across all 
+    subcatchments.
     """
     results = align_by_shape(var,
                                     synthetic_results = synthetic_results,
