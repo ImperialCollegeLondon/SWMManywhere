@@ -135,18 +135,18 @@ def align_calc_nse(synthetic_results: pd.DataFrame,
     real_results['date'] = pd.to_datetime(real_results['date'])
 
     # Help alignment
-    synthetic_results.id = synthetic_results.id.astype(str)
-    real_results.id = real_results.id.astype(str)
+    synthetic_results["id"] = synthetic_results["id"].astype(str)
+    real_results["id"] = real_results["id"].astype(str)
     syn_ids = [str(x) for x in syn_ids]
     real_ids = [str(x) for x in real_ids]
 
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
-    syn_data = syn_data.loc[syn_data.id.isin(syn_ids)]
+    syn_data = syn_data.loc[syn_data["id"].isin(syn_ids)]
     syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
-    real_data = real_data.loc[real_data.id.isin(real_ids)]
+    real_data = real_data.loc[real_data["id"].isin(real_ids)]
     real_data = real_data.groupby('date').value.sum()
     
     # Align data
@@ -306,7 +306,7 @@ def dominant_outlet(G: nx.DiGraph,
     
     # Identify the outlet with the highest flow
     outlet_flows = results.loc[(results.variable == 'flow') &
-                               (results.id.isin(outlet_arcs))]
+                               (results["id"].isin(outlet_arcs))]
     max_outlet_arc = outlet_flows.groupby('id').value.median().idxmax()
     max_outlet = [v for u,v,d in G.edges(data=True) 
                   if d['id'] == max_outlet_arc][0]
@@ -369,10 +369,10 @@ def align_by_shape(var,
     synthetic_results = extract_var(synthetic_results, var)
 
     # Format to help alignment
-    real_results.id = real_results.id.astype(str)
-    synthetic_results.id = synthetic_results.id.astype(str)
-    real_joined.id = real_joined.id.astype(str)
-    synthetic_joined.id = synthetic_joined.id.astype(str)
+    real_results["id"] = real_results["id"].astype(str)
+    synthetic_results["id"] = synthetic_results["id"].astype(str)
+    real_joined["id"] = real_joined["id"].astype(str)
+    synthetic_joined["id"] = synthetic_joined["id"].astype(str)
 
 
     # Align data
