@@ -121,8 +121,8 @@ def extract_var(df: pd.DataFrame,
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float | None:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    if (np.std(y) == 0):
-        return None
+    if np.std(y) == 0:
+        return np.inf
     return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
 
 def kge(y: np.ndarray,yhat: np.ndarray) -> float | None:
@@ -224,17 +224,9 @@ def create_subgraph(G: nx.Graph,
     SG.graph.update(G.graph)
     return SG
 
-
-def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float | None:
-    """Calculate Nash-Sutcliffe efficiency (NSE)."""
-    if np.std(y) == 0:
-        return np.inf
-    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
-
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
-                        coef: Callable = nse) -> float:
+                        coef: Callable = nse) -> float | None:
     """Median NSE by group.
 
     Calculate the median Nash-Sutcliffe efficiency (NSE) of a variable over time
@@ -459,7 +451,7 @@ def outlet_coef_flow(synthetic_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
                   coef: Callable = nse,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet coefficient flow.
 
     Calculate the coefficient of flow over time, where flow is measured as the
@@ -655,7 +647,7 @@ def outlet_kge_flow(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet NSE flow.
 
     Calculate the Nash-Sutcliffe efficiency (NSE) of flow over time, where flow
@@ -702,7 +694,7 @@ def outlet_kge_flooding(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   real_results: pd.DataFrame,
                   real_subs: gpd.GeoDataFrame,
-                  **kwargs) -> float:
+                  **kwargs) -> float | None:
     """Outlet KGE flooding.
     
     Calculate the Kling-Gupta efficiency (NSE) of flooding over time, where
@@ -867,7 +859,7 @@ def subcatchment_kge_flooding(synthetic_G: nx.Graph,
                             synthetic_results: pd.DataFrame,
                             real_results: pd.DataFrame,
                             real_subs: gpd.GeoDataFrame,
-                            **kwargs) -> float:
+                            **kwargs) -> float | None:
     """Subcatchment KGE flooding.
     
     Classify synthetic nodes to real subcatchments and calculate the KGE of
