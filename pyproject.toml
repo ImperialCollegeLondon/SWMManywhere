@@ -23,7 +23,6 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-  # TODO definitely don't need all of these
   "cdsapi",
   "cytoolz",
   "fastparquet",
@@ -37,7 +36,7 @@ dependencies = [
   "matplotlib",
   "netcdf4",
   "netcomp@ git+https://github.com/barneydobson/NetComp.git",
-  "networkx",
+  "networkx>=3",
   "numpy",
   "osmnx",
   "pandas",
@@ -89,6 +88,9 @@ select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
 [tool.ruff.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
 
 [tool.codespell]
 skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
