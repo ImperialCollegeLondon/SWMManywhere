@@ -6,6 +6,7 @@ following test command:
 
 pytest -m downloads
 """
+from __future__ import annotations
 
 import io
 import tempfile

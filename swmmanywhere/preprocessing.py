@@ -4,6 +4,7 @@ A module to call downloads, preprocess these downloads into formats suitable
 for graphfcns, and some other utilities (such as creating a project folder 
 structure or create the starting graph from rivers/streets).
 """
+from __future__ import annotations
 
 import json
 import tempfile

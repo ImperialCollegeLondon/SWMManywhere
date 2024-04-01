@@ -4,6 +4,8 @@ This module is designed to be run in parallel as a jobarray. It generates
 parameter samples and runs the SWMManywhere model for each sample. The results
 are saved to a csv file in a results directory.
 """
+from __future__ import annotations
+
 import argparse
 import os
 from pathlib import Path

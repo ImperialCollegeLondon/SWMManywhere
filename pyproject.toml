@@ -89,6 +89,9 @@ select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 [tool.ruff.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
 [tool.codespell]
 skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"

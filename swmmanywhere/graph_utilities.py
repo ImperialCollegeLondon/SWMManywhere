@@ -3,6 +3,8 @@
 A module to contain graphfcns, the graphfcn registry object, and other graph
 utilities (such as save/load functions).
 """
+from __future__ import annotations
+
 import json
 import os
 import tempfile
