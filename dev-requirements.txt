@@ -288,7 +288,7 @@ scipy==1.12.0
     #   salib
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-shapely==2.0.2
+shapely==2.0.3
     # via
     #   geopandas
     #   osmnx
