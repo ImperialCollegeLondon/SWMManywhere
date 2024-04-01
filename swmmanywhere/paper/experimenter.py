@@ -4,11 +4,15 @@ This module is designed to be run in parallel as a jobarray. It generates
 parameter samples and runs the SWMManywhere model for each sample. The results
 are saved to a csv file in a results directory.
 """
+from __future__ import annotations
+
+import argparse
 import os
-import sys
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
+import toolz as tlz
 from SALib.sample import sobol
 
 # Set the number of threads to 1 to avoid conflicts with parallel processing
@@ -22,18 +26,22 @@ from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"
 
-def formulate_salib_problem(parameters_to_select: list[str | dict] = []) -> dict:
+def formulate_salib_problem(parameters_to_select: 
+                            list[str | dict] | None = None) -> dict:
     """Formulate a SALib problem for a sensitivity analysis.
 
     Args:
         parameters_to_select (list, optional): List of parameters to include in 
             the analysis, if a list entry is a dictionary, the value is the
             bounds, otherwise the bounds are taken from the parameters file.
-            Defaults to [].
+            Defaults to None.
 
     Returns:
         dict: A dictionary containing the problem formulation.
     """
+    # Set as empty by default
+    parameters_to_select = [] if parameters_to_select is None else parameters_to_select
+
     # Get all parameters schema
     parameters = get_full_parameters_flat()
     names = []
@@ -43,8 +51,8 @@ def formulate_salib_problem(parameters_to_select: list[str | dict] = []) -> dict
 
     for parameter in parameters_to_select:
         if isinstance(parameter, dict):
-            bound = list(parameter.values())[0]
-            parameter = list(parameter.keys())[0]
+            bound = next(iter(parameter.values()))
+            parameter = next(iter(parameter))
         else:
             bound = [parameters[parameter]['minimum'],
                       parameters[parameter]['maximum']]
@@ -98,15 +106,11 @@ def generate_samples(N: int | None = None,
                                 calc_second_order=calc_second_order,
                                 seed = seed)
     # Store samples
-    X = []
-    for ix, params in enumerate(param_values):
-        for x,y,z in zip(problem['groups'],
-                         problem['names'],
-                         params):
-            X.append({'param' : y,
-                    'value' : z,
-                    'iter' : ix,
-                    'group' : x})
+    X = [
+        {'param': y, 'value': z, 'iter': ix, 'group': x}
+        for ix, params in enumerate(param_values)
+        for x, y, z in zip(problem['groups'], problem['names'], params, strict=True)
+    ]
     return X
 
 def process_parameters(jobid: int, 
@@ -137,19 +141,32 @@ def process_parameters(jobid: int,
     flooding_results = {}
     nproc = nproc if nproc is not None else len(X)
 
+    # Assign jobs based on jobid
+    job_iter = tlz.partition_all(nproc, range(len(X)))
+    for _ in range(jobid + 1):
+        job_idx = next(job_iter, None)
+
+    if job_idx is None:
+        raise ValueError(f"Jobid {jobid} is required.")
+
+    config = config_base.copy()
+
     # Iterate over the samples, running the model when the jobid matches the
     # processor number
-    for ix, params_ in gb:
-        if ix % nproc != jobid:
-            continue
+    for ix in job_idx:
         config = config_base.copy()
+        params_ = gb.get_group(ix)
 
         # Update the parameters
-        for _, row in params_.iterrows():
-            if row['group'] not in config['parameter_overrides']:
-                config['parameter_overrides'][row['group']] = {}
-            config['parameter_overrides'][row['group']][row['param']] = row['value']
-        flooding_results[ix] = ix
+        overrides: dict = defaultdict(dict)
+        for grp, param, val in params_[["group", 
+                                        "param", 
+                                        "value"]].itertuples(index=False, 
+                                                             name=None):
+            if grp not in overrides:
+                overrides[grp] = {}
+            overrides[grp][param] = val
+        config['parameter_overrides'].update(overrides)
 
         # Run the model
         config['model_number'] = ix
@@ -189,16 +206,24 @@ def parse_arguments() -> tuple[int, int | None, Path]:
         tuple: A tuple containing the job id, number of processors, and the
             configuration file path.
     """
-    if len(sys.argv) > 1:
-        jobid = int(sys.argv[1])
-        nproc = int(sys.argv[2])
-        config_path = Path(sys.argv[3])
-    else:
-        jobid = 1
-        nproc = None
-        config_path = Path(__file__).parent.parent.parent / 'tests' /\
-              'test_data' / 'demo_config_sa.yml'
-    return jobid, nproc, config_path
+    parser = argparse.ArgumentParser(description='Process command line arguments.')
+    parser.add_argument('--jobid', 
+                        type=int, 
+                        default=1, 
+                        help='Job ID')
+    parser.add_argument('--nproc', 
+                        type=int, 
+                        default=None, 
+                        help='Number of processors')
+    parser.add_argument('--config_path', 
+                        type=Path, 
+                        default=Path(__file__).parent.parent.parent / 'tests' /\
+                                    'test_data' / 'demo_config_sa.yml',
+                        help='Configuration file path')
+
+    args = parser.parse_args()
+
+    return args.jobid, args.nproc, args.config_path
 
 if __name__ == '__main__':
     # Get args

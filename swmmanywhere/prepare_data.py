@@ -2,6 +2,7 @@
 
 A module to download data needed for SWMManywhere.
 """
+from __future__ import annotations
 
 import shutil
 from pathlib import Path

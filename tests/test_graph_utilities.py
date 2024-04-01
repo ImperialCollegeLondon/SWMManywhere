@@ -3,6 +3,8 @@
 
 @author: Barney
 """
+from __future__ import annotations
+
 import math
 import tempfile
 from pathlib import Path
