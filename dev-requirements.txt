@@ -154,7 +154,7 @@ nodeenv==1.8.0
     # via pre-commit
 numba==0.58.1
     # via pysheds
-numpy==1.26.3
+numpy==1.26.4
     # via
     #   cftime
     #   contourpy
@@ -205,7 +205,7 @@ pillow==10.2.0
     #   imageio
     #   matplotlib
     #   scikit-image
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via swmmanywhere (pyproject.toml)
 platformdirs==3.11.0
     # via virtualenv
@@ -288,7 +288,7 @@ scipy==1.12.0
     #   salib
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-shapely==2.0.2
+shapely==2.0.3
     # via
     #   geopandas
     #   osmnx
@@ -318,9 +318,9 @@ typing-extensions==4.9.0
     #   pydantic-core
 tzdata==2024.1
     # via pandas
-urllib3==2.1.0
+urllib3==2.2.1
     # via requests
-virtualenv==20.24.5
+virtualenv==20.25.1
     # via pre-commit
 wheel==0.41.3
     # via pip-tools

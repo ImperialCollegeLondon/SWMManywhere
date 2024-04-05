@@ -10,6 +10,8 @@ This is an info message.
 >>> logger.add("file.log") # Add a log file # doctest: +SKIP
 >>> os.environ["SWMMANYWHERE_VERBOSE"] = "false" # Disable logging
 """
+from __future__ import annotations
+
 import os
 import sys
 
