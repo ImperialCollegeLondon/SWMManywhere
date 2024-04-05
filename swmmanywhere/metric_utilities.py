@@ -119,7 +119,7 @@ def extract_var(df: pd.DataFrame,
     return df_
 
 def pbias(y: np.ndarray,
-          yhat: np.ndarray) -> float | None:
+          yhat: np.ndarray) -> float:
     r"""PBIAS.
 
     Calculate the percent bias:
@@ -132,16 +132,19 @@ def pbias(y: np.ndarray,
     - :math:`synthetic` is the synthetic data,
     - :math:`real` is the real data.
     """
-    return (yhat.sum() - y.sum()) / y.sum()
+    total_observed = y.sum()
+    if total_observed == 0:
+        return np.inf
+    return (yhat.sum() - total_observed) / total_observed
 
 def nse(y: np.ndarray,
-        yhat: np.ndarray) -> float | None:
+        yhat: np.ndarray) -> float:
     """Calculate Nash-Sutcliffe efficiency (NSE)."""
     if np.std(y) == 0:
         return np.inf
-    return 1 - np.sum((y - yhat)**2) / np.sum((y - np.mean(y))**2)
+    return 1 - np.sum(np.square(y - yhat)) / np.sum(np.square(y - np.mean(y)))
 
-def kge(y: np.ndarray,yhat: np.ndarray) -> float | None:
+def kge(y: np.ndarray,yhat: np.ndarray) -> float:
     """Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
     
     Parameters:
@@ -152,7 +155,7 @@ def kge(y: np.ndarray,yhat: np.ndarray) -> float | None:
     float: The KGE value.
     """
     if (np.std(y) == 0) | (np.mean(y) == 0):
-        return None
+        return np.inf
     if np.std(yhat) == 0:
         r = 0
     else:
@@ -167,7 +170,7 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
                   variable: str, 
                   syn_ids: list,
                   real_ids: list,
-                  coef: Callable = nse) -> float | None:
+                  coef: Callable = nse) -> float:
     """Align and calculate coef.
 
     Align the synthetic and real data and calculate the coef metric
@@ -242,7 +245,7 @@ def create_subgraph(G: nx.Graph,
 
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
-                        coef: Callable = nse) -> float | None:
+                        coef: Callable = nse) -> float:
     """Median coef value by group.
 
     Calculate the median coef value of a variable over time
@@ -266,8 +269,7 @@ def median_coef_by_group(results: pd.DataFrame,
         .apply(lambda x: coef(x.value_real, x.value_sim))
         .median()
     )
-    if not np.isfinite(val):
-        return None
+
     return val
 
 
