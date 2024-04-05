@@ -595,28 +595,25 @@ def metric_factory(name: str):
     Returns:
         Callable: The metric function.
     """
+    # Split the name
     parts = name.split('_')
     if len(parts) != 3:
         raise ValueError("Invalid metric name. Expected 'scale_metric_variable'")
     scale, metric, variable = parts
-    if metric == 'nse':
-        coef_func = nse
-    elif metric == 'kge':
-        coef_func = kge
-    elif metric == 'pbias':
-        coef_func = pbias
-    else:
-        raise ValueError(f"Invalid coefficient {metric}. Can be 'nse', 'kge', 'pbias'")
-        
-    if scale == 'grid':
-        func = grid
-    elif scale == 'subcatchment':
-        func = subcatchment
-    elif scale == 'outlet':
-        func = outlet
-    else:
-        raise ValueError(f"""Invalid scale {scale}. 
-                         Can be 'grid', 'subcatchment', 'outlet'""")
+
+    # Get coefficient
+    coef_dict = {"nse": nse, "kge": kge, "pbias": pbias}
+    if metric not in coef_dict:
+        raise ValueError(f"Invalid coef {metric}. Can be {coef_dict.values()}")
+    coef_func = coef_dict[metric]
+
+    # Get scale
+    func_dict = {"grid": grid, "subcatchment": subcatchment, "outlet": outlet}
+    if scale not in func_dict:
+        raise ValueError(f"Invalid scale {scale}. Can be {func_dict.keys()}")
+    func = func_dict[scale]
+    
+    # Further validation
     design_variables = ['length', 'nmanholes', 'npipes']
     if variable in design_variables:
         if scale != 'outlet':
@@ -624,6 +621,7 @@ def metric_factory(name: str):
         if metric != 'pbias':
             raise ValueError(f"Variable {variable} only valid with pbias metric")
 
+    # Create the metric function
     def new_metric(**kwargs):
         return func(coef_func = coef_func,
                     var = variable,
