@@ -137,6 +137,21 @@ def test_kge():
                  yhat = np.array([3,3,3,3,3]))
     assert_close(val, (1-2**0.5))
 
+def test_inf():
+    """Test metrics handling of invalid coefficients."""
+    val = mu.kge(y = np.array([3,3,3,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+
+    val = mu.nse(y = np.array([3,3,3,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+
+    val = mu.pbias(y = np.array([-3,-3,0,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+    
+
 def test_outlet_nse_flow():
     """Test the outlet_nse_flow metric."""
     # Load data
