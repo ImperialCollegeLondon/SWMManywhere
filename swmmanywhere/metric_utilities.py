@@ -170,10 +170,10 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
                   variable: str, 
                   syn_ids: list,
                   real_ids: list,
-                  coef: Callable = nse) -> float:
-    """Align and calculate coef.
+                  coef_func: Callable = nse) -> float:
+    """Align and calculate coef_func.
 
-    Align the synthetic and real data and calculate the coef metric
+    Align the synthetic and real data and calculate the coef_func metric
     of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
     """
@@ -211,8 +211,8 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
-    # Calculate coef
-    return coef(df.value_real, df.value_syn)
+    # Calculate coef_func
+    return coef_func(df.value_real, df.value_syn)
 
 def create_subgraph(G: nx.Graph,
                     nodes: list) -> nx.Graph:
@@ -245,20 +245,20 @@ def create_subgraph(G: nx.Graph,
 
 def median_coef_by_group(results: pd.DataFrame,
                         gb_key: str,
-                        coef: Callable = nse) -> float:
-    """Median coef value by group.
+                        coef_func: Callable = nse) -> float:
+    """Median coef_func value by group.
 
-    Calculate the median coef value of a variable over time
+    Calculate the median coef_func value of a variable over time
     for each group in the results dataframe, and return the median of these
     values.
 
     Args:
         results (pd.DataFrame): The results dataframe.
         gb_key (str): The column to group by.
-        coef (Callable): The coefficient to calculate. Default is nse.
+        coef_func (Callable): The coefficient to calculate. Default is nse.
 
     Returns:
-        float: The median coef value.
+        float: The median coef_func value.
     """
     val = (
         results
@@ -266,7 +266,7 @@ def median_coef_by_group(results: pd.DataFrame,
         .sum()
         .reset_index()
         .groupby(gb_key)
-        .apply(lambda x: coef(x.value_real, x.value_sim))
+        .apply(lambda x: coef_func(x.value_real, x.value_sim))
         .median()
     )
 
@@ -470,13 +470,13 @@ def subcatchment(synthetic_results: pd.DataFrame,
                 real_G: nx.Graph,
                 metric_evaluation: MetricEvaluation,
                 var: str,
-                coef: Callable,
+                coef_func: Callable,
                 ):
     """Subcatchment scale metric.
 
-    Calculate the coefficient (coef) of a variable over time for aggregated to real 
-    subcatchment scale. The metric produced is the median coef across all 
-    subcatchments.
+    Calculate the coefficient (coef_func) of a variable over time for aggregated 
+    to real subcatchment scale. The metric produced is the median coef_func 
+    across all subcatchments.
     """
     results = align_by_shape(var,
                                     synthetic_results = synthetic_results,
@@ -485,7 +485,7 @@ def subcatchment(synthetic_results: pd.DataFrame,
                                     synthetic_G = synthetic_G,
                                     real_G = real_G)
     
-    return median_coef_by_group(results, 'sub_id', coef=coef)
+    return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
 def grid(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
@@ -495,12 +495,12 @@ def grid(synthetic_results: pd.DataFrame,
                 real_G: nx.Graph,
                 metric_evaluation: MetricEvaluation,
                 var: str,
-                coef: Callable,
+                coef_func: Callable,
                 ):
     """Grid scale metric.
 
-    Classify synthetic nodes to a grid and calculate the coef of a variable over
-    time for each grid cell. The metric produced is the median coef across all
+    Classify synthetic nodes to a grid and calculate the coef_func of a variable over
+    time for each grid cell. The metric produced is the median coef_func across all
     grid cells.
     """
     # Create a grid (GeoDataFrame of polygons)
@@ -517,7 +517,7 @@ def grid(synthetic_results: pd.DataFrame,
                                     synthetic_G = synthetic_G,
                                     real_G = real_G)
     # Calculate coefficient
-    return median_coef_by_group(results, 'sub_id', coef=coef)
+    return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
 def outlet(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
@@ -527,7 +527,7 @@ def outlet(synthetic_results: pd.DataFrame,
                 real_G: nx.Graph,
                 metric_evaluation: MetricEvaluation,
                 var: str,
-                coef: Callable,
+                coef_func: Callable,
                 ):
     """Outlet scale metric.
 
@@ -542,16 +542,22 @@ def outlet(synthetic_results: pd.DataFrame,
     
     if var == 'nmanholes':
         # Calculate the coefficient based on the number of manholes
-        return coef(np.array(sg_real.number_of_nodes()),
+        return coef_func(np.array(sg_real.number_of_nodes()),
                     np.array(sg_syn.number_of_nodes()))
     elif var == 'npipes':
         # Calculate the coefficient based on the number of pipes
-        return coef(np.array(sg_real.number_of_edges()),
+        return coef_func(np.array(sg_real.number_of_edges()),
                     np.array(sg_syn.number_of_edges()))
     elif var == 'length':
         # Calculate the coefficient based on the total length of the pipes
-        return coef(np.array(list(nx.get_edge_attributes(sg_real, 'length').values())),
-                    np.array(list(nx.get_edge_attributes(sg_syn, 'length').values())))
+        return coef_func(
+            np.array(
+                list(nx.get_edge_attributes(sg_real, 'length').values())
+                ),
+            np.array(
+                list(nx.get_edge_attributes(sg_syn, 'length').values())
+                )
+            )
     elif var == 'flow':
         # Identify synthetic and real arcs that flow into the best outlet node
         syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
@@ -569,7 +575,7 @@ def outlet(synthetic_results: pd.DataFrame,
                          var,
                          syn_arc, 
                          real_arc,
-                         coef = coef)
+                         coef_func = coef_func)
 
 def metric_factory(name: str):
     """Create a metric function.
@@ -590,11 +596,11 @@ def metric_factory(name: str):
         raise ValueError("Invalid metric name. Expected 'scale_metric_variable'")
     scale, metric, variable = parts
     if metric == 'nse':
-        coef = nse
+        coef_func = nse
     elif metric == 'kge':
-        coef = kge
+        coef_func = kge
     elif metric == 'pbias':
-        coef = pbias
+        coef_func = pbias
     else:
         raise ValueError(f"Invalid coefficient {metric}. Can be 'nse', 'kge', 'pbias'")
         
@@ -608,7 +614,7 @@ def metric_factory(name: str):
         raise ValueError(f"""Invalid scale {scale}. 
                          Can be 'grid', 'subcatchment', 'outlet'""")
     def new_metric(**kwargs):
-        return func(coef = coef,
+        return func(coef_func = coef_func,
                     var = variable,
                     **kwargs)
     new_metric.__name__ = name
