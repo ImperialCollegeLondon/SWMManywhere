@@ -548,11 +548,11 @@ def outlet(synthetic_results: pd.DataFrame,
         # Calculate the coefficient based on the number of manholes
         return coef_func(np.atleast_1d(sg_real.number_of_nodes()),
                     np.atleast_1d(sg_syn.number_of_nodes()))
-    elif var == 'npipes':
+    if var == 'npipes':
         # Calculate the coefficient based on the number of pipes
         return coef_func(np.atleast_1d(sg_real.number_of_edges()),
                     np.atleast_1d(sg_syn.number_of_edges()))
-    elif var == 'length':
+    if var == 'length':
         # Calculate the coefficient based on the total length of the pipes
         return coef_func(
             np.array(
@@ -562,13 +562,13 @@ def outlet(synthetic_results: pd.DataFrame,
                 list(nx.get_edge_attributes(sg_syn, 'length').values())
                 )
             )
-    elif var == 'flow':
+    if var == 'flow':
         # Identify synthetic and real arcs that flow into the best outlet node
         syn_arc = [d['id'] for u,v,d in synthetic_G.edges(data=True)
                     if v == syn_outlet]
         real_arc = [d['id'] for u,v,d in real_G.edges(data=True)
                 if v == real_outlet]
-    else:
+    elif var == 'flooding':
         # Use all nodes in the subgraphs
         syn_arc = list(sg_syn.nodes)
         real_arc = list(sg_real.nodes)
