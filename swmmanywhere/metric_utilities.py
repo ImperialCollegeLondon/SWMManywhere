@@ -540,14 +540,18 @@ def outlet(synthetic_results: pd.DataFrame,
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
     sg_real, real_outlet = dominant_outlet(real_G, real_results)
     
+    allowable_var = ['nmanholes', 'npipes', 'length', 'flow', 'flooding']
+    if var not in allowable_var:
+        raise ValueError(f"Invalid variable {var}. Can be {allowable_var}")
+
     if var == 'nmanholes':
         # Calculate the coefficient based on the number of manholes
-        return coef_func(np.array(sg_real.number_of_nodes()),
-                    np.array(sg_syn.number_of_nodes()))
+        return coef_func(np.atleast_1d(sg_real.number_of_nodes()),
+                    np.atleast_1d(sg_syn.number_of_nodes()))
     elif var == 'npipes':
         # Calculate the coefficient based on the number of pipes
-        return coef_func(np.array(sg_real.number_of_edges()),
-                    np.array(sg_syn.number_of_edges()))
+        return coef_func(np.atleast_1d(sg_real.number_of_edges()),
+                    np.atleast_1d(sg_syn.number_of_edges()))
     elif var == 'length':
         # Calculate the coefficient based on the total length of the pipes
         return coef_func(
@@ -613,6 +617,13 @@ def metric_factory(name: str):
     else:
         raise ValueError(f"""Invalid scale {scale}. 
                          Can be 'grid', 'subcatchment', 'outlet'""")
+    design_variables = ['length', 'nmanholes', 'npipes']
+    if variable in design_variables:
+        if scale != 'outlet':
+            raise ValueError(f"Variable {variable} only supported at the outlet scale")
+        if metric != 'pbias':
+            raise ValueError(f"Variable {variable} only valid with pbias metric")
+
     def new_metric(**kwargs):
         return func(coef_func = coef_func,
                     var = variable,
