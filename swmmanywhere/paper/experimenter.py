@@ -142,6 +142,8 @@ def process_parameters(jobid: int,
     nproc = nproc if nproc is not None else n_iter
 
     # Assign jobs based on jobid
+    if jobid >= nproc:
+        raise ValueError("Jobid should be less than the number of processors.")
     job_idx = range(jobid, n_iter, nproc)
 
     config = config_base.copy()
