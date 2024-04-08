@@ -137,13 +137,13 @@ def process_parameters(jobid: int,
     
     df = pd.DataFrame(X)
     gb = df.groupby('iter')
-    
+    n_iter = len(gb)
     flooding_results = {}
-    nproc = nproc if nproc is not None else len(X)
+    nproc = nproc if nproc is not None else n_iter
 
     # Assign jobs based on jobid
-    job_iter = tlz.partition_all(nproc, range(len(X)))
-    for _ in range(jobid):
+    job_iter = tlz.partition_all(nproc, range(n_iter))
+    for _ in range(jobid + 1):
         job_idx = next(job_iter, None)
 
     if job_idx is None:
