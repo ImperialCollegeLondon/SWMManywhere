@@ -142,7 +142,15 @@ def process_parameters(jobid: int,
     nproc = nproc if nproc is not None else n_iter
 
     # Assign jobs based on jobid
-    job_iter = tlz.partition_all(nproc, range(n_iter))
+    if n_iter % nproc != 0:
+        logger.warning(f"""Number of samples ({n_iter}) is not divisible by the 
+                       number of processors ({nproc}), leaving some processors
+                       unused.""")
+        n = int(n_iter / nproc) + 1
+    else:
+        n = int(n_iter / nproc)
+        
+    job_iter = tlz.partition_all(n, range(n_iter))
     for _ in range(jobid + 1):
         job_idx = next(job_iter, None)
 
