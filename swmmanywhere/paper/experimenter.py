@@ -142,7 +142,7 @@ def process_parameters(jobid: int,
     nproc = nproc if nproc is not None else len(X)
 
     # Assign jobs based on jobid
-    job_iter = tlz.partition_all(nproc, range(len(X)))
+    job_iter = tlz.partition_all(nproc, range(len(gb)))
     for _ in range(jobid + 1):
         job_idx = next(job_iter, None)
 
