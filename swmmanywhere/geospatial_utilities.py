@@ -3,6 +3,8 @@
 A module containing functions to perform a variety of geospatial operations,
 such as reprojecting coordinates and handling raster data.
 """
+from __future__ import annotations
+
 import itertools
 import json
 import math
@@ -25,6 +27,7 @@ from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 from shapely import ops as sops
+from shapely.errors import GEOSException
 from shapely.strtree import STRtree
 from tqdm import tqdm
 
@@ -655,8 +658,13 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
                          building_footprints[['geometry']], 
                          how='union')
     result = gpd.overlay(polys_gdf, result)
-
-    dissolved_result = result.dissolve(by='id').reset_index()
+    try:
+        dissolved_result = result.dissolve(by='id').reset_index()
+    except GEOSException:
+        # Temporary fix for bug: 
+        # https://github.com/ImperialCollegeLondon/SWMManywhere/issues/115
+        result['geometry'] = result['geometry'].simplify(0.1)
+        dissolved_result = result.dissolve(by='id').reset_index()
     dissolved_result['impervious_area'] = dissolved_result.geometry.area
     polys_gdf = pd.merge(polys_gdf, 
                             dissolved_result[['id','impervious_area']], 
