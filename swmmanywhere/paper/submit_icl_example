@@ -19,4 +19,4 @@ cd $PBS_O_WORKDIR
 
 # Run program, passing the index of this subjob within the array
 
-python experimenter.py $PBS_ARRAY_INDEX 7000 /rds/general/user/bdobson/ephemeral/swmmanywhere/cranbrook/cranbrook_hpc.yml
+python experimenter.py --jobid=$PBS_ARRAY_INDEX --nproc=7000 --config_path=/rds/general/user/bdobson/ephemeral/swmmanywhere/cranbrook/cranbrook_hpc.yml
