@@ -519,6 +519,41 @@ def create_grid(bbox: tuple,
 
     return gpd.GeoDataFrame(grid)
 
+scale_registry = {}
+def register_scale(scale_func: Callable):
+    """Register a scale function.
+    
+    Register a scale function to the scale_registry. The function should
+    take the same arguments as the scale functions and return a float. The 
+    function should be registered with the '@register_scale' decorator. A scale
+    function is called as a metric, but with some additional arguments provided
+    (i.e., the variable name and the coefficient function to use). The function
+    should return a float.
+    
+    Args:
+        scale_func (Callable): The scale function to register.
+    """
+    name = scale_func.__name__
+
+    # Check if the function is already registered
+    if name in scale_registry:
+        raise ValueError(f"Scale function '{name}' already registered.")
+    
+    # Validate the function
+    args = list(get_type_hints(scale_func).keys())
+    if args != ['synthetic_results', 'synthetic_subs', 'synthetic_G', 
+                'real_results', 'real_subs', 'real_G', 'metric_evaluation',
+                'var', 'coef_func']:
+        raise ValueError(f"""Scale {scale_func.__name__} requires args 
+                         ('synthetic_results', 'synthetic_subs', 'synthetic_G', 
+                         'real_results', 'real_subs', 'real_G', 
+                         'metric_evaluation', 'var', 'coef_func').""")
+    
+    # Add the function to the registry
+    scale_registry[name] = scale_func
+    return scale_func
+
+@register_scale
 def subcatchment(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -558,6 +593,7 @@ def subcatchment(synthetic_results: pd.DataFrame,
     
     return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
+@register_scale
 def grid(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -604,6 +640,7 @@ def grid(synthetic_results: pd.DataFrame,
     # Calculate coefficient
     return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
+@register_scale
 def outlet(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -704,10 +741,7 @@ def metric_factory(name: str):
     coef_func = coef_registry[metric]
 
     # Get scale
-    func_dict = {"grid": grid, "subcatchment": subcatchment, "outlet": outlet}
-    if scale not in func_dict:
-        raise ValueError(f"Invalid scale {scale}. Can be {func_dict.keys()}")
-    func = func_dict[scale]
+    func = scale_registry[scale]
     
     # Further validation
     design_variables = ['length', 'nmanholes', 'npipes']
