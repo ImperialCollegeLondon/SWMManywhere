@@ -42,7 +42,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                 config.get('model_number',None)
                                 )
     
-    for key, val in config.get('address_overrides', {}).items():
+    for key, val in (config.get('address_overrides') or {}).items():
         setattr(addresses, key, val)
 
     # Run downloads
@@ -217,7 +217,9 @@ def check_parameters_to_sample(config: dict):
         
     return config
 
-def load_config(config_path: Path, validation: bool = True):
+def load_config(config_path: Path = Path(__file__).parent.parent / 'tests' / \
+                    'test_data' / 'demo_config.yml', 
+                validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
 
     Args:
