@@ -488,7 +488,8 @@ def align_by_shape(var,
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
                             on = ['date','sub_id'],
-                            suffixes = ('_real', '_sim')
+                            suffixes = ('_real', '_sim'),
+                            how = 'outer'
                             )
     return results
 
@@ -514,7 +515,7 @@ def create_grid(bbox: tuple,
     else: 
         dx = dy = scale
     xmins = np.arange(minx, maxx, dx)
-    ymins = np.arange(minx, maxy, dy)
+    ymins = np.arange(miny, maxy, dy)
     grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
              'sub_id' : i} for i, (x, y) in enumerate(product(xmins, ymins))]
 

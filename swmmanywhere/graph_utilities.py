@@ -491,6 +491,7 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
+            subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
         if addresses.building.suffix in ('.geoparquet','.parquet'):
