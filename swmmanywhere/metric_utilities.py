@@ -67,8 +67,6 @@ class MetricRegistry(dict):
             return self[name]
         except KeyError:
             raise AttributeError(f"{name} NOT in the metric registry!")
-        
-
 metrics = MetricRegistry()
 
 def iterate_metrics(synthetic_results: pd.DataFrame, 
@@ -118,9 +116,38 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
+# Coefficient Registry
+coef_registry = {}
+
+def register_coef(coef_func: Callable):
+    """Register a coefficient function.
+    
+    Register a coefficient function to the coef_registry. The function should
+    take two arguments, 'y' and 'yhat', and return a float. The function should
+    be registered with the '@register_coef' decorator.
+    
+    Args:
+        coef_func (Callable): The coefficient function to register.
+    """
+    name = coef_func.__name__
+
+    # Check if the function is already registered
+    if name in coef_registry:
+        raise ValueError(f"Coefficient function '{name}' already registered.")
+    
+    # Validate the function
+    args = list(get_type_hints(coef_func).keys())
+    if 'y' != args[0] or 'yhat' != args[1]:
+        raise ValueError(f"Coef {coef_func.__name__} requires args ('y', 'yhat').")
+    
+    # Add the function to the registry
+    coef_registry[name] = coef_func
+    return coef_func
+
+@register_coef
 def pbias(y: np.ndarray,
           yhat: np.ndarray) -> float:
-    r"""PBIAS.
+    r"""Percentage bias, PBIAS.
 
     Calculate the percent bias:
 
@@ -132,28 +159,45 @@ def pbias(y: np.ndarray,
 
     - $syn_{length}$ is the synthetic length,
     - $real_{length}$ is the real length.
+
+    Args:
+        y (np.ndarray): The real data.
+        yhat (np.ndarray): The synthetic data.
+
+    Returns:
+        float: The PBIAS value.
     """
     total_observed = y.sum()
     if total_observed == 0:
         return np.inf
     return (yhat.sum() - total_observed) / total_observed
 
+@register_coef
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
-    """Calculate Nash-Sutcliffe efficiency (NSE)."""
+    """Calculate Nash-Sutcliffe efficiency (NSE).
+    
+    Args:
+        y (np.array): Observed data array.
+        yhat (np.array): Simulated data array.
+
+    Returns:
+        float: The NSE value.
+    """
     if np.std(y) == 0:
         return np.inf
     return 1 - np.sum(np.square(y - yhat)) / np.sum(np.square(y - np.mean(y)))
 
+@register_coef
 def kge(y: np.ndarray,yhat: np.ndarray) -> float:
     """Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
     
-    Parameters:
-    y (np.array): Observed data array.
-    yhat (np.array): Simulated data array.
+    Args:
+        y (np.array): Observed data array.
+        yhat (np.array): Simulated data array.
     
     Returns:
-    float: The KGE value.
+        float: The KGE value.
     """
     if (np.std(y) == 0) | (np.mean(y) == 0):
         return np.inf
@@ -174,9 +218,22 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
                   coef_func: Callable = nse) -> float:
     """Align and calculate coef_func.
 
-    Align the synthetic and real data and calculate the coef_func metric
+    Aggregate synthetic and real results by date for specifics ids. 
+    Align the synthetic and real dates and calculate the coef_func metric
     of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        real_results (pd.DataFrame): The real results.
+        variable (str): The variable to align and calculate coef_func for.
+        syn_ids (list): The ids of the synthetic data to subselect for.
+        real_ids (list): The ids of the real data to subselect for.
+        coef_func (Callable, optional): The coefficient to calculate. 
+            Defaults to nse.
+
+    Returns:
+        float: The coef_func value.
     """
     synthetic_results = synthetic_results.copy()
     real_results = real_results.copy()
@@ -463,6 +520,41 @@ def create_grid(bbox: tuple,
 
     return gpd.GeoDataFrame(grid)
 
+scale_registry = {}
+def register_scale(scale_func: Callable):
+    """Register a scale function.
+    
+    Register a scale function to the scale_registry. The function should
+    take the same arguments as the scale functions and return a float. The 
+    function should be registered with the '@register_scale' decorator. A scale
+    function is called as a metric, but with some additional arguments provided
+    (i.e., the variable name and the coefficient function to use). The function
+    should return a float.
+    
+    Args:
+        scale_func (Callable): The scale function to register.
+    """
+    name = scale_func.__name__
+
+    # Check if the function is already registered
+    if name in scale_registry:
+        raise ValueError(f"Scale function '{name}' already registered.")
+    
+    # Validate the function
+    args = list(get_type_hints(scale_func).keys())
+    if args != ['synthetic_results', 'synthetic_subs', 'synthetic_G', 
+                'real_results', 'real_subs', 'real_G', 'metric_evaluation',
+                'var', 'coef_func']:
+        raise ValueError(f"""Scale {scale_func.__name__} requires args 
+                         ('synthetic_results', 'synthetic_subs', 'synthetic_G', 
+                         'real_results', 'real_subs', 'real_G', 
+                         'metric_evaluation', 'var', 'coef_func').""")
+    
+    # Add the function to the registry
+    scale_registry[name] = scale_func
+    return scale_func
+
+@register_scale
 def subcatchment(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -478,6 +570,20 @@ def subcatchment(synthetic_results: pd.DataFrame,
     Calculate the coefficient (coef_func) of a variable over time for aggregated 
     to real subcatchment scale. The metric produced is the median coef_func 
     across all subcatchments.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_results (pd.DataFrame): The real results.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+        real_G (nx.Graph): The real graph.
+        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
+        var (str): The variable to calculate the coefficient for.
+        coef_func (Callable): The coefficient to calculate.
+
+    Returns:
+        float: The median coef_func value.
     """
     results = align_by_shape(var,
                                     synthetic_results = synthetic_results,
@@ -488,6 +594,7 @@ def subcatchment(synthetic_results: pd.DataFrame,
     
     return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
+@register_scale
 def grid(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -503,6 +610,20 @@ def grid(synthetic_results: pd.DataFrame,
     Classify synthetic nodes to a grid and calculate the coef_func of a variable over
     time for each grid cell. The metric produced is the median coef_func across all
     grid cells.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_results (pd.DataFrame): The real results.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+        real_G (nx.Graph): The real graph.
+        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
+        var (str): The variable to calculate the coefficient for.
+        coef_func (Callable): The coefficient to calculate.
+
+    Returns:
+        float: The median coef_func value.
     """
     # Create a grid (GeoDataFrame of polygons)
     scale = metric_evaluation.grid_scale
@@ -520,6 +641,7 @@ def grid(synthetic_results: pd.DataFrame,
     # Calculate coefficient
     return median_coef_by_group(results, 'sub_id', coef_func=coef_func)
 
+@register_scale
 def outlet(synthetic_results: pd.DataFrame,
                 synthetic_subs: gpd.GeoDataFrame,
                 synthetic_G: nx.Graph,
@@ -536,6 +658,20 @@ def outlet(synthetic_results: pd.DataFrame,
     drains to the dominant outlet node. The dominant outlet node of the 'real'
     network is calculated by dominant_outlet, while the dominant outlet node of
     the 'synthetic' network is calculated by best_outlet_match.
+
+    Args:
+        synthetic_results (pd.DataFrame): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
+        synthetic_G (nx.Graph): The synthetic graph.
+        real_results (pd.DataFrame): The real results.
+        real_subs (gpd.GeoDataFrame): The real subcatchments.
+        real_G (nx.Graph): The real graph.
+        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
+        var (str): The variable to calculate the coefficient for.
+        coef_func (Callable): The coefficient to calculate.
+
+    Returns:
+        float: The median coef_func value.
     """
     # Identify synthetic and real arcs that flow into the best outlet node
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
@@ -603,16 +739,10 @@ def metric_factory(name: str):
     scale, metric, variable = parts
 
     # Get coefficient
-    coef_dict = {"nse": nse, "kge": kge, "pbias": pbias}
-    if metric not in coef_dict:
-        raise ValueError(f"Invalid coef {metric}. Can be {coef_dict.values()}")
-    coef_func = coef_dict[metric]
+    coef_func = coef_registry[metric]
 
     # Get scale
-    func_dict = {"grid": grid, "subcatchment": subcatchment, "outlet": outlet}
-    if scale not in func_dict:
-        raise ValueError(f"Invalid scale {scale}. Can be {func_dict.keys()}")
-    func = func_dict[scale]
+    func = scale_registry[scale]
     
     # Further validation
     design_variables = ['length', 'nmanholes', 'npipes']
