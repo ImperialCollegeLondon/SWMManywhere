@@ -116,6 +116,70 @@ def extract_var(df: pd.DataFrame,
                         df_.date.min()).dt.total_seconds()
     return df_
 
+# Restriction registry
+restriction_registry = {}
+
+def register_restriction(restriction_func: Callable):
+    """Register a restriction function.
+    
+    Register a restriction function to the restriction_registry. A restriction
+    allows for the restriction of certain combinations of variables within the
+    metric_factory. The function should take three arguments, 'scale', 'metric',
+    and 'variable', and should raise a ValueError if the combination is not
+    allowed. The function should be registered with the '@register_restriction'.
+    
+    Args:
+        restriction_func (Callable): The restriction function to register.
+    """
+    name = restriction_func.__name__
+
+    # Check if the function is already registered
+    if name in restriction_registry:
+        raise ValueError(f"Restriction function '{name}' already registered.")
+    
+    # Validate the restriction
+    args = list(get_type_hints(restriction_func).keys())
+    if args != ['scale', 'metric', 'variable']:
+        raise ValueError(f"""Restriction {restriction_func.__name__} requires 
+                         args ('scale', 'metric', 'variable').""")
+
+    # Add the function to the registry
+    restriction_registry[name] = restriction_func
+    return restriction_func
+
+@register_restriction
+def restriction_on_scale(scale: str, 
+                         metric: str, 
+                         variable: str):
+    """Restriction on scale.
+    
+    Restrict the design variables to the outlet scale if the metric is 'pbias'.
+
+    Args:
+        scale (str): The scale of the metric.
+        metric (str): The metric.
+        variable (str): The variable.
+    """
+    if variable in ('length', 'nmanholes', 'npipes') and scale != 'outlet':
+        raise ValueError(f"Variable {variable} only supported at the outlet scale")
+
+@register_restriction
+def restriction_on_metric(scale: str, 
+                          metric: str, 
+                          variable: str):
+    """Restriction on metric.
+
+    Restrict the variable to 'flow' if the metric is 'pbias'.
+
+    Args:
+        scale (str): The scale of the metric.
+        metric (str): The metric.
+        variable (str): The variable.
+    """
+    if variable in ('length', 'nmanholes', 'npipes') and metric != 'pbias':
+        raise ValueError(f"Variable {variable} only valid with pbias metric")
+
+
 # Coefficient Registry
 coef_registry = {}
 
@@ -743,13 +807,9 @@ def metric_factory(name: str):
     # Get scale
     func = scale_registry[scale]
     
-    # Further validation
-    design_variables = ['length', 'nmanholes', 'npipes']
-    if variable in design_variables:
-        if scale != 'outlet':
-            raise ValueError(f"Variable {variable} only supported at the outlet scale")
-        if metric != 'pbias':
-            raise ValueError(f"Variable {variable} only valid with pbias metric")
+    # Validate the metric
+    for restriction in restriction_registry.values():
+        restriction(scale, metric, variable)
 
     # Create the metric function
     def new_metric(**kwargs):
