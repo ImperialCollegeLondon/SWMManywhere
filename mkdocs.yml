@@ -9,7 +9,7 @@ extra_css:
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: false
+      execute: true
   - search
   # - bibtex:
       # bib_file: "./docs/paper/paper.bib"

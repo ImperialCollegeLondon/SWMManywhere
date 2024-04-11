@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from pprint import pprint as print
 
+import pandas as pd
 import yaml
 
 from swmmanywhere import swmmanywhere
@@ -54,17 +55,20 @@ config['base_dir'] = base_dir
 config['project'] = 'my_first_swmm'
 
 # The bounding box is a list of four values: [minx, miny, maxx, maxy], we will
-# pick one in Monaco because the area is small and we can download the building
+# pick one in Andorra because the area is small and we can download the building
 # data for it very quickly (larger countries will take longer)
-config['bbox'] = [7.41680,43.72647,7.43150,43.73578]
+config['bbox'] = [1.50766,42.49559,1.57321,42.52276]
 
 # We need to locate the API keys file
 config['api_keys'] = base_dir / 'api_keys.yml'
 
 # The precipitation downloader is currently broken so we will just use the 
 # design storm
-config['address_overrides'] = {'precipitation' : base_dir.parent.parent.parent /\
-                                    'swmmanywhere' / 'defs' / 'storm.dat'}
+config['address_overrides'] = {'precipitation' : 
+                    Path(swmmanywhere.__file__).parent / 'defs' / 'storm.dat'}
+
+# We do not have a real SWMM model for this so we will delete that entry
+del config['real']
 
 # %% [markdown]
 ## Run SWMManywhere
@@ -77,5 +81,34 @@ config['address_overrides'] = {'precipitation' : base_dir.parent.parent.parent /
 # Run SWMManywhere
 os.environ["SWMMANYWHERE_VERBOSE"] = "true"
 inp, _ = swmmanywhere.swmmanywhere(config)
+print(f'Created SWMM model at: {inp}')
+
+# %% [markdown]
+# OK so we have run the model and we have an `inp` file. This is the SWMM model
+# that we have created and can be loaded by the SWMM software. Here is a 
+# screenshot of this generated run.
+# 
+# ![SWMM Model](../../images/andorra_swmm_screenshot.png)
+# 
+# The `swmmanywhere` function has also run a simulation, the results can be 
+# found in the same folder as the input file, by default they are saved in a 
+# `parquet` format, let's load them and plot something.
 
 # %%
+results = pd.read_parquet(inp.parent / 'results.parquet')
+results.sample(10)
+# %% [markdown]
+# The results are a DataFrame that contains the results of the simulation, the 
+# data is in narrow format, so each row is a simulation of a `variable` at a
+# particular `date` for a particular `id` (i.e., manhole or pipe). 
+# %%
+gb = results.groupby(['variable','id'])
+gb.get_group(('flow', results.iloc[-1].id)).plot(x='date', 
+                                                 y='value',
+                                                 title='Flow in a pipe',
+                                                 xlabel='Date',
+                                                 ylabel='Flow (m3/s)'
+                                                 )
+# %% [markdown]
+# Hooray! We have run a synthetic SWMM model and plotted some results. This is
+# the end of the quickstart guide.

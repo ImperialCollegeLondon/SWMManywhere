@@ -95,9 +95,15 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
+    real_config = config.get('real', {})
+
+    if not real_config or \
+        not (real_config.get('results') or real_config.get('inp')):
+        logger.info("No real network provided, returning SWMM .inp file.")
+        return addresses.inp, None
+        
     if config['real']['results']:
         logger.info("Loading real results.")
-        # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])
     elif config['real']['inp']:
         logger.info("Running the real model.")
@@ -106,9 +112,6 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
             real_results.to_parquet(config['real']['inp'].parent /\
                                      f'real_results.{addresses.extension}')
-    else:
-        logger.info("No real network provided, returning SWMM .inp file.")
-        return addresses.inp, None
     
     # Iterate the metrics
     logger.info("Iterating metrics.")
