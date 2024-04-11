@@ -12,7 +12,6 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-import toolz as tlz
 from SALib.sample import sobol
 
 # Set the number of threads to 1 to avoid conflicts with parallel processing
@@ -137,17 +136,14 @@ def process_parameters(jobid: int,
     
     df = pd.DataFrame(X)
     gb = df.groupby('iter')
-    
+    n_iter = len(gb)
     flooding_results = {}
-    nproc = nproc if nproc is not None else len(X)
+    nproc = nproc if nproc is not None else n_iter
 
     # Assign jobs based on jobid
-    job_iter = tlz.partition_all(nproc, range(len(X)))
-    for _ in range(jobid + 1):
-        job_idx = next(job_iter, None)
-
-    if job_idx is None:
-        raise ValueError(f"Jobid {jobid} is required.")
+    if jobid >= nproc:
+        raise ValueError("Jobid should be less than the number of processors.")
+    job_idx = range(jobid, n_iter, nproc)
 
     config = config_base.copy()
 

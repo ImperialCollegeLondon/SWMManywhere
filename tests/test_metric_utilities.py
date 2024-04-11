@@ -6,6 +6,7 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pytest
 import shapely
 
 from swmmanywhere import metric_utilities as mu
@@ -127,6 +128,31 @@ def test_nse():
                          yhat = np.array([3,3,3,3,3]))
     assert val == 0.0
 
+def test_kge():
+    """Test the kge metric."""
+    val = mu.kge(y = np.array([1,2,3,4,5]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert_close(val, 1.0)
+
+    val = mu.kge(y = np.array([1,2,3,4,5]),
+                 yhat = np.array([3,3,3,3,3]))
+    assert_close(val, (1-2**0.5))
+
+def test_inf():
+    """Test metrics handling of invalid coefficients."""
+    val = mu.kge(y = np.array([3,3,3,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+
+    val = mu.nse(y = np.array([3,3,3,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+
+    val = mu.pbias(y = np.array([-3,-3,0,3,3]),
+                         yhat = np.array([1,2,3,4,5]))
+    assert val == np.inf
+    
+
 def test_outlet_nse_flow():
     """Test the outlet_nse_flow metric."""
     # Load data
@@ -153,20 +179,24 @@ def test_outlet_nse_flow():
 
     # Calculate NSE (perfect results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G,
+                                     synthetic_subs = None,
                                     synthetic_results = results,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[[0,2],'value'] = 7.5
     val = mu.metrics.outlet_nse_flow(synthetic_G = G,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Change the graph
@@ -180,20 +210,24 @@ def test_outlet_nse_flow():
 
     # Calculate NSE (mean results)
     val = mu.metrics.outlet_nse_flow(synthetic_G = G_,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Test time interpolation
     results_.loc[2,'date'] = pd.to_datetime('2021-01-01 00:00:10')
     results_.loc[[0,2], 'value'] = [0,30]
     val = mu.metrics.outlet_nse_flow(synthetic_G = G_,
+                                     synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == -15.0
 
 def test_outlet_nse_flooding():
@@ -238,20 +272,24 @@ def test_outlet_nse_flooding():
     
     # Calculate NSE (perfect results)
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G,
+                                         synthetic_subs = None,
                                     synthetic_results = results,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[results_.id.isin([770549936, 25472468]),'value'] = [14.5 / 4] * 4
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G,
+                                         synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Change the graph
@@ -265,10 +303,12 @@ def test_outlet_nse_flooding():
 
     # Calculate NSE (mean results)
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G_,
+                                         synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
     # Test time interpolation
@@ -277,9 +317,11 @@ def test_outlet_nse_flooding():
     
     val = mu.metrics.outlet_nse_flooding(synthetic_G = G_,
                                     synthetic_results = results_,
+                                    synthetic_subs = None,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 0.0
 
 def test_design_params():
@@ -430,10 +472,12 @@ def test_subcatchment_nse_flooding():
     
     # Calculate NSE (perfect results)
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G,
+                                               synthetic_subs = None,
                                                real_G = G,
                                                 synthetic_results = results,
                                                 real_results = results,
-                                                real_subs = subs)
+                                                real_subs = subs,
+                                                metric_evaluation = None)
     assert val == 1.0
 
     # Calculate NSE (remapped node)
@@ -450,14 +494,17 @@ def test_subcatchment_nse_flooding():
     results_.id = results_.id.replace(mapping)
 
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G_,
+                                               synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
-                                    real_subs = subs)
+                                    real_subs = subs,
+                                    metric_evaluation = None)
     assert val == 1.0
 
     # Test gridded
     val = mu.metrics.grid_nse_flooding(synthetic_G = G_,
+                                    synthetic_subs = None,
                                     synthetic_results = results_,
                                     real_G = G,
                                     real_results = results,
@@ -470,3 +517,13 @@ def test_create_grid():
     grid = mu.create_grid((0,0,1,1), 1/3 - 0.001)
     assert grid.shape[0] == 16
     assert set(grid.columns) == {'sub_id','geometry'}
+
+def test_restirctions():
+    """Test the restriction register by generating an invalid metric."""
+    # Invalid because length can't be calculated at grid scale
+    with pytest.raises(ValueError):
+        mu.metric_factory('grid_pbias_length')
+
+    # Invalid because nmanholes can't be evaluated with nse
+    with pytest.raises(ValueError):
+        mu.metric_factory('outlet_nse_nmanholes')
