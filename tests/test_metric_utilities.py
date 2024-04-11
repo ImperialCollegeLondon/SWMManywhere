@@ -6,6 +6,7 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pytest
 import shapely
 
 from swmmanywhere import metric_utilities as mu
@@ -516,3 +517,13 @@ def test_create_grid():
     grid = mu.create_grid((0,0,1,1), 1/3 - 0.001)
     assert grid.shape[0] == 16
     assert set(grid.columns) == {'sub_id','geometry'}
+
+def test_restirctions():
+    """Test the restriction register by generating an invalid metric."""
+    # Invalid because length can't be calculated at grid scale
+    with pytest.raises(ValueError):
+        mu.metric_factory('grid_pbias_length')
+
+    # Invalid because nmanholes can't be evaluated with nse
+    with pytest.raises(ValueError):
+        mu.metric_factory('outlet_nse_nmanholes')
