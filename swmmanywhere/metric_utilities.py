@@ -323,11 +323,10 @@ def median_coef_by_group(results: pd.DataFrame,
         .sum()
         .reset_index()
         .groupby(gb_key)
-        .apply(lambda x: coef_func(x.value_real, x.value_sim))
-        .median()
+        .apply(lambda x: coef_func(x.value_real, x.value_syn))
     )
-
-    return val
+    val = val[val.map(np.isfinite)]
+    return val.median()
 
 
 def nodes_to_subs(G: nx.Graph,
@@ -487,9 +486,13 @@ def align_by_shape(var,
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
                             on = ['date','sub_id'],
-                            suffixes = ('_real', '_sim'),
+                            suffixes = ('_real', '_syn'),
                             how = 'outer'
                             )
+    
+    results['value_syn'] = results.value_syn.interpolate().to_numpy()
+    results = results.dropna(subset=['value_real'])
+
     return results
 
 def create_grid(bbox: tuple,
