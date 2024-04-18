@@ -3,6 +3,8 @@
 A module to contain graphfcns, the graphfcn registry object, and other graph
 utilities (such as save/load functions).
 """
+from __future__ import annotations
+
 import json
 import os
 import tempfile
@@ -695,11 +697,12 @@ class calculate_weights(BaseGraphFunction,
             bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
 
         G = G.copy()
+        eps = np.finfo(float).eps
         for u, v, d in G.edges(data=True):
             total_weight = 0
             for attr, bds in bounds.items():
                 # Normalise
-                weight = (d[attr] - bds[0]) / (bds[1] - bds[0])
+                weight = max((d[attr] - bds[0]) / (bds[1] - bds[0]), eps)
                 # Exponent
                 weight = weight ** getattr(topology_derivation,f'{attr}_exponent')
                 # Scaling
@@ -845,7 +848,7 @@ class derive_topology(BaseGraphFunction,
 
         # Check for negative cycles
         if nx.negative_edge_cycle(G, weight = 'weight'):
-            raise ValueError('Graph contains negative cycle')
+            logger.warning('Graph contains negative cycle')
 
         # Initialize the dictionary with infinity for all nodes
         shortest_paths = {node: float('inf') for node in G.nodes}

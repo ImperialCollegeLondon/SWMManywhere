@@ -1,4 +1,5 @@
 """Parameters and file paths module for SWMManywhere."""
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -15,6 +16,20 @@ def get_full_parameters():
         "hydraulic_design": HydraulicDesign(),
         "metric_evaluation": MetricEvaluation()
     }
+
+def get_full_parameters_flat():
+    """Get the full set of parameters in a flat format."""
+    parameters = get_full_parameters()
+    # Flatten
+    # parameters_flat = {k : {**y, **{'category' : cat}} 
+    #                    for cat,v in parameters.items() 
+    #                     for k, y in v.model_json_schema()['properties'].items()}
+    parameters_flat = {}
+    for cat, v in parameters.items():
+        for k, y in v.schema()['properties'].items():
+            parameters_flat[k] = {**y, **{'category' : cat}}
+
+    return parameters_flat
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
