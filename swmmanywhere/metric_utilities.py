@@ -861,7 +861,7 @@ def nc_laplacian_dist(synthetic_G: nx.Graph,
     return nc_compare(synthetic_G, 
                       real_G, 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'laplacian')
 
 @metrics.register
@@ -869,10 +869,10 @@ def nc_laplacian_norm_dist(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   **kwargs) -> float:
     """Run the evaluated metric."""
-    return nc_compare(synthetic_G, 
-                      real_G, 
+    return nc_compare(synthetic_G.to_undirected(), 
+                      real_G.to_undirected(), 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'laplacian_norm')
 
 @metrics.register
@@ -880,10 +880,10 @@ def nc_adjacency_dist(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   **kwargs) -> float:
     """Run the evaluated metric."""
-    return nc_compare(synthetic_G, 
-                      real_G, 
+    return nc_compare(synthetic_G.to_undirected(), 
+                      real_G.to_undirected(), 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'adjacency')
 
 @metrics.register
