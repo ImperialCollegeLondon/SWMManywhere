@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 # -*- coding: utf-8 -*-
 """Created 2023-12-20.
 
@@ -32,8 +31,8 @@ if __name__ == 'main':
     # Load the results
     fids = list(results_dir.glob('*_metrics.csv'))
 
-    df = [pd.read_csv(fid) for fid in tqdm(fids, total = len(fids))]
-    df = pd.concat(df)
+    dfs = [pd.read_csv(fid) for fid in tqdm(fids, total = len(fids))]
+    df = pd.concat(dfs)
     df['nc_deltacon0'] = np.log(df['nc_deltacon0'])
     df = df.sort_values(by = 'iter')
     
