@@ -216,13 +216,17 @@ def pbias(y: np.ndarray,
     Calculate the percent bias:
 
     $$
-    pbias = \frac{{syn_{length} - real_{length}}}{{real_{length}}}
+    PBIAS = \frac{\sum_{i=1}^{n} (Q_{sim,i} - Q_{obs,i})}
+                 {\sum_{i=1}^{n} Q_{obs,i}} 
+            \times 100
     $$
 
     where:
 
-    - $syn_{length}$ is the synthetic length,
-    - $real_{length}$ is the real length.
+    - \(Q_{\text{sim},i}\) is the simulated value at \(i\),
+    - \(Q_{\text{obs},i}\) is the observed value at \(i\),
+    - \(n\) is the number of observations.
+
 
     Args:
         y (np.ndarray): The real data.
@@ -239,7 +243,21 @@ def pbias(y: np.ndarray,
 @register_coef
 def nse(y: np.ndarray,
         yhat: np.ndarray) -> float:
-    """Calculate Nash-Sutcliffe efficiency (NSE).
+    r"""Calculate Nash-Sutcliffe efficiency (NSE).
+
+    Calculate the Nash-Sutcliffe efficiency (NSE):
+
+    $$
+    NSE = 1 - \frac{\sum_{i=1}^{n} (Q_{obs,i} - Q_{sim,i})^2}
+                   {\sum_{i=1}^{n} (Q_{obs,i} - \overline{Q}_{obs})^2}
+    $$
+
+    where:
+
+    - $Q_{obs,i}$ is the observed value at time $i$,
+    - $Q_{sim,i}$ is the simulated value at time $i$,
+    - $\overline{Q}_{obs}$ is the mean observed value over the simulation period,
+    - $n$ is the number of time steps in the simulation period.
     
     Args:
         y (np.array): Observed data array.
@@ -254,8 +272,26 @@ def nse(y: np.ndarray,
 
 @register_coef
 def kge(y: np.ndarray,yhat: np.ndarray) -> float:
-    """Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
+    r"""Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
     
+    Calculate KGE:
+    $$
+    KGE = 1 - 
+        \sqrt{ (r - 1)^2 + 
+               (\frac{\sigma_{sim}}{\sigma_{obs}} - 1)^2 + 
+               (\frac{\mu_{sim}}{\mu_{obs}} - 1)^2 
+        }
+    $$
+
+    where:
+
+    - $r$ is the correlation coefficient between observed and simulated value,
+    - $\sigma_{sim}$ and $\sigma_{obs}$ are the standard deviations of the 
+        simulated and observed value, respectively,
+    - $\mu_{sim}$ and $\mu_{obs}$ are the means of the simulated and observed 
+        value, respectively.
+
+
     Args:
         y (np.array): Observed data array.
         yhat (np.array): Simulated data array.
