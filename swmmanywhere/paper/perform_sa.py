@@ -50,15 +50,18 @@ if __name__ == 'main':
     # Plots
     n_y_ticks = 4
     for parameter in parameters:
-        f,axs = plt.subplots(int(len(objectives)**0.5),
-                             int(len(objectives)**0.5),
+        f,axs = plt.subplots(int(len(objectives)**0.5+1),
+                             int(len(objectives)**0.5+1),
                              figsize = (10,10))
         behavioural_ind1 = ((df.loc[:,df.columns.str.contains('nse')] > 0) &\
                              (df.loc[:,df.columns.str.contains('nse')] < 1)
                              ).any(axis=1)
+        behavioural_ind3 =  ((df.loc[:,df.columns.str.contains('kge')] > -0.41) &\
+                             (df.loc[:,df.columns.str.contains('kge')] < 1)
+                             ).any(axis=1)
         behavioural_ind2 = (df.loc[:,df.columns.str.contains('bias')].abs() <\
                              0.1).any(axis=1)
-
+        behavioural_ind1 = behavioural_ind1 | behavioural_ind3
         for ax, objective in zip(axs.reshape(-1),objectives):
             ax.scatter(df[parameter], df[objective],s=0.5,c='b')
             
@@ -82,13 +85,12 @@ if __name__ == 'main':
                 ax.plot([df[parameter].min(),df[parameter].max()],
                         [0,0],
                         'k--')
+            if 'kge' in objective:
+                ax.plot([df[parameter].min(),df[parameter].max()],
+                        [-0.41,-0.41],
+                        'k--')
             ax.set_yscale('symlog')
-            print(df.iloc[df['nc_vertex_edge_distance'].argmin()])
             if not df[objective].isna().all():
-                #ax.set_yticks(df[objective].quantile([0.01, 0.25,0.5,0.75,0.99]))
-                #ax.set_yticklabels(np.round(df[objective].quantile(
-                # [0.01, 0.25,0.5,0.75,0.99]),
-                #                        2))
                 ax.grid(True)
             if 'nc_deltacon0' == objective:
                 objective = 'log(nc_deltacon0)'
