@@ -48,76 +48,6 @@ if __name__ == 'main':
     plot_fid.mkdir(exist_ok=True, parents=True)
 
     # Plots
-    """
-    metric_groups = {'design' : ['outlet_kstest_diameters',
-                                 'outlet_pbias_length',
-                                 'outlet_pbias_nmanholes',
-                                 'outlet_pbias_npipes'
-                                 ],
-                     'simulation' : ['bias_flood_depth',
-                                     'grid_nse_flooding',
-                                     'outlet_nse_flooding',
-                                     'outlet_nse_flow',
-                                     'subcatchment_nse_flooding'
-                                     ],
-                     'topology' : ['kstest_betweenness',
-                                   'kstest_edge_betweenness',
-                                   'nc_adjacency_dist',
-                                   'nc_deltacon0',
-                                   'nc_laplacian_dist',
-                                   'nc_laplacian_norm_dist',
-                                   'nc_vertex_edge_distance'
-                                   ]}
-    for parameter in parameters:
-        behavioural_ind1 = (df.loc[:,df.columns.str.contains('nse')] > 0).any(axis=1)
-        behavioural_ind2 = (df.loc[:,df.columns.str.contains('pbias')].abs() < \
-            0.1).any(axis=1)
-
-        for group, gmetrics in metric_groups.items():
-            f, axs = plt.subplots(len(gmetrics),1,figsize=(5,10))
-            for ax, objective in zip(axs, gmetrics):
-                ax.scatter(df[parameter], df[objective],s=0.5,c='b')
-                ax.scatter(df.loc[behavioural_ind2,parameter],
-                        df.loc[behavioural_ind2,objective],
-                        s=2,
-                        c = 'c')
-                ax.scatter(df.loc[behavioural_ind1,parameter],
-                            df.loc[behavioural_ind1,objective],
-                            s=2,
-                            c = 'r')
-                if 'pbias' in objective:
-                    ax.plot([df[parameter].min(),df[parameter].max()],
-                            [-0.1,-0.1],
-                            'k--')
-                    ax.plot([df[parameter].min(),df[parameter].max()],
-                            [0.1,0.1],
-                            'k--')
-                if 'nse' in objective:
-                    ax.plot([df[parameter].min(),df[parameter].max()],
-                            [0,0],
-                            'k--')
-                ax.set_yscale('symlog')
-                if not df[objective].isna().all():
-                    ax.set_yticks(df[objective].quantile(
-                        [0.01, 0.25,0.5,0.75,0.99]))
-                    ax.set_yticklabels(np.round(df[objective].quantile(
-                        [0.01, 0.25,0.5,0.75,0.99]),
-                                            2))
-                    if ax == axs[-1]:
-                        ax.set_xlabel(parameter)
-                    elif ax == axs[0]:
-                        ax.set_title(group)
-                    else:
-                        ax.set_xticklabels([])
-
-                    ax.set_ylabel(objective.replace('_','\n'))
-                    ax.grid(True)
-                if 'nc_deltacon0' == objective:
-                    objective = 'log(nc_deltacon0)'
-            f.tight_layout()
-            f.savefig(plot_fid / f'{group}_{parameter}.png')
-            f.close()
-    """
     n_y_ticks = 4
     for parameter in parameters:
         f,axs = plt.subplots(int(len(objectives)**0.5),
@@ -208,32 +138,7 @@ if __name__ == 'main':
         f.tight_layout()
         f.savefig(plot_fid / f'{groups}_indices.png')  
         plt.close(f)
-    """
-    for r_, groups in zip([rg,ri],  ['groups','parameters']):
-        f,axs = plt.subplots(len(objectives),2,figsize=(10,10))
-        for ix, axs_, (objective, r) in zip(range(len(objectives)), axs, r_.items()):
-            total, first, second = r.to_df()
-            
-            barplot(total,ax=axs_[0])
-            barplot(first,ax=axs_[1])
-            if ix == 0:
-                axs_[0].set_title('Total')
-                axs_[1].set_title('First')
-            if ix != len(objectives) - 1:
-                axs_[0].set_xticklabels([])
-                axs_[1].set_xticklabels([])
-            else:
-                axs_[0].set_xticklabels([x.replace('_','\n') for x in total.index], 
-                                        rotation = 0)
-                axs_[1].set_xticklabels([x.replace('_','\n') for x in total.index], 
-                                        rotation =0 )
-            axs_[0].set_ylabel(objective,rotation = 0,labelpad=20)
-            axs_[0].get_legend().remove()
-            axs_[1].get_legend().remove()
-        f.tight_layout()
-        f.savefig(plot_fid / f'{groups}_indices.png')  
-        plt.close(f)
-    """
+
     f,axs = plt.subplots(2,len(ri),figsize=(8,8))
     for r_, axs_ in zip([rg, ri],axs):
         for (objective, r), ax in zip(r_.items(),axs_):
