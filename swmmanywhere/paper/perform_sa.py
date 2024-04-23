@@ -5,10 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from SALib import ProblemSpec
 from SALib.analyze import sobol
-from SALib.plotting.bar import plot as barplot
 from tqdm import tqdm
 
 from swmmanywhere.logging import logger
@@ -97,44 +94,8 @@ if __name__ == 'main':
                         print_to_console=False) 
                         for objective in objectives}
 
-
-
+    # Barplot of sensitvitiy indices
     for r_, groups in zip([rg,ri],  ['groups','parameters']):
-        f,axs = plt.subplots(len(objectives),1,figsize=(10,10))
-        for ix, ax, (objective, r) in zip(range(len(objectives)), axs, r_.items()):
-            total, first, second = r.to_df()
-            total['sp'] = (total['ST'] - first['S1'])
-            barplot(total,ax=ax)
-            if ix == 0:
-                ax.set_title('Total - First')
-            if ix != len(objectives) - 1:
-                ax.set_xticklabels([])
-            else:
-                ax.set_xticklabels([x.replace('_','\n') for x in total.index], 
-                                        rotation = 0)
-                
-            ax.set_ylabel(objective,rotation = 0,labelpad=20)
-            ax.get_legend().remove()
-        f.tight_layout()
-        f.savefig(plot_fid / f'{groups}_indices.png')  
-        plt.close(f)
-
-    f,axs = plt.subplots(2,len(ri),figsize=(8,8))
-    for r_, axs_ in zip([rg, ri],axs):
-        for (objective, r), ax in zip(r_.items(),axs_):
-            total, first, second = r.to_df()
-            barplot(total,ax=ax)
-            ax.set_title(objective)
-    plt.tight_layout()
-    f.savefig(plot_fid / 'overall_indices.png')
-
-
-    sp = ProblemSpec(problemi)
-    sp.samples = df[parameters].values
-    sp.results = df[objectives].values
-    sp.analyze_sobol(print_to_console=False,
-                        calc_second_order=True)
-    for objective in objectives:
-        ax = sp.heatmap(objective)
-        f = ax.get_figure()
-        f.savefig(plot_fid / f'heatmap_{objective}.png')
+        swplt.plot_sensitivity_indices(r_, 
+                                     objectives, 
+                                     plot_fid / f'{groups}_indices.png')

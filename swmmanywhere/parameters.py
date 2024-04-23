@@ -95,19 +95,19 @@ class TopologyDerivation(BaseModel):
         unit = "-",
         description = "Constant to apply to surface slope in topo derivation")
     
-    chahinian_angle_scaling: float = Field(default = 1,
+    chahinian_angle_scaling: float = Field(default = 0,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to chahinian angle in topo derivation")
     
-    length_scaling: float = Field(default = 1,
+    length_scaling: float = Field(default = 0.1,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to length in topo derivation")
     
-    contributing_area_scaling: float = Field(default = 1,
+    contributing_area_scaling: float = Field(default = 0.1,
         le = 1,
         ge = 0,
         unit = "-",

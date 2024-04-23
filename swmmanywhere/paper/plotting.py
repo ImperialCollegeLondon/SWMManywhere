@@ -8,6 +8,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from SALib.plotting.bar import plot as barplot
 
 
 def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
@@ -106,3 +107,33 @@ def add_threshold_lines(ax, objective, xmin, xmax):
         if key in objective:
             for value in values:
                 ax.plot([xmin, xmax], [value, value], 'k--')
+
+def plot_sensitivity_indices(r_: dict[str, pd.DataFrame],
+                             objectives: list[str],
+                             plot_fid: Path):
+    """Plot the sensitivity indices.
+
+    Args:
+        r_ (dict[str, pd.DataFrame]): A dictionary containing the sensitivity 
+            indices as produced by SALib.analyze.
+        objectives (list[str]): A list of objectives to plot.
+        plot_fid (Path): The directory to save the plots to.
+    """
+    f,axs = plt.subplots(len(objectives),1,figsize=(10,10))
+    for ix, ax, (objective, r) in zip(range(len(objectives)), axs, r_.items()):
+        total, first, second = r.to_df()
+        total['sp'] = (total['ST'] - first['S1'])
+        barplot(total,ax=ax)
+        if ix == 0:
+            ax.set_title('Total - First')
+        if ix != len(objectives) - 1:
+            ax.set_xticklabels([])
+        else:
+            ax.set_xticklabels([x.replace('_','\n') for x in total.index], 
+                                    rotation = 0)
+            
+        ax.set_ylabel(objective,rotation = 0,labelpad=20)
+        ax.get_legend().remove()
+    f.tight_layout()
+    f.savefig(plot_fid)  
+    plt.close(f)
