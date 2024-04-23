@@ -115,25 +115,25 @@ class TopologyDerivation(BaseModel):
     
     chahinian_slope_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to surface slope in topo derivation")
     
     chahinian_angle_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to chahinian angle in topo derivation")
 
     length_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to length in topo derivation")
     
     contributing_area_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to contributing area in topo derivation")
     
