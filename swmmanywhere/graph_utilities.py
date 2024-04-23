@@ -920,6 +920,11 @@ class derive_topology(BaseGraphFunction,
                 paths[neighbor] = paths[node] + [neighbor]
                 # Push the neighbor to the heap
                 heappush(heap, (alt_dist, neighbor))
+        
+        # Remove nodes with no path to an outlet
+        for node in [node for node, path in paths.items() if not path]:
+            G.remove_node(node)
+            del paths[node], shortest_paths[node]
 
         edges_to_keep: set = set()
         for path in paths.values():
