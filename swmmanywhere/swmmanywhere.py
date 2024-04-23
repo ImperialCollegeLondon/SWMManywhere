@@ -217,6 +217,27 @@ def check_parameters_to_sample(config: dict):
         
     return config
 
+def check_starting_graph(config: dict):
+    """Check the starting graph in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        FileNotFoundError: If the starting graph path does not exist.
+    """
+    # If no starting graph, return
+    if not config.get('starting_graph', None):
+        return config
+    
+    # Check the starting graph exists and convert to Path
+    config['starting_graph'] = Path(config['starting_graph'])
+    if not config['starting_graph'].exists():
+        raise FileNotFoundError(f"""starting_graph not found at 
+                                {config['starting_graph']}""")
+
+    return config
+
 def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
 
@@ -253,6 +274,9 @@ def load_config(config_path: Path, validation: bool = True):
     
     # Check the parameters to sample
     config = check_parameters_to_sample(config)
+
+    # Check starting graph
+    config = check_starting_graph(config)
 
     return config
 
