@@ -15,6 +15,7 @@ starting_graph: null
 graphfcn_list:
   - assign_id
   - format_osmnx_lanes
+  - remove_non_pipe_allowable_links
   - double_directed
   - fix_geometries
   - split_long_edges
