@@ -247,15 +247,15 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         Returns:
             G (nx.Graph): A graph
         """
-        edges_to_remove = []
-        for u, v, data in G.edges(data=True):
+        edges_to_remove = set()
+        for u, v, keys, data in G.edges(data=True,keys = True):
             for omit in topology_derivation.omit_edges:
                 if data.get('highway', None) == omit:
-                    edges_to_remove.append((u, v))
+                    edges_to_remove.add((u, v, keys))
                 elif data.get(omit, None):
-                    edges_to_remove.append((u, v))
-        for u, v in edges_to_remove:
-            G.remove_edge(u, v)
+                    edges_to_remove.add((u, v, keys))
+        for u, v, keys in edges_to_remove:
+            G.remove_edge(u, v, keys)
         return G
 
 @register_graphfcn
