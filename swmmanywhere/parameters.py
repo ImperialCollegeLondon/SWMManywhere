@@ -83,7 +83,6 @@ class TopologyDerivation(BaseModel):
 
     omit_edges: list = Field(default = ['motorway', 
                                         'motorway_link',
-                                        'corridor',
                                         'bridge', 
                                         'tunnel'],
                         min_items = 1,
