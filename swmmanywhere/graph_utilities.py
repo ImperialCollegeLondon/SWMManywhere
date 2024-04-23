@@ -528,7 +528,8 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
-            subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
+            if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+                subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
         if addresses.building.suffix in ('.geoparquet','.parquet'):
@@ -757,9 +758,10 @@ class identify_outlets(BaseGraphFunction,
                        required_node_attributes = ['x', 'y']):
     """identify_outlets class."""
 
-    def __call__(self, G: nx.Graph,
-                     outlet_derivation: parameters.OutletDerivation,
-                     **kwargs) -> nx.Graph:
+    def __call__(self, 
+                 G: nx.Graph,
+                 outlet_derivation: parameters.OutletDerivation,
+                 **kwargs) -> nx.Graph:
         """Identify outlets in a combined river-street graph.
 
         This function identifies outlets in a combined river-street graph. An
