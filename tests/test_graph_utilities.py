@@ -243,7 +243,30 @@ def test_pipe_by_pipe():
     for u, d in G.nodes(data=True):
         assert 'chamber_floor_elevation' in d.keys()
         assert math.isfinite(d['chamber_floor_elevation'])
-        
+
+def get_edge_types(G):
+    """Get the edge types in the graph."""
+    edge_types = set()
+    for u,v,d in G.edges(data=True):
+        if isinstance(d['highway'], list):
+            edge_types.union(d['highway'])
+        else:
+            edge_types.add(d['highway'])
+    return edge_types
+
+def test_remove_non_pipe_allowable_links():
+    """Test the remove_non_pipe_allowable_links function."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
+    # Ensure some invalid paths
+    topology_params = parameters.TopologyDerivation(omit_edges = ['primary', 'bridge'])
+    assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) > 1
+    assert 'primary' in get_edge_types(G)
+
+    G_ = gu.remove_non_pipe_allowable_links(G, topology_params)
+    assert 'primary' not in get_edge_types(G_)
+    assert len(set([d.get('bridge',None) for u,v,d in G_.edges(data=True)])) == 1
+
+
 def test_iterate_graphfcns():
     """Test the iterate_graphfcns function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')

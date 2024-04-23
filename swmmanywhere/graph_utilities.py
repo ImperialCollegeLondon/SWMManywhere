@@ -220,6 +220,43 @@ class assign_id(BaseGraphFunction,
         for u, v, key in edges_to_remove:
             G.remove_edge(u, v, key)
         return G
+    
+@register_graphfcn
+class remove_non_pipe_allowable_links(BaseGraphFunction):
+    """remove_non_pipe_allowable_links class."""
+    def __call__(self,
+                 G: nx.Graph,
+                 topology_derivation: parameters.TopologyDerivation,
+                 **kwargs) -> nx.Graph:
+        """Remove non-pipe allowable links.
+
+        This function removes links that are not allowable for pipes. The non-
+        allowable links are specified in the 'omit_edges' attribute of the 
+        topology_derivation parameter. If the omit property is present in the
+        'highway' attribute of the edge (e.g., 'motorway' is a category under
+        'highway'), the edge is removed. If the omit property is not a 'highway'
+        attribute, the edge is removed if the omit property is not null in the
+        edge data (e.g., any type of 'bridge').
+
+        Args:
+            G (nx.Graph): A graph
+            topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
+                parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        edges_to_remove = []
+        for u, v, data in G.edges(data=True):
+            for omit in topology_derivation.omit_edges:
+                if data.get('highway', None) == omit:
+                    edges_to_remove.append((u, v))
+                elif data.get(omit, None):
+                    edges_to_remove.append((u, v))
+        for u, v in edges_to_remove:
+            G.remove_edge(u, v)
+        return G
 
 @register_graphfcn
 class format_osmnx_lanes(BaseGraphFunction,

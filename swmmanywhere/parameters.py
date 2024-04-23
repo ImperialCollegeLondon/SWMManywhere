@@ -81,6 +81,15 @@ class TopologyDerivation(BaseModel):
                         unit = "-",
                         description = "Weights for topo derivation")
 
+    omit_edges: list = Field(default = ['motorway', 
+                                        'motorway_link',
+                                        'corridor',
+                                        'bridge', 
+                                        'tunnel'],
+                        min_items = 1,
+                        unit = "-",
+                        description = "OSM paths pipes are not allowed under")
+
     chahinian_slope_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
