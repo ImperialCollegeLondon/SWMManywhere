@@ -18,6 +18,7 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pyflwdir
 import pyproj
 import pysheds
 import rasterio as rst
@@ -564,6 +565,75 @@ def calculate_slope(polys_gdf: gpd.GeoDataFrame,
         polys_gdf.loc[idx, 'slope'] = max(float(average_slope), 0)
     return polys_gdf
 
+def vectorize(data: np.ndarray, 
+              nodata: float, 
+              transform: rst.Affine, 
+              crs: int, 
+              name: str = "value")->gpd.GeoDataFrame:
+    """Vectorize raster data into a geodataframe.
+    
+    Args:
+        data (np.ndarray): The raster data.
+        nodata (float): The nodata value.
+        transform (rst.Affine): The affine transformation.
+        crs (int): The CRS of the data.
+        name (str, optional): The name of the data. Defaults to "value".
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing the vectorized data.
+    """
+    feats_gen = features.shapes(
+        data,
+        mask=data != nodata,
+        transform=transform,
+        connectivity=8,
+    )
+    feats = [
+        {"geometry": geom, "properties": {name: val}} for geom, val in list(feats_gen)
+    ]
+
+    # parse to geopandas for plotting / writing to file
+    gdf = gpd.GeoDataFrame.from_features(feats, crs=crs)
+    gdf[name] = gdf[name].astype(data.dtype)
+    return gdf
+
+def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
+                        flow_acc: pysheds.sview.Raster,
+                        flow_dir: pysheds.sview.Raster,
+                        dirmap: tuple,
+                        G: nx.Graph) -> gpd.GeoDataFrame:
+    """Derive subcatchments from the nodes on a graph and a DEM.
+
+    Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        flow_acc (pysheds.sview.Raster): Flow accumulations.
+        flow_dir (pysheds.sview.Raster): Flow directions.
+        dirmap (tuple): Direction mapping.
+        G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
+            'geometry', 'area', 'id', 'width', and 'slope'.
+    """
+    flw = pyflwdir.from_array(
+            flow_dir,
+            ftype = 'd8',
+            check_ftype = False,
+            transform = grid.affine,
+        )
+    bbox = sgeom.box(*grid.bbox)
+    u, x, y = zip(*[(u, float(p['x']), float(p['y'])) for u, p in G.nodes(data=True)
+                 if sgeom.Point(p['x'], p['y']).within(bbox)])
+
+    subbasins = flw.basins(xy=(x, y))
+    gdf_bas = vectorize(subbasins.astype(np.int32), 
+                        0, 
+                        flw.transform, 
+                        G.graph['crs'], 
+                        name="basin")
+    gdf_bas['id'] = [u[x-1] for x in gdf_bas['basin']]
+    return gdf_bas
+
 def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
@@ -592,10 +662,15 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
 
     # Delineate catchments
-    polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
+    # polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
+    result_polygons = delineate_catchment_pyflwdir(grid, 
+                                                   flow_acc, 
+                                                   flow_dir, 
+                                                   dirmap, 
+                                                   G)
 
     # Remove intersections
-    result_polygons = remove_intersections(polys)
+    # result_polygons = remove_intersections(polys)
 
     # Convert to GeoDataFrame
     polys_gdf = result_polygons.dropna(subset=['geometry'])
