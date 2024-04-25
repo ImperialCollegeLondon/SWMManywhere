@@ -231,13 +231,18 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         """Remove non-pipe allowable links.
 
         This function removes links that are not allowable for pipes. The non-
-        allowable links are specified in the 'omit_edges' attribute of the 
-        topology_derivation parameter. If the omit property is present in the
-        'highway' attribute of the edge (e.g., 'motorway' is a category under
-        'highway'), the edge is removed. If the omit property is not a 'highway'
-        attribute, the edge is removed if the omit property is not null in the
-        edge data (e.g., any type of 'bridge').
-
+        allowable links are specified in the `omit_edges` attribute of the 
+        topology_derivation parameter. There two cases handled:
+        1. The `highway` property of the edge. In osmnx, `highway` is a category
+            that contains the road type, e.g., motorway, trunk, residential. If 
+            `omit_edges` contains a value that is a category under `highway`, the
+            edge is removed.
+        2. Any other properties of the edge that are in `omit_edges`. If the 
+            property is not null in the edge data, the edge is removed. e.g.,
+            if `bridge` is in `omit_edges` and the `bridge` entry of the edge 
+            is NULL, then the edge is retained, if it is something like 'yes', 
+            or 'viaduct' then the edge is removed.
+        
         Args:
             G (nx.Graph): A graph
             topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
@@ -251,8 +256,10 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         for u, v, keys, data in G.edges(data=True,keys = True):
             for omit in topology_derivation.omit_edges:
                 if data.get('highway', None) == omit:
+                    # Check whether the 'highway' property is 'omit'
                     edges_to_remove.add((u, v, keys))
                 elif data.get(omit, None):
+                    # Check whether the 'omit' property of edge is not None 
                     edges_to_remove.add((u, v, keys))
         for u, v, keys in edges_to_remove:
             G.remove_edge(u, v, keys)
