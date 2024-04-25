@@ -259,7 +259,11 @@ def test_remove_non_pipe_allowable_links():
     G = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     # Ensure some invalid paths
     topology_params = parameters.TopologyDerivation(omit_edges = ['primary', 'bridge'])
+
+    # Test that an edge has a non-None 'bridge' entry
     assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) > 1
+
+    # Test that an edge has a 'primary' entry under highway
     assert 'primary' in get_edge_types(G)
 
     G_ = gu.remove_non_pipe_allowable_links(G, topology_params)
