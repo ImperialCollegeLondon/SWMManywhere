@@ -233,7 +233,7 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         This function removes links that are not allowable for pipes. The non-
         allowable links are specified in the `omit_edges` attribute of the 
         topology_derivation parameter. There two cases handled:
-        1. The `highway` property of the edge. In osmnx, `highway` is a category
+        1. The `highway` property of the edge. In `osmnx`, `highway` is a category
             that contains the road type, e.g., motorway, trunk, primary. If the
             edge contains a value in the `highway` property that is in `omit_edges`, 
             the edge is removed.
