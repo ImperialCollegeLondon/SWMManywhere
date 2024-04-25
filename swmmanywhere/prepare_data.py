@@ -103,8 +103,9 @@ def download_street(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             ``truncate_by_edge set`` to True.
     """
     west, south, east, north = bbox
+    bbox = (north, south, east, west) # not sure why osmnx uses this order
     graph = ox.graph_from_bbox(
-        north, south, east, west, network_type="drive", truncate_by_edge=True
+        bbox = bbox, network_type="drive", truncate_by_edge=True
     )
     return cast("nx.MultiDiGraph", graph)
 

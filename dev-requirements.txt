@@ -178,7 +178,7 @@ numpy==1.26.4
     #   swmmanywhere (pyproject.toml)
     #   tifffile
     #   xarray
-osmnx==1.8.1
+osmnx==1.9.1
     # via swmmanywhere (pyproject.toml)
 packaging==23.2
     # via
