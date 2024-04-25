@@ -823,8 +823,8 @@ def trim_touching_polygons(polygons: gpd.GeoDataFrame,
     
     # TODO need a variable for DEM resolution since this should be resolution + 1
     ind = polygons.geometry.exterior.buffer(30 + 1).apply(
-        lambda x: x.intersects(dem_outline))
-    if ind.sum() == 0:
+        lambda x: x.intersects(dem_outline)).values
+    if ind.sum() != 0:
         logger.warning("""Some outlet polygons which touch the elevation DEM 
                        have been removed, inspect the outputs and check whether
                        the area of interest has been included, otherwise widen

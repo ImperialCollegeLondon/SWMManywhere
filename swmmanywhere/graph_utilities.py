@@ -602,11 +602,20 @@ class trim_to_outlets(BaseGraphFunction,
             outlet_catchments = go.derive_subcatchments(outlet_graph, 
                                                          addresses.elevation)
             
-            
             outlet_catchments = go.trim_touching_polygons(outlet_catchments,
                                                           addresses.elevation)
 
-            # TODO trim nodes not in outlet_catchments
+            # Keep only nodes within subcatchments
+            nodes_gdf = gpd.GeoDataFrame(G.nodes,
+                                         geometry = gpd.points_from_xy(
+                                            [d['x'] for n,d in G.nodes(data=True)],
+                                            [d['y'] for n,d in G.nodes(data=True)]),
+                                         crs = G.graph['crs'],
+                                         columns = ['id'])
+            keep_nodes = gpd.sjoin(nodes_gdf, 
+                                   outlet_catchments[['geometry']], 
+                                   predicate = 'intersects').id
+            G = G.subgraph(keep_nodes).copy()
             return G
 
 @register_graphfcn
