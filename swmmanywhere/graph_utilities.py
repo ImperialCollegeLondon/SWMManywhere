@@ -952,7 +952,10 @@ class derive_topology(BaseGraphFunction,
         Runs a djiikstra-based algorithm to identify the shortest path from each
         node to its nearest outlet (weighted by the 'weight' edge value). The 
         returned graph is one that only contains the edges that feature  on the 
-        shortest paths.
+        shortest paths. Street nodes that cannot be connected to any outlet (i.e., 
+        they are a distance greater than `outlet_derivation.river_buffer_distance` 
+        from any river node or any street node that is connected to an outlet) 
+        are removed from the graph.
 
         Args:
             G (nx.Graph): A graph
