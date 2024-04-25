@@ -31,6 +31,8 @@ from shapely.errors import GEOSException
 from shapely.strtree import STRtree
 from tqdm import tqdm
 
+from swmmanywhere.logging import logger
+
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
 def get_utm_epsg(x: float, 
@@ -787,3 +789,45 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
+
+def trim_touching_polygons(polygons: gpd.GeoDataFrame,
+                           fid: Path) -> gpd.GeoDataFrame:
+    """Trim touching polygons in a GeoDataFrame.
+
+    Args:
+        polygons (gpd.GeoDataFrame): A GeoDataFrame containing polygons with 
+            columns: 'geometry', 'area', and 'id'.
+        fid (Path): Filepath to the elevation DEM.
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with no touching 
+            polygons.
+    """
+    # Get elevation boundary
+    with rst.open(fid) as src:
+        image = src.read(1)  # Read the first band
+        nodata = src.nodata
+        transform = src.transform
+        crs = src.crs
+
+    # Mask elevation with data
+    data_mask = (image != nodata)
+    image[data_mask] = 1
+    mask_shapes = features.shapes(image, mask=data_mask, transform=transform)
+    
+    # Convert shapes to GeoDataFrame
+    geoms = [sgeom.Polygon(geom['coordinates'][0]) for geom, value in mask_shapes]
+    
+    # Create GeoDataFrame from the list of geometries
+    dem_outline = gpd.GeoDataFrame({'geometry': geoms}, crs=crs).exterior
+    
+    # TODO need a variable for DEM resolution since this should be resolution + 1
+    ind = polygons.geometry.exterior.buffer(30 + 1).apply(
+        lambda x: x.intersects(dem_outline)).values
+    if ind.sum() != 0:
+        logger.warning("""Some outlet polygons which touch the elevation DEM 
+                       have been removed, inspect the outputs and check whether
+                       the area of interest has been included, otherwise widen
+                       your bbox""")
+    trimmed_gdf = polygons.loc[~ind]
+    return trimmed_gdf

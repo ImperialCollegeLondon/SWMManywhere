@@ -53,12 +53,6 @@ class SubcatchmentDerivation(BaseModel):
 
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
-	max_river_length: float = Field(default = 30.0,
-		ge = 5.0,
-		le = 100.0,
-		unit = "m",
-		description = "Distance to split rivers into segments.")   
-
 	river_buffer_distance: float = Field(default = 150.0,
 		ge = 50.0,
 		le = 300.0,

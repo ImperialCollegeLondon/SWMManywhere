@@ -568,6 +568,8 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
+            if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+                subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
         if addresses.building.suffix in ('.geoparquet','.parquet'):
@@ -594,6 +596,60 @@ class calculate_contributing_area(BaseGraphFunction,
         # Set edge attributes
         nx.set_edge_attributes(G, edge_attributes, 'contributing_area')
         return G
+    
+@register_graphfcn
+class trim_to_outlets(BaseGraphFunction,
+                      required_edge_attributes = ['edge_type'] # i.e., 'outlet'
+                      ):
+    """trim_to_outlets class."""
+    def __call__(self,
+                    G: nx.Graph,
+                    addresses: parameters.FilePaths,
+                    **kwargs) -> nx.Graph:
+            """Trim the graph to the outlets.
+    
+            This function trims the graph to the hydrological catchments that 
+            drains to the outlets. The outlets are the edges with the 'outlet' 
+            edge_type attribute.
+    
+            Args:
+                G (nx.Graph): A graph
+                addresses (parameters.FilePaths): An FilePaths parameter object
+                **kwargs: Additional keyword arguments are ignored.
+    
+            Returns:
+                G (nx.Graph): A graph
+            """
+            G = G.copy()
+            
+            # Create a graph of outlets
+            outlets = {v : G.nodes[v] for u,v, data in G.edges(data=True) 
+                        if data.get('edge_type', None) == 'outlet'}
+            if not outlets:
+                raise ValueError("No outlets found in the graph.")
+            outlet_graph = nx.DiGraph()
+            outlet_graph.add_nodes_from(outlets)
+            nx.set_node_attributes(outlet_graph, outlets)
+
+            # Derive outlet subcatchments
+            outlet_catchments = go.derive_subcatchments(outlet_graph, 
+                                                         addresses.elevation)
+            
+            outlet_catchments = go.trim_touching_polygons(outlet_catchments,
+                                                          addresses.elevation)
+
+            # Keep only nodes within subcatchments
+            nodes_gdf = gpd.GeoDataFrame(G.nodes,
+                                         geometry = gpd.points_from_xy(
+                                            [d['x'] for n,d in G.nodes(data=True)],
+                                            [d['y'] for n,d in G.nodes(data=True)]),
+                                         crs = G.graph['crs'],
+                                         columns = ['id'])
+            keep_nodes = gpd.sjoin(nodes_gdf, 
+                                   outlet_catchments[['geometry']], 
+                                   predicate = 'intersects').id
+            G = G.subgraph(keep_nodes).copy()
+            return G
 
 @register_graphfcn
 class set_elevation(BaseGraphFunction,
@@ -796,9 +852,10 @@ class identify_outlets(BaseGraphFunction,
                        required_node_attributes = ['x', 'y']):
     """identify_outlets class."""
 
-    def __call__(self, G: nx.Graph,
-                     outlet_derivation: parameters.OutletDerivation,
-                     **kwargs) -> nx.Graph:
+    def __call__(self, 
+                 G: nx.Graph,
+                 outlet_derivation: parameters.OutletDerivation,
+                 **kwargs) -> nx.Graph:
         """Identify outlets in a combined river-street graph.
 
         This function identifies outlets in a combined river-street graph. An
@@ -959,6 +1016,11 @@ class derive_topology(BaseGraphFunction,
                 paths[neighbor] = paths[node] + [neighbor]
                 # Push the neighbor to the heap
                 heappush(heap, (alt_dist, neighbor))
+        
+        # Remove nodes with no path to an outlet
+        for node in [node for node, path in paths.items() if not path]:
+            G.remove_node(node)
+            del paths[node], shortest_paths[node]
 
         edges_to_keep: set = set()
         for path in paths.values():
