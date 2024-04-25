@@ -58,9 +58,9 @@ def plot_objectives(df: pd.DataFrame,
         fig.tight_layout()
         fig.suptitle(parameter)
 
-        fig.savefig(plot_fid / (parameter.replace('_', '-') + '.png'), dpi=500)
+        fig.savefig(plot_fid / f"{parameter.replace('_', '-')}.png", dpi=500)
         plt.close(fig)
-        
+    return fig
 
 def setup_axes(ax: plt.Axes, 
                df: pd.DataFrame,
