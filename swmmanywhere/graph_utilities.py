@@ -253,6 +253,50 @@ class remove_isolated_nodes(BaseGraphFunction):
         graph.remove_edges_from({e if attr[e] > attr[e[::-1]] 
                                 else e[::-1] for e in parallels})
         return graph
+    
+@register_graphfcn
+class remove_non_pipe_allowable_links(BaseGraphFunction):
+    """remove_non_pipe_allowable_links class."""
+    def __call__(self,
+                 G: nx.Graph,
+                 topology_derivation: parameters.TopologyDerivation,
+                 **kwargs) -> nx.Graph:
+        """Remove non-pipe allowable links.
+
+        This function removes links that are not allowable for pipes. The non-
+        allowable links are specified in the `omit_edges` attribute of the 
+        topology_derivation parameter. There two cases handled:
+        1. The `highway` property of the edge. In `osmnx`, `highway` is a category
+            that contains the road type, e.g., motorway, trunk, primary. If the
+            edge contains a value in the `highway` property that is in `omit_edges`, 
+            the edge is removed.
+        2. Any other properties of the edge that are in `omit_edges`. If the 
+            property is not null in the edge data, the edge is removed. e.g.,
+            if `bridge` is in `omit_edges` and the `bridge` entry of the edge 
+            is NULL, then the edge is retained, if it is something like 'yes', 
+            or 'viaduct' then the edge is removed.
+        
+        Args:
+            G (nx.Graph): A graph
+            topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
+                parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        edges_to_remove = set()
+        for u, v, keys, data in G.edges(data=True,keys = True):
+            for omit in topology_derivation.omit_edges:
+                if data.get('highway', None) == omit:
+                    # Check whether the 'highway' property is 'omit'
+                    edges_to_remove.add((u, v, keys))
+                elif data.get(omit, None):
+                    # Check whether the 'omit' property of edge is not None 
+                    edges_to_remove.add((u, v, keys))
+        for edges in edges_to_remove:
+            G.remove_edge(*edges)
+        return G
 
 @register_graphfcn
 class format_osmnx_lanes(BaseGraphFunction,
