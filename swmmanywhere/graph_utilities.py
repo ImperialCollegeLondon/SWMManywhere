@@ -261,8 +261,8 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
                 elif data.get(omit, None):
                     # Check whether the 'omit' property of edge is not None 
                     edges_to_remove.add((u, v, keys))
-        for u, v, keys in edges_to_remove:
-            G.remove_edge(u, v, keys)
+        for edges in edges_to_remove:
+            G.remove_edge(*edges)
         return G
 
 @register_graphfcn
