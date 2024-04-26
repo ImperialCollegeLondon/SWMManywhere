@@ -578,12 +578,14 @@ def create_grid(bbox: tuple,
 
     if isinstance(scale, tuple):
         if len(scale) != 2:
-            raise ValueError("Scale must be a float or a tuple of length 2.")
+            raise ValueError(f"""Scale must be a float or a tuple of length 2., 
+                              instead of length: {len(scale)}""")
         dx, dy = scale
-    elif isinstance(scale, float): 
+    elif isinstance(scale, float) | isinstance(scale, int): 
         dx = dy = scale
     else:
-        raise ValueError("Scale must be a float or a tuple of length 2.")
+        raise ValueError(f"""Scale must be a float or a tuple of length 2, 
+                         instead of type {type(scale)}""")
     xmins = np.arange(minx, maxx, dx)
     ymins = np.arange(miny, maxy, dy)
     grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
