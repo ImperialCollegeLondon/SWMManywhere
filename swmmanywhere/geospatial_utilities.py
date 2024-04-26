@@ -25,6 +25,7 @@ import rioxarray
 import shapely
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
+from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely import ops as sops
 from shapely.strtree import STRtree
@@ -876,3 +877,39 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
+
+def merge_points(coordinates: list[tuple[float, float]], 
+                 threshold: float)-> dict:
+    """Merge points that are within a threshold distance.
+
+    Args:
+        coordinates (list): List of coordinates as tuples.
+        threshold(float): The threshold distance for merging points.
+    
+    Returns:
+        dict: A dictionary mapping the original point index to the merged point
+            and new coordinate.
+    """
+    # Create a KDTtree to pair together points within thresholds
+    tree = KDTree(coordinates)
+    pairs = tree.query_pairs(threshold)
+
+    # Merge pairs into families of points that are all nearby
+    families: list = []
+    for pair in pairs:
+        for family in families:
+            if pair[0] in family or pair[1] in family:
+                family.update(pair)
+                break
+        else:
+            families.append(set(pair))
+
+    # Create a mapping of the original point to the merged point
+    mapping = {}
+    for family in families:
+        average_point = np.mean([coordinates[i] for i in family], axis=0)
+        family_head = min(list(family))
+        for i in family:
+            mapping[i] = {'maps_to' : family_head, 
+                          'coordinate' : tuple(average_point)}
+    return mapping

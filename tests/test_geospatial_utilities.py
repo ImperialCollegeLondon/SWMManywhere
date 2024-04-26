@@ -396,3 +396,14 @@ def test_graph_to_geojson():
 
         gdf = gpd.read_file(temp_path / 'graph_edges.geojson')
         assert gdf.shape[0] == len(G.edges)
+
+def test_merge_points():
+    """Test the merge_points function."""
+    G = load_street_network()
+    mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+                              20)
+    assert set(mapping.keys()) == set([2,3,5,15,16,18,22])
+    assert set([x['maps_to'] for x in mapping.values()]) == set([2,5,15])
+    assert mapping[15]['maps_to'] == 15
+    assert mapping[18]['maps_to'] == 15
+    assert almost_equal(mapping[18]['coordinate'][0], 700445.0112082)
