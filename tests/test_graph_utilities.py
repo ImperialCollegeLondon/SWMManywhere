@@ -308,16 +308,3 @@ def test_fix_geometries():
     # Check that the edge geometry now matches the node coordinates
     assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
         (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
-
-def test_trim_to_outlets():
-    """Test the trim_to_outlets function."""
-    G, _ = load_street_network()
-    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    G.edges[107738, 21392086,0]['edge_type'] = 'outlet'
-    addresses = parameters.FilePaths(base_dir = None,
-                                    project_name = None,
-                                    bbox_number = None,
-                                    model_number = None)
-    addresses.elevation = elev_fid
-    G_ = gu.trim_to_outlets(G,addresses)
-    assert set(G_.nodes) == set([107738])

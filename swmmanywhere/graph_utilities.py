@@ -598,60 +598,6 @@ class calculate_contributing_area(BaseGraphFunction,
         return G
     
 @register_graphfcn
-class trim_to_outlets(BaseGraphFunction,
-                      required_edge_attributes = ['edge_type'] # i.e., 'outlet'
-                      ):
-    """trim_to_outlets class."""
-    def __call__(self,
-                    G: nx.Graph,
-                    addresses: parameters.FilePaths,
-                    **kwargs) -> nx.Graph:
-            """Trim the graph to the outlets.
-    
-            This function trims the graph to the hydrological catchments that 
-            drains to the outlets. The outlets are the edges with the 'outlet' 
-            edge_type attribute.
-    
-            Args:
-                G (nx.Graph): A graph
-                addresses (parameters.FilePaths): An FilePaths parameter object
-                **kwargs: Additional keyword arguments are ignored.
-    
-            Returns:
-                G (nx.Graph): A graph
-            """
-            G = G.copy()
-            
-            # Create a graph of outlets
-            outlets = {v : G.nodes[v] for u,v, data in G.edges(data=True) 
-                        if data.get('edge_type', None) == 'outlet'}
-            if not outlets:
-                raise ValueError("No outlets found in the graph.")
-            outlet_graph = nx.DiGraph()
-            outlet_graph.add_nodes_from(outlets)
-            nx.set_node_attributes(outlet_graph, outlets)
-
-            # Derive outlet subcatchments
-            outlet_catchments = go.derive_subcatchments(outlet_graph, 
-                                                         addresses.elevation)
-            
-            outlet_catchments = go.trim_touching_polygons(outlet_catchments,
-                                                          addresses.elevation)
-
-            # Keep only nodes within subcatchments
-            nodes_gdf = gpd.GeoDataFrame(G.nodes,
-                                         geometry = gpd.points_from_xy(
-                                            [d['x'] for n,d in G.nodes(data=True)],
-                                            [d['y'] for n,d in G.nodes(data=True)]),
-                                         crs = G.graph['crs'],
-                                         columns = ['id'])
-            keep_nodes = gpd.sjoin(nodes_gdf, 
-                                   outlet_catchments[['geometry']], 
-                                   predicate = 'intersects').id
-            G = G.subgraph(keep_nodes).copy()
-            return G
-
-@register_graphfcn
 class set_elevation(BaseGraphFunction,
                     required_node_attributes = ['x', 'y'],
                     adds_node_attributes = ['surface_elevation']):
