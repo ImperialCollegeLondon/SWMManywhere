@@ -223,16 +223,23 @@ def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     G = load_street_network()
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    
-    polys = go.derive_subcatchments(G, elev_fid)
-    assert 'slope' in polys.columns
-    assert 'area' in polys.columns
-    assert 'geometry' in polys.columns
-    assert 'id' in polys.columns
-    assert polys.shape[0] > 0
-    assert polys.dropna().shape == polys.shape
-    assert polys.crs == G.graph['crs']
+    for method in ['pysheds', 'pyflwdir']:
+        polys = go.derive_subcatchments(G, elev_fid,method=method)
+        assert 'slope' in polys.columns
+        assert 'area' in polys.columns
+        assert 'geometry' in polys.columns
+        assert 'id' in polys.columns
+        assert polys.shape[0] > 0
+        assert polys.dropna().shape == polys.shape
+        assert polys.crs == G.graph['crs']
 
+        # Pyflwdir and pysheds catchment derivation aren't absolutely identical
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'area'], 
+                            1499, tol = 1)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'slope'], 
+                            0.06145, tol = 0.001)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'width'], 
+                            21.845, tol = 0.001)
 
 def test_derive_rc():
     """Test the derive_rc function."""
