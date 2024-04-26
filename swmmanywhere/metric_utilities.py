@@ -389,7 +389,7 @@ def median_coef_by_group(results: pd.DataFrame,
         .groupby(gb_key)
         .apply(lambda x: coef_func(x.value_real, x.value_syn))
     )
-    val = val[val.map(np.isfinite)]
+    val = val[np.isfinite(val)]
     return val.median()
 
 
