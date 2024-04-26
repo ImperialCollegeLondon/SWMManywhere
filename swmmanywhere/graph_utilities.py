@@ -330,6 +330,62 @@ class format_osmnx_lanes(BaseGraphFunction,
                 lanes = float(lanes)
             data['width'] = lanes * subcatchment_derivation.lane_width
         return G
+    
+@register_graphfcn
+class merge_nodes(BaseGraphFunction):
+    """merge_nodes class."""
+    def __call__(self, 
+                 G: nx.Graph, 
+                 subcatchment_derivation: parameters.SubcatchmentDerivation,
+                 **kwargs) -> nx.Graph:
+        """Merge nodes that are close together.
+
+        This function merges nodes that are within a certain distance of each
+        other. The distance is specified in the `node_merge_distance` attribute
+        of the `subcatchment_derivation` parameter. The merged nodes are given
+        the same coordinates, and the graph is relabeled with nx.relabel_nodes.
+
+        Args:
+            G (nx.Graph): A graph
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Identify nodes that are within threshold of each other
+        mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+                              subcatchment_derivation.node_merge_distance)
+        
+        # Get indexes of node names
+        node_indices = {ix: node for ix, node in enumerate(G.nodes)}
+
+        # Create a mapping of old node names to new node names
+        node_names = {}
+        for ix, node in enumerate(G.nodes):
+            if ix in mapping:
+                # If the node is in the mapping, then it is mapped and 
+                # given the new coordinate (all nodes in a mapping family must
+                # be given the same coordinate because of how relabel_nodes 
+                # works)
+                node_names[node] = node_indices[mapping[ix]['maps_to']]
+                G.nodes[node]['x'] = mapping[ix]['coordinate'][0]
+                G.nodes[node]['y'] = mapping[ix]['coordinate'][1]
+            else:
+                node_names[node] = node
+
+        G = nx.relabel_nodes(G, node_names)
+
+        # Relabelling will create selfloops within a mapping family, which 
+        # are removed
+        self_loops = list(nx.selfloop_edges(G))
+        G.remove_edges_from(self_loops)
+
+        # TODO update geometries
+        return G
 
 @register_graphfcn
 class double_directed(BaseGraphFunction,
