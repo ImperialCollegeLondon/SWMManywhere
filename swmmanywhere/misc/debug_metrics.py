@@ -1,4 +1,11 @@
-"""Debug results by recalculating metrics."""
+"""Debug results by recalculating metrics.
+
+This script provides a way to load a model file from the default setup in 
+experimenter.py and recalculate the metrics. This is useful for recreating 
+how a metric is calculated to verify that it is being done correctly. In this 
+example we reproduce code from `metric_utilities.py` to check how timeseries 
+data are aligned and compared. 
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,7 +26,7 @@ from swmmanywhere.swmmanywhere import load_config
 
 if __name__ == 'main':
     project = 'cranbrook'
-    base = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
+    base = Path.home() / "Documents" / "data" / "swmmanywhere"
     config_path = base / project / f'{project}_hpc.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base / project

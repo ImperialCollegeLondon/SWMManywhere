@@ -20,7 +20,7 @@ from swmmanywhere.swmmanywhere import load_config
 # Load the configuration file and extract relevant data
 if __name__ == 'main':
     project = 'cranbrook'
-    base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
+    base_dir = Path.home() / "Documents" / "data" / "swmmanywhere"
     config_path = base_dir / project / f'{project}_hpc.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base_dir / project
