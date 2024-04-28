@@ -292,6 +292,9 @@ class FilePaths:
     def _generate_building(self):
         return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
+    def _generate_streetcover(self):
+        return self._generate_property(f'streetcover.geo{self.extension}', 
+                                        'model')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 
                                         'download')

@@ -614,8 +614,8 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     return polys_gdf
 
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
-              G: nx.Graph,
-              building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+              building_footprints: gpd.GeoDataFrame,
+              streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Derive the Runoff Coefficient (RC) of each subcatchment.
 
     The runoff coefficient is the ratio of impervious area to total area. The
@@ -626,10 +626,10 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf and
-            edges with the 'id', 'width' and 'geometry' property.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
+        streetcover (gpd.GeoDataFrame): A GeoDataFrame containing street cover
+            with a 'geometry' column.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
@@ -638,23 +638,7 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     polys_gdf = polys_gdf.copy()
 
     ## Format as swmm type catchments 
-
-    # TODO think harder about lane widths (am I double counting here?)
-    lines = [
-        {
-            'geometry': x['geometry'].buffer(x['width'], 
-                                             cap_style=2, 
-                                             join_style=2),
-            'id': x['id']
-        }
-        for u, v, x in G.edges(data=True)
-    ]
-    lines_df = pd.DataFrame(lines)
-    lines_gdf = gpd.GeoDataFrame(lines_df, 
-                                geometry=lines_df.geometry,
-                                    crs = polys_gdf.crs)
-
-    result = gpd.overlay(lines_gdf[['geometry']], 
+    result = gpd.overlay(streetcover[['geometry']], 
                          building_footprints[['geometry']], 
                          how='union')
     result = gpd.overlay(polys_gdf, result)

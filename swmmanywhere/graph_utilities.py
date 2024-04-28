@@ -266,36 +266,55 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class format_osmnx_lanes(BaseGraphFunction,
-                         required_edge_attributes = ['lanes'],
-                         adds_edge_attributes = ['width']):
-    """format_osmnx_lanes class."""
+class calculate_streetcover(BaseGraphFunction,
+                         required_edge_attributes = ['lanes']
+                         ):
+    """calculate_streetcover class."""
     # i.e., in osmnx format, i.e., empty for single lane, an int for a
     # number of lanes or a list if the edge has multiple carriageways
 
     def __call__(self,
                  G: nx.Graph, 
-                       subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                       **kwargs) -> nx.Graph:
+                subcatchment_derivation: parameters.SubcatchmentDerivation, 
+                addresses: parameters.FilePaths,
+                **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
+            addresses (parameters.FilePaths): A FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
             G (nx.Graph): A graph
         """
         G = G.copy()
+        lines = []
         for u, v, data in G.edges(data=True):
             lanes = data.get('lanes',1)
             if isinstance(lanes, list):
                 lanes = sum([float(x) for x in lanes])
             else:
                 lanes = float(lanes)
-            data['width'] = lanes * subcatchment_derivation.lane_width
+            lines.append({'geometry' : data['geometry'].buffer(lanes * 
+                                subcatchment_derivation.lane_width,
+                                cap_style=2,
+                                join_style=2),
+                            'u' : u,
+                            'v' : v
+                            }
+                        )
+        lines_df = pd.DataFrame(lines)
+        lines_gdf = gpd.GeoDataFrame(lines_df, 
+                                    geometry=lines_df.geometry,
+                                        crs = G.graph['crs'])
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            lines_gdf.to_parquet(addresses.streetcover)
+        else:
+            lines_gdf.to_file(addresses.streetcover, driver='GeoJSON')
+
         return G
 
 @register_graphfcn
@@ -494,7 +513,7 @@ class fix_geometries(BaseGraphFunction,
 
 @register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
-                                required_edge_attributes = ['id', 'geometry', 'width'],
+                                required_edge_attributes = ['id', 'geometry'],
                                 adds_edge_attributes = ['contributing_area'],
                                 adds_node_attributes = ['contributing_area']):
     """calculate_contributing_area class."""
@@ -507,7 +526,10 @@ class calculate_contributing_area(BaseGraphFunction,
         
         This function calculates the contributing area for each edge. The
         contributing area is the area of the subcatchment that drains to the
-        edge. The contributing area is calculated from the elevation data.
+        edge. The contributing area is calculated from the elevation data. 
+        Runoff coefficient (RC) for each contributing area is also calculated, 
+        the RC is calculated using `addresses.buildings` and 
+        `addresses.streetcover`.        
 
         Also writes the file 'subcatchments.geojson' to addresses.subcatchments.
 
@@ -543,7 +565,12 @@ class calculate_contributing_area(BaseGraphFunction,
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
-        subs_rc = go.derive_rc(subs_gdf, G, buildings)
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            streetcover = gpd.read_parquet(addresses.streetcover)
+        else:
+            streetcover = gpd.read_file(addresses.streetcover)
+
+        subs_rc = go.derive_rc(subs_gdf, buildings, streetcover)
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs

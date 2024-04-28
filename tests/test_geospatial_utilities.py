@@ -279,19 +279,15 @@ def test_derive_rc():
                                     crs = crs)
     subs['area'] = subs.geometry.area
 
-    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
     assert subs_rc.loc[6277683849,'impervious_area'] == 0
     assert subs_rc.loc[107733,'impervious_area'] > 0
-    for u,v,d in G.edges(data=True):
-        d['width'] = 10
 
-    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    buildings.geometry = buildings.buffer(50)
+    subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
     assert subs_rc.loc[6277683849,'impervious_area'] > 0
     assert subs_rc.loc[6277683849,'rc'] > 0
     assert subs_rc.rc.max() <= 100
-
-    for u,v,d in G.edges(data=True):
-        d['width'] = 0
 
 def test_calculate_angle():
     """Test the calculate_angle function."""
