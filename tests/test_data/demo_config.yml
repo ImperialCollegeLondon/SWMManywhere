@@ -13,25 +13,26 @@ real:
   results: null
 starting_graph: null
 graphfcn_list:
-  - assign_id
-  - fix_geometries
-  - remove_non_pipe_allowable_links
-  - calculate_streetcover
-  - to_undirected
-  - split_long_edges
-  - merge_nodes
-  - assign_id
-  - calculate_contributing_area
-  - set_elevation
-  - double_directed
-  - set_surface_slope
-  - set_chahinian_slope
-  - set_chahinian_angle
-  - calculate_weights
-  - identify_outlets
-  - derive_topology
-  - pipe_by_pipe
-  - assign_id
+  - assign_id # Initial pass to ensure consistent 'id' and remove duplicates
+  - fix_geometries # Ensure consistent geometry directions
+  - remove_non_pipe_allowable_links # Filter out things like bridges/motorways
+  - calculate_streetcover # Create shapefile of impervious street cover
+  - to_undirected # Convert graph to undirected to facilitate cleanup
+  - split_long_edges # Set a maximum edge length
+  - merge_nodes # Merge nodes that are too close together
+  - assign_id # Remove duplicates arising from merge_nodes
+  - calculate_contributing_area # Calculate runoff coefficient
+  - set_elevation # Set node elevation from DEM
+  - double_directed # Format as directed graph enabling travel in both directions
+  - fix_geometries # Ensure consistent geometries due to undirected->directed
+  - set_surface_slope # Calculate surface slope of edges
+  - set_chahinian_slope # Transform surface slope to more sensible slope for weights
+  - set_chahinian_angle # Transform edge angles to more sensible angle for weights
+  - calculate_weights # Calculate weights for each edge
+  - identify_outlets # Identify potential street->river outlets
+  - derive_topology # Shortest path to give network topology
+  - pipe_by_pipe # Design pipe diameters and depths
+  - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
   - nc_deltacon0
   - nc_laplacian_dist
