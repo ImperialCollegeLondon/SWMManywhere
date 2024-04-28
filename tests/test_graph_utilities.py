@@ -320,3 +320,16 @@ def test_fix_geometries():
     # Check that the edge geometry now matches the node coordinates
     assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
         (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
+
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    return abs(a-b) < tol
+
+def test_merge_nodes():
+    """Test the merge_nodes function."""
+    G, _ = load_street_network()
+    subcatchment_derivation = parameters.SubcatchmentDerivation(
+        node_merge_distance = 20)
+    G_ = gu.merge_nodes(G, subcatchment_derivation)
+    assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
+    assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)

@@ -19,9 +19,10 @@ graphfcn_list:
   - calculate_streetcover
   - to_undirected
   - split_long_edges
-  - double_directed
+  - merge_nodes
   - calculate_contributing_area
   - set_elevation
+  - double_directed
   - set_surface_slope
   - set_chahinian_slope
   - set_chahinian_angle

@@ -339,6 +339,7 @@ class double_directed(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         G_new = G.copy()
+        G_new = nx.MultiDiGraph(G_new)
         for u, v, data in G.edges(data=True):
             include = data.get('edge_type', True)
             if isinstance(include, str):
@@ -380,10 +381,9 @@ class split_long_edges(BaseGraphFunction,
         """Split long edges into shorter edges.
 
         This function splits long edges into shorter edges. The edges are split
-        into segments of length 'max_street_length'. The first and last segment
-        are connected to the original nodes. Intermediate segments are connected
-        to newly created nodes. The 'geometry' of the original edge must be
-        a LineString.
+        into segments of length 'max_street_length'. The 'geometry' of the 
+        original edge must be a LineString. Intended to follow up with call of 
+        `merge_nodes`.
         
         Args:
             G (nx.Graph): A graph
@@ -394,14 +394,17 @@ class split_long_edges(BaseGraphFunction,
         Returns:
             graph (nx.Graph): A graph
         """
-        #TODO refactor obviously
         max_length = subcatchment_derivation.max_street_length
 
         new_edges = {}
         new_nodes = set()
 
+        # Split edges
         for u, v, d in G.edges(data=True):
+            # Get new geometry
             new_linestring = shapely.segmentize(d['geometry'], max_length)
+
+            # Create a node at each linestring segment
             new_nodes.update(
                 [(x,y) for x,y in 
                 np.reshape(
@@ -409,28 +412,90 @@ class split_long_edges(BaseGraphFunction,
                     (-1, 2))
                 ]
                 )
+            
+            # Create an arc for each segment
             for start, end in zip(new_linestring.coords[:-1],
                                   new_linestring.coords[1:]):
                 geom = shapely.LineString([start, end])
-                new_edges[(start, end)] = {**d,
+                new_edges[(start, end, 0)] = {**d,
                                            'geometry' : geom,
                                            'length' : geom.length
                                            }
 
-
-        # TODO graph from edges and relabel nodes
-        new_graph = nx.Graph()
+        # Create new graph
+        new_graph = nx.MultiGraph()
+        new_graph.graph = G.graph.copy()
         new_graph.add_edges_from(new_edges)
         nx.set_edge_attributes(new_graph, new_edges)
         nx.set_node_attributes(
             new_graph,
             {node: {'x': node[0], 'y': node[1]} for node in new_nodes}
             )
-        nx.relabel_nodes(new_graph,
+        return nx.relabel_nodes(new_graph,
                          {node: ix for ix, node in enumerate(new_graph.nodes)}
                          )
-        return new_graph
+    
+@register_graphfcn
+class merge_nodes(BaseGraphFunction):
+    """merge_nodes class."""
+    def __call__(self, 
+                 G: nx.Graph, 
+                 subcatchment_derivation: parameters.SubcatchmentDerivation,
+                 **kwargs) -> nx.Graph:
+        """Merge nodes that are close together.
 
+        This function merges nodes that are within a certain distance of each
+        other. The distance is specified in the `node_merge_distance` attribute
+        of the `subcatchment_derivation` parameter. The merged nodes are given
+        the same coordinates, and the graph is relabeled with nx.relabel_nodes.
+
+        Args:
+            G (nx.Graph): A graph
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Identify nodes that are within threshold of each other
+        mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+                              subcatchment_derivation.node_merge_distance)
+
+        # Get indexes of node names
+        node_indices = {ix: node for ix, node in enumerate(G.nodes)}
+
+        # Create a mapping of old node names to new node names
+        node_names = {}
+        for ix, node in enumerate(G.nodes):
+            if ix in mapping:
+                # If the node is in the mapping, then it is mapped and 
+                # given the new coordinate (all nodes in a mapping family must
+                # be given the same coordinate because of how relabel_nodes 
+                # works)
+                node_names[node] = node_indices[mapping[ix]['maps_to']]
+                G.nodes[node]['x'] = mapping[ix]['coordinate'][0]
+                G.nodes[node]['y'] = mapping[ix]['coordinate'][1]
+            else:
+                node_names[node] = node
+
+        G = nx.relabel_nodes(G, node_names)
+
+        # Relabelling will create selfloops within a mapping family, which 
+        # are removed
+        self_loops = list(nx.selfloop_edges(G))
+        G.remove_edges_from(self_loops)
+
+        # Recalculate geometries
+        for u, v, data in G.edges(data=True):
+            data['geometry'] = shapely.LineString([(G.nodes[u]['x'], 
+                                                    G.nodes[u]['y']),
+                                                   (G.nodes[v]['x'], 
+                                                    G.nodes[v]['y'])])
+        return G
+    
 @register_graphfcn
 class fix_geometries(BaseGraphFunction,
                      required_edge_attributes = ['geometry'],
