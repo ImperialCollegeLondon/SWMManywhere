@@ -20,6 +20,7 @@ graphfcn_list:
   - to_undirected
   - split_long_edges
   - merge_nodes
+  - assign_id
   - calculate_contributing_area
   - set_elevation
   - double_directed
