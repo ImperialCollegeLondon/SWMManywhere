@@ -706,8 +706,8 @@ def _intersection_area(gdf1: gpd.GeoDataFrame, gdf2: gpd.GeoDataFrame)-> np.arra
             gdf2.geometry.to_numpy()))
 
 def derive_rc(subcatchments: gpd.GeoDataFrame,
-              graph: nx.MultiDiGraph,
-              building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+              building_footprints: gpd.GeoDataFrame,
+              streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Derive the Runoff Coefficient (RC) of each subcatchment.
 
     The runoff coefficient is the ratio of impervious area to total area. The
@@ -718,10 +718,10 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     Args:
         subcatchments (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        graph (nx.Graph): The input graph, with node 'ids' that match polys_gdf and
-            edges with the 'id', 'width' and 'geometry' property.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
+        streetcover (gpd.GeoDataFrame): A GeoDataFrame containing street cover
+            with a 'geometry' column.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
@@ -730,25 +730,11 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     Author:
         @cheginit
     """
-    # Buffer streets by their width
-    street_buffer = gpd.GeoDataFrame([
-        {
-            'geometry': d['geometry'].buffer(
-                d['width'] / graph.number_of_edges(u, v),
-                cap_style=2,
-                join_style=2,
-            ),
-            'id': d['id']
-        }
-        for u, v, d in graph.edges(data=True) 
-        if d.get('edge_type', "street") == "street"
-    ]).set_crs(subcatchments.crs)
-
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
     bf_pidx, sb_pidx = subcat_tree.query(building_footprints.geometry,
                                          predicate='intersects')
-    str_pidx, ss_pidx = subcat_tree.query(street_buffer.geometry, 
+    str_pidx, ss_pidx = subcat_tree.query(streetcover.geometry, 
                                           predicate='intersects')
     sb_idx = subcatchments.iloc[sb_pidx].index
     ss_idx = subcatchments.iloc[ss_pidx].index
@@ -756,7 +742,7 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     # Calculate impervious area and runoff coefficient (rc)
     subcatchments["impervious_area"] = 0.0
     subcatchments.loc[ss_idx, "impervious_area"] = _intersection_area(
-        subcatchments.iloc[ss_pidx], street_buffer.iloc[str_pidx])
+        subcatchments.iloc[ss_pidx], streetcover.iloc[str_pidx])
     subcatchments.loc[sb_idx, "impervious_area"] += _intersection_area(
         subcatchments.iloc[sb_pidx], building_footprints.iloc[bf_pidx])
     subcatchments["rc"] = subcatchments["impervious_area"] / \
@@ -877,7 +863,7 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
-
+            
 def merge_points(coordinates: list[tuple[float, float]], 
                  threshold: float)-> dict:
     """Merge points that are within a threshold distance.
