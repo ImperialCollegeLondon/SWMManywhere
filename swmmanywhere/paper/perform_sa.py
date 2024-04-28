@@ -1,69 +1,92 @@
-# mypy: ignore-errors
-# -*- coding: utf-8 -*-
-"""Created 2023-12-20.
+"""Perform sensitivity analysis on the results of the model runs."""
+from __future__ import annotations
 
-@author: Barnaby Dobson
-"""
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from SALib.analyze import sobol
 from tqdm import tqdm
 
-from swmmanywhere.paper.experimenter import formulate_salib_problem
+from swmmanywhere.logging import logger
+from swmmanywhere.paper import experimenter
+from swmmanywhere.paper import plotting as swplt
 from swmmanywhere.preprocessing import check_bboxes
 from swmmanywhere.swmmanywhere import load_config
 
+# %% [markdown]
+# ## Initialise directories and load results
+# %%
+# Load the configuration file and extract relevant data
 if __name__ == 'main':
-    project = 'bellinge'
-    base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
+    project = 'cranbrook'
+    base_dir = Path.home() / "Documents" / "data" / "swmmanywhere"
     config_path = base_dir / project / f'{project}_hpc.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base_dir / project
-
-
-    bbox = check_bboxes(config['bbox'], config['base_dir'])
-    results_dir = config['base_dir'] / f'bbox_{bbox}' / 'results'
-
-    # Load the results
-    fids = list(results_dir.glob('*_metrics.csv'))
-
-    df = [pd.read_csv(fid) for fid in tqdm(fids, total = len(fids))]
-    df = pd.concat(df)
-
-    df = df.sort_values(by = 'iter')
-    
     objectives = config['metric_list']
-
     parameters = config['parameters_to_sample']
 
+    # Load the results
+    bbox = check_bboxes(config['bbox'], config['base_dir'])
+    results_dir = config['base_dir'] / f'bbox_{bbox}' / 'results'
+    fids = list(results_dir.glob('*_metrics.csv'))
+    dfs = [pd.read_csv(fid) for fid in tqdm(fids, total = len(fids))]
+
+    # Calculate how many processors were used
+    nprocs = len(fids)
+
+    # Concatenate the results
+    df = pd.concat(dfs)
+
+    # Log deltacon0 because it can be extremely large
+    df['nc_deltacon0'] = np.log(df['nc_deltacon0'])
+    df = df.sort_values(by = 'iter')
+
+    # Make a directory to store plots in
     plot_fid = results_dir / 'plots'
     plot_fid.mkdir(exist_ok=True, parents=True)
 
-    # Plots
-    for parameter in parameters:
-        f,axs = plt.subplots(int(len(objectives)**0.5),
-                             int(len(objectives)**0.5),
-                             figsize = (10,10))
-        for ax, objective in zip(axs.reshape(-1),objectives):
-            ax.scatter(df[parameter], df[objective],s=0.5)
-            ax.set_yscale('symlog')
-            ax.set_title(objective)
-        f.tight_layout()
-        f.suptitle(parameter)
-        f.savefig(plot_fid / (parameter + '.png'))
+    # %% [markdown]
+    # ## Plot the objectives
+    # %%
+    # Highlight the behavioural indices 
+    # (i.e., KGE, NSE, PBIAS are in some preferred range)
+    behavioral_indices = swplt.create_behavioral_indices(df)
 
-    # Overall indices
-    problem = formulate_salib_problem(parameters)
+    # Plot the objectives
+    swplt.plot_objectives(df, 
+                            parameters, 
+                            objectives, 
+                            behavioral_indices,
+                            plot_fid)
+
+    # %% [markdown]
+    # ## Perform Sensitivity Analysis
+    # %%
+
+    # Formulate the SALib problem
+    problem = experimenter.formulate_salib_problem(parameters)
+
+    # Calculate any missing samples
+    n_ideal = pd.DataFrame(
+        experimenter.generate_samples(parameters_to_select=parameters,
+        N=2**config['sample_magnitude'])
+        ).iter.nunique()
+    missing_iters = set(range(n_ideal)).difference(df.iter)
+    if missing_iters:
+        logger.warning(f"Missing {len(missing_iters)} iterations")
+
+    # Perform the sensitivity analysis for groups
     problem['outputs'] = objectives
     rg = {objective: sobol.analyze(problem, 
-                       df[objective].iloc[0:
-                                          (2**(config['sample_magnitude'] + 1) * 10)]
-                                          .values,
-                       print_to_console=False) 
-                       for objective in objectives}
+                        df[objective].iloc[0:
+                                            (2**(config['sample_magnitude'] + 1) * 10)]
+                                            .values,
+                        print_to_console=False) 
+                        for objective in objectives}
 
+    # Perform the sensitivity analysis for parameters
     problemi = problem.copy()
     del problemi['groups']
     ri = {objective: sobol.analyze(problemi, 
@@ -71,24 +94,8 @@ if __name__ == 'main':
                         print_to_console=False) 
                         for objective in objectives}
 
-
-    from SALib.plotting.bar import plot as barplot
-    f,axs = plt.subplots(2,len(ri),figsize=(8,8))
-    for r_, axs_ in zip([rg, ri],axs):
-        for (objective, r), ax in zip(r_.items(),axs_):
-            total, first, second = r.to_df()
-            barplot(total,ax=ax)
-            ax.set_title(objective)
-    plt.tight_layout()
-    f.savefig(plot_fid / 'overall_indices.png')
-
-    from SALib import ProblemSpec
-    sp = ProblemSpec(problemi)
-    sp.samples = df[parameters].values
-    sp.results = df[objectives].values
-    sp.analyze_sobol(print_to_console=False,
-                     calc_second_order=True)
-    for objective in objectives:
-        ax = sp.heatmap(objective)
-        f = ax.get_figure()
-        f.savefig(plot_fid / f'heatmap_{objective}.png')
+    # Barplot of sensitvitiy indices
+    for r_, groups in zip([rg,ri],  ['groups','parameters']):
+        swplt.plot_sensitivity_indices(r_, 
+                                     objectives, 
+                                     plot_fid / f'{groups}_indices.png')
