@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Hashable, List, Optional
 import geopandas as gpd
 import networkx as nx
 import numpy as np
-import osmnx as ox
 import pandas as pd
 import shapely
 from tqdm import tqdm
@@ -339,10 +338,6 @@ class double_directed(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        #TODO the geometry is left as is currently - should be reversed, however
-        # in original osmnx geometry there are some incorrectly directed ones
-        # someone with more patience might check start and end Points to check
-        # which direction the line should be going in...
         G_new = G.copy()
         for u, v, data in G.edges(data=True):
             include = data.get('edge_type', True)
@@ -353,10 +348,29 @@ class double_directed(BaseGraphFunction,
                 reverse_data['id'] = f"{data['id']}.reversed"
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
+    
+@register_graphfcn
+class to_undirected(BaseGraphFunction):
+    """to_undirected class."""
+    
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Convert the graph to an undirected graph.
+
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): An undirected graph
+        """
+        # Don't use osmnx.to_undirected! It enables multigraph if the geometries
+        # are different, but we have already saved the street cover so don't 
+        # want this!
+        return G.to_undirected()
 
 @register_graphfcn
 class split_long_edges(BaseGraphFunction,
-                       required_edge_attributes = ['id', 'geometry', 'length']):
+                       required_edge_attributes = ['id', 'geometry']):
     """split_long_edges class."""
     
     def __call__(self, 
@@ -382,101 +396,40 @@ class split_long_edges(BaseGraphFunction,
         """
         #TODO refactor obviously
         max_length = subcatchment_derivation.max_street_length
-        graph = G.copy()
-        edges_to_remove = []
-        edges_to_add = []
-        nodes_to_add = []
-        maxlabel = max(graph.nodes) + 1
-        ll = 0
 
-        def create_new_edge_data(line, data, id_):
-            new_line = shapely.LineString(line)
-            new_data = data.copy()
-            new_data['id'] = id_
-            new_data['length'] = new_line.length
-            new_data['geometry'] =  shapely.LineString([(x[0], x[1]) 
-                                                    for x in new_line.coords])
-            return new_data
+        new_edges = {}
+        new_nodes = set()
 
-        for u, v, data in graph.edges(data=True):
-            line = data['geometry']
-            length = data['length']
-            if ((u, v) not in edges_to_remove) & ((v, u) not in edges_to_remove):
-                if length > max_length:
-                    new_points = [shapely.Point(x) 
-                                for x in ox.utils_geo.interpolate_points(line, 
-                                                                        max_length)]
-                    if len(new_points) > 2:
-                        for ix, (start, end) in enumerate(zip(new_points[:-1], 
-                                                            new_points[1:])):
-                            new_data = create_new_edge_data([start, 
-                                                            end], 
-                                                            data, 
-                                                            f"{data['id']}.{ix}")
-                            if (v,u) in graph.edges:
-                                # Create reversed data
-                                data_r = graph.get_edge_data(v, u).copy()[0]
-                                id_ = f"{data_r['id']}.{ix}"
-                                new_data_r = create_new_edge_data([end, start], 
-                                                                data_r.copy(), 
-                                                                id_)
-                            if ix == 0:
-                                # Create start to first intermediate
-                                edges_to_add.append((u, maxlabel + ll, new_data.copy()))
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                
-                                if (v, u) in graph.edges:
-                                    # Create first intermediate to start
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        u, 
-                                                        new_data_r.copy()))
-                                
-                                ll += 1
-                            elif ix == len(new_points) - 2:
-                                # Create last intermediate to end
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    v, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create end to last intermediate
-                                    edges_to_add.append((v, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                            else:
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                # Create N-1 intermediate to N intermediate
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    maxlabel + ll, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create N intermediate to N-1 intermediate
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                                ll += 1
-                        edges_to_remove.append((u, v))
-                        if (v, u) in graph.edges:
-                            edges_to_remove.append((v, u))
+        for u, v, d in G.edges(data=True):
+            new_linestring = shapely.segmentize(d['geometry'], max_length)
+            new_nodes.update(
+                [(x,y) for x,y in 
+                np.reshape(
+                    shapely.get_coordinates(new_linestring), 
+                    (-1, 2))
+                ]
+                )
+            for start, end in zip(new_linestring.coords[:-1],
+                                  new_linestring.coords[1:]):
+                geom = shapely.LineString([start, end])
+                new_edges[(start, end)] = {**d,
+                                           'geometry' : geom,
+                                           'length' : geom.length
+                                           }
 
-        for u, v in edges_to_remove:
-            if (u, v) in graph.edges:
-                graph.remove_edge(u, v)
 
-        for node in nodes_to_add:
-            graph.add_node(node[0], **node[1])
-
-        for edge in edges_to_add:
-            graph.add_edge(edge[0], edge[1], **edge[2])
-
-        return graph
+        # TODO graph from edges and relabel nodes
+        new_graph = nx.Graph()
+        new_graph.add_edges_from(new_edges)
+        nx.set_edge_attributes(new_graph, new_edges)
+        nx.set_node_attributes(
+            new_graph,
+            {node: {'x': node[0], 'y': node[1]} for node in new_nodes}
+            )
+        nx.relabel_nodes(new_graph,
+                         {node: ix for ix, node in enumerate(new_graph.nodes)}
+                         )
+        return new_graph
 
 @register_graphfcn
 class fix_geometries(BaseGraphFunction,
