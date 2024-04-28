@@ -387,11 +387,10 @@ def median_coef_by_group(results: pd.DataFrame,
         .sum()
         .reset_index()
         .groupby(gb_key)
-        .apply(lambda x: coef_func(x.value_real, x.value_sim))
-        .median()
+        .apply(lambda x: coef_func(x.value_real, x.value_syn))
     )
-
-    return val
+    val = val[np.isfinite(val)]
+    return val.median()
 
 
 def nodes_to_subs(G: nx.Graph,
@@ -551,8 +550,13 @@ def align_by_shape(var,
     results = pd.merge(real_results[['date','sub_id','value']],
                             synthetic_results[['date','sub_id','value']],
                             on = ['date','sub_id'],
-                            suffixes = ('_real', '_sim')
+                            suffixes = ('_real', '_syn'),
+                            how = 'outer'
                             )
+    
+    results['value_syn'] = results.value_syn.interpolate().to_numpy()
+    results = results.dropna(subset=['value_real'])
+
     return results
 
 def create_grid(bbox: tuple,
@@ -573,11 +577,17 @@ def create_grid(bbox: tuple,
     minx, miny, maxx, maxy = bbox
 
     if isinstance(scale, tuple):
+        if len(scale) != 2:
+            raise ValueError(f"""Scale must be a float or a tuple of length 2., 
+                              instead of length: {len(scale)}""")
         dx, dy = scale
-    else: 
+    elif isinstance(scale, float) | isinstance(scale, int): 
         dx = dy = scale
+    else:
+        raise ValueError(f"""Scale must be a float or a tuple of length 2, 
+                         instead of type {type(scale)}""")
     xmins = np.arange(minx, maxx, dx)
-    ymins = np.arange(minx, maxy, dy)
+    ymins = np.arange(miny, maxy, dy)
     grid = [{'geometry' : shapely.box(x, y, x + dx, y + dy),
              'sub_id' : i} for i, (x, y) in enumerate(product(xmins, ymins))]
 
@@ -857,7 +867,7 @@ def nc_laplacian_dist(synthetic_G: nx.Graph,
     return nc_compare(synthetic_G, 
                       real_G, 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'laplacian')
 
 @metrics.register
@@ -865,10 +875,10 @@ def nc_laplacian_norm_dist(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   **kwargs) -> float:
     """Run the evaluated metric."""
-    return nc_compare(synthetic_G, 
-                      real_G, 
+    return nc_compare(synthetic_G.to_undirected(), 
+                      real_G.to_undirected(), 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'laplacian_norm')
 
 @metrics.register
@@ -876,10 +886,10 @@ def nc_adjacency_dist(synthetic_G: nx.Graph,
                   real_G: nx.Graph,
                   **kwargs) -> float:
     """Run the evaluated metric."""
-    return nc_compare(synthetic_G, 
-                      real_G, 
+    return nc_compare(synthetic_G.to_undirected(), 
+                      real_G.to_undirected(), 
                       'lambda_dist',
-                      k=10,
+                      k=None,
                       kind = 'adjacency')
 
 @metrics.register

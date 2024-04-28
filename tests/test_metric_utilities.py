@@ -383,9 +383,9 @@ def test_design_params():
 def test_netcomp_iterate():
     """Test the netcomp metrics and iterate_metrics."""
     netcomp_results = {'nc_deltacon0' : 0.00129408,
-                       'nc_laplacian_dist' : 36.334773,
-                       'nc_laplacian_norm_dist' : 1.932007,
-                       'nc_adjacency_dist' : 3.542749,
+                       'nc_laplacian_dist' : 155.428234,
+                       'nc_laplacian_norm_dist' : 0.752901,
+                       'nc_adjacency_dist' : 226.22945,
                        'nc_resistance_distance' : 8.098548,
                        'nc_vertex_edge_distance' : 0.132075}
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')

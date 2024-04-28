@@ -166,6 +166,7 @@ def process_parameters(jobid: int,
 
         # Run the model
         config['model_number'] = ix
+        logger.info(f"Running swmmanywhere for model {ix}")
         address, metrics = swmmanywhere.swmmanywhere(config)
 
         if metrics is None:
