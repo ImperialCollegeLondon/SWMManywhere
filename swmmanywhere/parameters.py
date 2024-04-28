@@ -46,14 +46,14 @@ class SubcatchmentDerivation(BaseModel):
             description = "Depth of road/river carve for flow accumulation.")
 
     max_street_length: float = Field(default = 60.0,
-            ge = 40.0,
+            ge = 20.0,
             le = 100.0,
             unit = "m", 
             description = "Distance to split streets into segments.")
 
     node_merge_distance: float = Field(default = 20,
                 ge = 1,
-                le = 40, # This should probably be less than max_street_length
+                le = 20, # This should probably be less than max_street_length
                 unit = 'm',
                 description = "Distance within which to merge street nodes.")
     
