@@ -732,19 +732,17 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     """
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
-    bf_pidx, sb_pidx = subcat_tree.query(building_footprints.geometry,
+    impervious = gpd.overlay(subcatchments[['geometry']], 
+                            building_footprints[['geometry']], 
+                            how='union')
+    bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
                                          predicate='intersects')
-    str_pidx, ss_pidx = subcat_tree.query(streetcover.geometry, 
-                                          predicate='intersects')
     sb_idx = subcatchments.iloc[sb_pidx].index
-    ss_idx = subcatchments.iloc[ss_pidx].index
 
     # Calculate impervious area and runoff coefficient (rc)
     subcatchments["impervious_area"] = 0.0
-    subcatchments.loc[ss_idx, "impervious_area"] = _intersection_area(
-        subcatchments.iloc[ss_pidx], streetcover.iloc[str_pidx])
     subcatchments.loc[sb_idx, "impervious_area"] += _intersection_area(
-        subcatchments.iloc[sb_pidx], building_footprints.iloc[bf_pidx])
+        subcatchments.iloc[sb_pidx], impervious.iloc[bf_pidx])
     subcatchments["rc"] = subcatchments["impervious_area"] / \
         subcatchments.geometry.area * 100
     return subcatchments
