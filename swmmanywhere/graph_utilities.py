@@ -384,7 +384,12 @@ class merge_nodes(BaseGraphFunction):
         self_loops = list(nx.selfloop_edges(G))
         G.remove_edges_from(self_loops)
 
-        # TODO update geometries
+        # Recalculate geometries
+        for u, v, data in G.edges(data=True):
+            data['geometry'] = shapely.LineString([(G.nodes[u]['x'], 
+                                                    G.nodes[u]['y']),
+                                                   (G.nodes[v]['x'], 
+                                                    G.nodes[v]['y'])])
         return G
 
 @register_graphfcn
