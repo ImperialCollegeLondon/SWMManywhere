@@ -14,11 +14,12 @@ real:
 starting_graph: null
 graphfcn_list:
   - assign_id
+  - fix_geometries
   - remove_non_pipe_allowable_links
   - calculate_streetcover
-  - double_directed
-  - fix_geometries
+  - to_undirected
   - split_long_edges
+  - double_directed
   - calculate_contributing_area
   - set_elevation
   - set_surface_slope
