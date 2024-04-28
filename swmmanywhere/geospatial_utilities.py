@@ -732,7 +732,7 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     """
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
-    impervious = gpd.overlay(subcatchments[['geometry']], 
+    impervious = gpd.overlay(streetcover[['geometry']], 
                             building_footprints[['geometry']], 
                             how='union')
     bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
@@ -861,7 +861,7 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
-            
+
 def merge_points(coordinates: list[tuple[float, float]], 
                  threshold: float)-> dict:
     """Merge points that are within a threshold distance.
