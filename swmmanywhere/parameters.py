@@ -51,7 +51,7 @@ class SubcatchmentDerivation(BaseModel):
             unit = "m", 
             description = "Distance to split streets into segments.")
 
-    node_merge_distance: float = Field(default = 30,
+    node_merge_distance: float = Field(default = 10,
                 ge = 1,
                 le = 40,
                 unit = 'm',
