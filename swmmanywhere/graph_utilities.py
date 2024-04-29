@@ -685,7 +685,7 @@ class trim_to_outlets(BaseGraphFunction,
             # Derive outlet subcatchments
             outlet_catchments = go.derive_subcatchments(outlet_graph, 
                                                          addresses.elevation,
-                                                         method = 'pysheds')
+                                                         method = 'pyflwdir')
             
             outlet_catchments = go.trim_touching_polygons(outlet_catchments,
                                                           addresses.elevation)
