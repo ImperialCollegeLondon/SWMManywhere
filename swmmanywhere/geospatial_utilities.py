@@ -791,12 +791,23 @@ def merge_points(coordinates: list[tuple[float, float]],
 
     # Merge pairs into families of points that are all nearby
     families: list = []
+
     for pair in pairs:
-        for family in families:
-            if pair[0] in family or pair[1] in family:
-                family.update(pair)
-                break
+        matched_families = [family for family in families 
+                            if pair[0] in family or pair[1] in family]
+        
+        if matched_families:
+            # Merge all matched families and add the current pair
+            new_family = set(pair)
+            for family in matched_families:
+                new_family.update(family)
+            
+            # Remove the old families and add the newly formed one
+            for family in matched_families:
+                families.remove(family)
+            families.append(new_family)
         else:
+            # No matching family found, so create a new one
             families.append(set(pair))
 
     # Create a mapping of the original point to the merged point
