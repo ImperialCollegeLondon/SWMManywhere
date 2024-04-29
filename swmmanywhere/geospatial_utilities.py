@@ -701,12 +701,6 @@ def derive_subcatchments(G: nx.Graph,
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
 
-def _intersection_area(gdf1: gpd.GeoDataFrame, gdf2: gpd.GeoDataFrame)-> np.array:
-    return shapely.area(
-        shapely.intersection(
-            gdf1.geometry.to_numpy(), 
-            gdf2.geometry.to_numpy()))
-
 def derive_rc(subcatchments: gpd.GeoDataFrame,
               building_footprints: gpd.GeoDataFrame,
               streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -730,7 +724,7 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
             'geometry', 'area', 'id', 'impervious_area', and 'rc'.
 
     Author:
-        @cheginit
+        @cheginit, @barneydobson
     """
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
@@ -739,7 +733,6 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
                    streetcover[['geometry']]]),
         crs = building_footprints.crs
     )
-    impervious = impervious.dissolve()
     bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
                                          predicate='intersects')
     sb_idx = subcatchments.iloc[sb_pidx].index
@@ -747,18 +740,24 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     # Calculate impervious area and runoff coefficient (rc)
     subcatchments["impervious_area"] = 0.0
 
-    # Calculate all intersection-impervious areas
-    intersection_area = _intersection_area(subcatchments.iloc[sb_pidx], 
-                                           impervious.iloc[bf_pidx])
+    # Calculate all intersection-impervious geometries
+    intersection_area = shapely.intersection(
+                subcatchments.iloc[sb_pidx].geometry.to_numpy(), 
+                impervious.iloc[bf_pidx].geometry.to_numpy())
     
     # Indicate which catchment each intersection is part of 
     intersections = pd.DataFrame([{'sb_idx': ix,
-                                  'impervious_area': ia}
+                                  'impervious_geometry': ia}
                                   for ix, ia in zip(sb_idx, intersection_area)]
                                   )
     
     # Aggregate by catchment
-    areas = intersections.groupby('sb_idx').sum()
+    areas = (
+        intersections
+        .groupby('sb_idx')
+        .apply(shapely.ops.unary_union)
+        .apply(shapely.area)
+    )
 
     # Store as impervious area in subcatchments
     subcatchments["impervious_area"] = 0
