@@ -73,6 +73,11 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
+    allowable_networks: list = Field(default = ['drive', 'walk'],
+                                     min_items = 1,
+                        unit = "-",
+                        description = "OSM networks to consider")
+    
     weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
@@ -84,7 +89,8 @@ class TopologyDerivation(BaseModel):
     omit_edges: list = Field(default = ['motorway', 
                                         'motorway_link',
                                         'bridge', 
-                                        'tunnel'],
+                                        'tunnel',
+                                        'corridor'],
                         min_items = 1,
                         unit = "-",
                         description = "OSM paths pipes are not allowed under")

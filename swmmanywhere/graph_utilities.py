@@ -286,6 +286,11 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         """
         edges_to_remove = set()
         for u, v, keys, data in G.edges(data=True,keys = True):
+            if data.get('network_type','drive') \
+                not in topology_derivation.allowable_networks:
+                
+                edges_to_remove.add((u, v, keys))
+                continue
             for omit in topology_derivation.omit_edges:
                 if data.get('highway', None) == omit:
                     # Check whether the 'highway' property is 'omit'
@@ -325,7 +330,10 @@ class calculate_streetcover(BaseGraphFunction,
         G = G.copy()
         lines = []
         for u, v, data in G.edges(data=True):
-            lanes = data.get('lanes',1)
+            if data.get('network_type','drive') == 'drive':
+                lanes = data.get('lanes',1)
+            else:
+                lanes = 0
             if isinstance(lanes, list):
                 lanes = sum([float(x) for x in lanes])
             else:

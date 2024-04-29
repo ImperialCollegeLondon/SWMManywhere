@@ -226,10 +226,22 @@ def prepare_street(bbox: tuple[float, float, float, float],
     if addresses.street.exists():
         return
     logger.info(f'downloading street network to {addresses.street}')
-    street_network = prepare_data.download_street(bbox)
+    street_network = prepare_data.download_street(bbox, network_type='drive')
+    nx.set_edge_attributes(street_network, 'drive', 'network_type')
+
+    # Download walk network to enable pipes along walkways
+    walk_network = prepare_data.download_street(bbox, network_type='walk')
+    nx.set_edge_attributes(walk_network, 'walk', 'network_type')
+
+    # Combine streets and walkways (use street_network as first arg so that 
+    # parameters from street_network are used where there are conflicts)
+    street_network = nx.compose(walk_network, street_network)
+
+    # Reproject graph
     street_network = go.reproject_graph(street_network, 
                                         source_crs, 
                                         target_crs)
+    
     gu.save_graph(street_network, addresses.street)
 
 def prepare_river(bbox: tuple[float, float, float, float],
