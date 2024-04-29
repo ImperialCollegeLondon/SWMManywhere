@@ -54,7 +54,7 @@ def test_swmmanywhere():
         # Set some test values
         base_dir = Path(temp_dir)
         config['base_dir'] = str(base_dir)
-        config['bbox'] = [0.05428,51.55847,0.07193,51.56726]
+        config['bbox'] = [0.05677,51.55656,0.07193,51.56726]
         config['address_overrides'] = {
             'building': str(test_data_dir / 'building.geoparquet'),
             'precipitation': str(defs_dir / 'storm.dat')
