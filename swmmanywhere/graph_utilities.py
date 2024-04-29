@@ -511,16 +511,22 @@ class merge_nodes(BaseGraphFunction):
         """
         G = G.copy()
 
+        # Separate out streets         
+        street_edges = [(u, v, k) for u, v, k, d in G.edges(data=True, keys=True)
+                        if d.get('edge_type','street') == 'street']
+        streets = G.edge_subgraph(street_edges).copy()
+
         # Identify nodes that are within threshold of each other
-        mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+        mapping = go.merge_points([(d['x'], d['y']) 
+                                   for u,d in streets.nodes(data=True)],
                               subcatchment_derivation.node_merge_distance)
 
         # Get indexes of node names
-        node_indices = {ix: node for ix, node in enumerate(G.nodes)}
+        node_indices = {ix: node for ix, node in enumerate(streets.nodes)}
 
         # Create a mapping of old node names to new node names
         node_names = {}
-        for ix, node in enumerate(G.nodes):
+        for ix, node in enumerate(streets.nodes):
             if ix in mapping:
                 # If the node is in the mapping, then it is mapped and 
                 # given the new coordinate (all nodes in a mapping family must
