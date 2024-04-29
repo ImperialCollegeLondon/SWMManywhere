@@ -201,8 +201,8 @@ class HydraulicDesign(BaseModel):
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
     grid_scale: float = Field(default = 100,
-                        le = 10,
-                        ge = 5000,
+                        le = 5000,
+                        ge = 10,
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
 
