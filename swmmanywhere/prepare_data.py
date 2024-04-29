@@ -124,10 +124,7 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     """
     west, south, east, north = bbox
     graph = ox.graph_from_bbox(
-        north, 
-        south, 
-        east, 
-        west,
+        bbox = (north, south, east, west),
         truncate_by_edge=True, 
         custom_filter='["waterway"]')
     
