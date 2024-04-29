@@ -206,7 +206,7 @@ def parse_arguments() -> tuple[int, int | None, Path]:
     parser = argparse.ArgumentParser(description='Process command line arguments.')
     parser.add_argument('--jobid', 
                         type=int, 
-                        default=1, 
+                        default=0, 
                         help='Job ID')
     parser.add_argument('--nproc', 
                         type=int, 
@@ -215,7 +215,7 @@ def parse_arguments() -> tuple[int, int | None, Path]:
     parser.add_argument('--config_path', 
                         type=Path, 
                         default=Path(__file__).parent.parent.parent / 'tests' /\
-                                    'test_data' / 'demo_config_sa.yml',
+                                    'test_data' / 'demo_config.yml',
                         help='Configuration file path')
 
     args = parser.parse_args()
