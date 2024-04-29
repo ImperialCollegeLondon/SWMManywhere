@@ -741,8 +741,23 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
 
     # Calculate impervious area and runoff coefficient (rc)
     subcatchments["impervious_area"] = 0.0
-    subcatchments.loc[sb_idx, "impervious_area"] += _intersection_area(
-        subcatchments.iloc[sb_pidx], impervious.iloc[bf_pidx])
+
+    # Calculate all intersection-impervious areas
+    intersection_area = _intersection_area(subcatchments.iloc[sb_pidx], 
+                                           impervious.iloc[bf_pidx])
+    
+    # Indicate which catchment each intersection is part of 
+    intersections = pd.DataFrame([{'sb_idx': ix,
+                                  'impervious_area': ia}
+                                  for ix, ia in zip(sb_idx, intersection_area)]
+                                  )
+    
+    # Aggregate by catchment
+    areas = intersections.groupby('sb_idx').sum()
+
+    # Store as impervious area in subcatchments
+    subcatchments["impervious_area"] = 0
+    subcatchments.loc[areas.index, "impervious_area"] = areas
     subcatchments["rc"] = subcatchments["impervious_area"] / \
         subcatchments.geometry.area * 100
     return subcatchments
