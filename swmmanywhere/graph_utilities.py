@@ -687,8 +687,12 @@ class trim_to_outlets(BaseGraphFunction,
                                                          addresses.elevation,
                                                          method = 'pyflwdir')
             
+            # Check whether the outlet catchments are touching the edge of 
+            # the elevation data. trim=False retains these catchments while
+            # trim=True would remove them.
             outlet_catchments = go.trim_touching_polygons(outlet_catchments,
-                                                          addresses.elevation)
+                                                          addresses.elevation,
+                                                          trim = False)
 
             # Keep only nodes within subcatchments
             nodes_gdf = gpd.GeoDataFrame(G.nodes,
