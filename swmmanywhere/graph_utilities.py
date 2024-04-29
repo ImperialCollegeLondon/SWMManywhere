@@ -185,6 +185,12 @@ def iterate_graphfcns(G: nx.Graph,
         logger.info(f"graphfcn: {function} completed.")
         if verbose:
             save_graph(G, addresses.model / f"{function}_graph.json")
+            go.graph_to_geojson(G,
+                                addresses.model / f"{function}_nodes.geojson",
+                                addresses.model / f"{function}_edges.geojson",
+                                G.graph['crs']
+                                )
+            
     return G
 
 @register_graphfcn
@@ -1113,6 +1119,11 @@ class derive_topology(BaseGraphFunction,
         for node in [node for node, path in paths.items() if not path]:
             G.remove_node(node)
             del paths[node], shortest_paths[node]
+
+        if len(G.nodes) == 0:
+            raise ValueError("""No nodes with path to outlet, consider 
+                             broadening bounding box or removing trim_to_outlet
+                             from config graphfcn_list""")
 
         edges_to_keep: set = set()
         for path in paths.values():
