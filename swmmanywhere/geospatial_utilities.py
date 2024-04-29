@@ -9,6 +9,7 @@ import itertools
 import json
 import math
 import operator
+import os
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -19,19 +20,23 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import pyproj
-import pysheds
 import rasterio as rst
 import rioxarray
-from pysheds import grid as pgrid
+import shapely
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
+from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely import ops as sops
-from shapely.errors import GEOSException
 from shapely.strtree import STRtree
 from tqdm import tqdm
 
 from swmmanywhere.logging import logger
+
+os.environ['NUMBA_NUM_THREADS'] = '1'
+import pyflwdir  # noqa: E402
+import pysheds  # noqa: E402
+from pysheds import grid as pgrid  # noqa: E402
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
@@ -564,17 +569,93 @@ def calculate_slope(polys_gdf: gpd.GeoDataFrame,
         polys_gdf.loc[idx, 'slope'] = max(float(average_slope), 0)
     return polys_gdf
 
-def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
+def vectorize(data: np.ndarray, 
+              nodata: float, 
+              transform: rst.Affine, 
+              crs: int, 
+              name: str = "value")->gpd.GeoDataFrame:
+    """Vectorize raster data into a geodataframe.
+    
+    Args:
+        data (np.ndarray): The raster data.
+        nodata (float): The nodata value.
+        transform (rst.Affine): The affine transformation.
+        crs (int): The CRS of the data.
+        name (str, optional): The name of the data. Defaults to "value".
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing the vectorized data.
+    """
+    feats_gen = features.shapes(
+        data,
+        mask=data != nodata,
+        transform=transform,
+        connectivity=8,
+    )
+    feats = [
+        {"geometry": geom, "properties": {name: val}} for geom, val in list(feats_gen)
+    ]
+
+    # parse to geopandas for plotting / writing to file
+    gdf = gpd.GeoDataFrame.from_features(feats, crs=crs)
+    gdf[name] = gdf[name].astype(data.dtype)
+    return gdf
+
+def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
+                        flow_dir: pysheds.sview.Raster,
+                        G: nx.Graph) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
+    Uses the pyflwdir catchment delineation functionality. About a magnitude
+    faster than delineate_catchment.
+
     Args:
+        grid (pysheds.sgrid.Grid): The grid object.
+        flow_dir (pysheds.sview.Raster): Flow directions.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
-        fid (Path): Filepath to the DEM.
     
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
+    flw = pyflwdir.from_array(
+            flow_dir,
+            ftype = 'd8',
+            check_ftype = False,
+            transform = grid.affine,
+        )
+    bbox = sgeom.box(*grid.bbox)
+    u, x, y = zip(*[(u, float(p['x']), float(p['y'])) for u, p in G.nodes(data=True)
+                 if sgeom.Point(p['x'], p['y']).within(bbox)])
+
+    subbasins = flw.basins(xy=(x, y))
+    gdf_bas = vectorize(subbasins.astype(np.int32), 
+                        0, 
+                        flw.transform, 
+                        G.graph['crs'], 
+                        name="basin")
+    gdf_bas['id'] = [u[x-1] for x in gdf_bas['basin']]
+    return gdf_bas
+
+def derive_subcatchments(G: nx.Graph, 
+                         fid: Path, 
+                         method = 'pyflwdir') -> gpd.GeoDataFrame:
+    """Derive subcatchments from the nodes on a graph and a DEM.
+
+    Args:
+        G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
+        fid (Path): Filepath to the DEM.
+        method (str, optional): The method to use for delineating catchments. 
+            Defaults to 'pyflwdir'. Can also be `pysheds` to use the old 
+            method.
+    
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
+            'geometry', 'area', 'id', 'width', and 'slope'.
+    """
+    if method not in ['pyflwdir', 'pysheds']:
+        raise ValueError("Invalid method. Must be 'pyflwdir' or 'pysheds'.")
+    
     # Initialise pysheds grids
     grid = pgrid.Grid.from_raster(str(fid))
     dem = grid.read_raster(str(fid))
@@ -588,14 +669,19 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     # Calculate slopes
     cell_slopes = grid.cell_slopes(dem, flow_dir)
 
-    # Calculate flow accumulations
-    flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
+    if method == 'pysheds':
+        # Calculate flow accumulations
+        flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
 
-    # Delineate catchments
-    polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
+        # Delineate catchments
+        polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
 
-    # Remove intersections
-    result_polygons = remove_intersections(polys)
+        # Remove intersections
+        result_polygons = remove_intersections(polys)
+
+    elif method == 'pyflwdir':
+        # Delineate catchments
+        result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)   
 
     # Convert to GeoDataFrame
     polys_gdf = result_polygons.dropna(subset=['geometry'])
@@ -615,9 +701,15 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
 
-def derive_rc(polys_gdf: gpd.GeoDataFrame,
-              G: nx.Graph,
-              building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+def _intersection_area(gdf1: gpd.GeoDataFrame, gdf2: gpd.GeoDataFrame)-> np.array:
+    return shapely.area(
+        shapely.intersection(
+            gdf1.geometry.to_numpy(), 
+            gdf2.geometry.to_numpy()))
+
+def derive_rc(subcatchments: gpd.GeoDataFrame,
+              building_footprints: gpd.GeoDataFrame,
+              streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Derive the Runoff Coefficient (RC) of each subcatchment.
 
     The runoff coefficient is the ratio of impervious area to total area. The
@@ -626,54 +718,36 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     calculate road area).
 
     Args:
-        polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
+        subcatchments (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf and
-            edges with the 'id', 'width' and 'geometry' property.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
+        streetcover (gpd.GeoDataFrame): A GeoDataFrame containing street cover
+            with a 'geometry' column.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'impervious_area', and 'rc'.
+
+    Author:
+        @cheginit
     """
-    polys_gdf = polys_gdf.copy()
+    # Map buffered streets and buildings to subcatchments
+    subcat_tree = subcatchments.sindex
+    impervious = gpd.overlay(streetcover[['geometry']], 
+                            building_footprints[['geometry']], 
+                            how='union')
+    bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
+                                         predicate='intersects')
+    sb_idx = subcatchments.iloc[sb_pidx].index
 
-    ## Format as swmm type catchments 
-
-    # TODO think harder about lane widths (am I double counting here?)
-    lines = [
-        {
-            'geometry': x['geometry'].buffer(x['width'], 
-                                             cap_style=2, 
-                                             join_style=2),
-            'id': x['id']
-        }
-        for u, v, x in G.edges(data=True)
-    ]
-    lines_df = pd.DataFrame(lines)
-    lines_gdf = gpd.GeoDataFrame(lines_df, 
-                                geometry=lines_df.geometry,
-                                    crs = polys_gdf.crs)
-
-    result = gpd.overlay(lines_gdf[['geometry']], 
-                         building_footprints[['geometry']], 
-                         how='union')
-    result = gpd.overlay(polys_gdf, result)
-    try:
-        dissolved_result = result.dissolve(by='id').reset_index()
-    except GEOSException:
-        # Temporary fix for bug: 
-        # https://github.com/ImperialCollegeLondon/SWMManywhere/issues/115
-        result['geometry'] = result['geometry'].simplify(0.1)
-        dissolved_result = result.dissolve(by='id').reset_index()
-    dissolved_result['impervious_area'] = dissolved_result.geometry.area
-    polys_gdf = pd.merge(polys_gdf, 
-                            dissolved_result[['id','impervious_area']], 
-                            on = 'id',
-                            how='left').fillna(0)
-    polys_gdf['rc'] = polys_gdf['impervious_area'] / polys_gdf['area'] * 100
-    return polys_gdf
+    # Calculate impervious area and runoff coefficient (rc)
+    subcatchments["impervious_area"] = 0.0
+    subcatchments.loc[sb_idx, "impervious_area"] += _intersection_area(
+        subcatchments.iloc[sb_pidx], impervious.iloc[bf_pidx])
+    subcatchments["rc"] = subcatchments["impervious_area"] / \
+        subcatchments.geometry.area * 100
+    return subcatchments
 
 def calculate_angle(point1: tuple[float,float], 
                     point2: tuple[float,float],
@@ -789,7 +863,6 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
-
 def trim_touching_polygons(polygons: gpd.GeoDataFrame,
                            fid: Path) -> gpd.GeoDataFrame:
     """Trim touching polygons in a GeoDataFrame.
@@ -831,3 +904,39 @@ def trim_touching_polygons(polygons: gpd.GeoDataFrame,
                        your bbox""")
     trimmed_gdf = polygons.loc[~ind]
     return trimmed_gdf
+
+def merge_points(coordinates: list[tuple[float, float]], 
+                 threshold: float)-> dict:
+    """Merge points that are within a threshold distance.
+
+    Args:
+        coordinates (list): List of coordinates as tuples.
+        threshold(float): The threshold distance for merging points.
+    
+    Returns:
+        dict: A dictionary mapping the original point index to the merged point
+            and new coordinate.
+    """
+    # Create a KDTtree to pair together points within thresholds
+    tree = KDTree(coordinates)
+    pairs = tree.query_pairs(threshold)
+
+    # Merge pairs into families of points that are all nearby
+    families: list = []
+    for pair in pairs:
+        for family in families:
+            if pair[0] in family or pair[1] in family:
+                family.update(pair)
+                break
+        else:
+            families.append(set(pair))
+
+    # Create a mapping of the original point to the merged point
+    mapping = {}
+    for family in families:
+        average_point = np.mean([coordinates[i] for i in family], axis=0)
+        family_head = min(list(family))
+        for i in family:
+            mapping[i] = {'maps_to' : family_head, 
+                          'coordinate' : tuple(average_point)}
+    return mapping

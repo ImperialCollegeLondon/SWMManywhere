@@ -223,16 +223,23 @@ def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     G = load_street_network()
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    
-    polys = go.derive_subcatchments(G, elev_fid)
-    assert 'slope' in polys.columns
-    assert 'area' in polys.columns
-    assert 'geometry' in polys.columns
-    assert 'id' in polys.columns
-    assert polys.shape[0] > 0
-    assert polys.dropna().shape == polys.shape
-    assert polys.crs == G.graph['crs']
+    for method in ['pysheds', 'pyflwdir']:
+        polys = go.derive_subcatchments(G, elev_fid,method=method)
+        assert 'slope' in polys.columns
+        assert 'area' in polys.columns
+        assert 'geometry' in polys.columns
+        assert 'id' in polys.columns
+        assert polys.shape[0] > 0
+        assert polys.dropna().shape == polys.shape
+        assert polys.crs == G.graph['crs']
 
+        # Pyflwdir and pysheds catchment derivation aren't absolutely identical
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'area'], 
+                            1499, tol = 1)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'slope'], 
+                            0.06145, tol = 0.001)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'width'], 
+                            21.845, tol = 0.001)
 
 def test_derive_rc():
     """Test the derive_rc function."""
@@ -279,19 +286,15 @@ def test_derive_rc():
                                     crs = crs)
     subs['area'] = subs.geometry.area
 
-    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
     assert subs_rc.loc[6277683849,'impervious_area'] == 0
     assert subs_rc.loc[107733,'impervious_area'] > 0
-    for u,v,d in G.edges(data=True):
-        d['width'] = 10
 
-    subs_rc = go.derive_rc(subs, G, buildings).set_index('id')
+    buildings.geometry = buildings.buffer(50)
+    subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
     assert subs_rc.loc[6277683849,'impervious_area'] > 0
     assert subs_rc.loc[6277683849,'rc'] > 0
     assert subs_rc.rc.max() <= 100
-
-    for u,v,d in G.edges(data=True):
-        d['width'] = 0
 
 def test_calculate_angle():
     """Test the calculate_angle function."""
@@ -389,3 +392,14 @@ def test_graph_to_geojson():
 
         gdf = gpd.read_file(temp_path / 'graph_edges.geojson')
         assert gdf.shape[0] == len(G.edges)
+
+def test_merge_points():
+    """Test the merge_points function."""
+    G = load_street_network()
+    mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+                              20)
+    assert set(mapping.keys()) == set([2,3,5,15,16,18,22])
+    assert set([x['maps_to'] for x in mapping.values()]) == set([2,5,15])
+    assert mapping[15]['maps_to'] == 15
+    assert mapping[18]['maps_to'] == 15
+    assert almost_equal(mapping[18]['coordinate'][0], 700445.0112082)

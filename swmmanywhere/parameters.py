@@ -51,6 +51,12 @@ class SubcatchmentDerivation(BaseModel):
             unit = "m", 
             description = "Distance to split streets into segments.")
 
+    node_merge_distance: float = Field(default = 30,
+                ge = 1,
+                le = 40,
+                unit = 'm',
+                description = "Distance within which to merge street nodes.")
+    
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
 	river_buffer_distance: float = Field(default = 150.0,
@@ -286,6 +292,9 @@ class FilePaths:
     def _generate_building(self):
         return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
+    def _generate_streetcover(self):
+        return self._generate_property(f'streetcover.geo{self.extension}', 
+                                        'model')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 
                                         'download')

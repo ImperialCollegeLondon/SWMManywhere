@@ -52,14 +52,23 @@ def test_double_directed():
     for u, v in G.edges():
         assert (v,u) in G.edges
 
-def test_format_osmnx_lanes():
-    """Test the format_osmnx_lanes function."""
+def test_calculate_streetcover():
+    """Test the calculate_streetcover function."""
     G, _ = load_street_network()
     params = parameters.SubcatchmentDerivation()
-    G = gu.format_osmnx_lanes(G, params)
-    for u, v, data in G.edges(data=True):
-        assert 'width' in data.keys()
-        assert isinstance(data['width'], float)
+    addresses = parameters.FilePaths(base_dir = None,
+                                        project_name = None,
+                                        bbox_number = None,
+                                        model_number = None,
+                                        extension = 'json')
+    with tempfile.TemporaryDirectory() as temp_dir:
+        addresses.streetcover = Path(temp_dir) / 'streetcover.geojson'
+        _ = gu.calculate_streetcover(G, params, addresses)
+        # TODO test that G hasn't changed? or is that a waste of time?
+        assert addresses.streetcover.exists()
+        gdf = gpd.read_file(addresses.streetcover)
+        assert len(gdf) == len(G.edges)
+        assert gdf.geometry.area.sum() > 0
 
 def test_split_long_edges():
     """Test the split_long_edges function."""
@@ -82,6 +91,7 @@ def test_derive_subcatchments():
                             model_number = 1)
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         addresses.building = temp_path / 'building.geojson'
+        addresses.streetcover = temp_path / 'building.geojson'
         addresses.subcatchments = temp_path / 'subcatchments.geojson'
         params = parameters.SubcatchmentDerivation()
         G, bbox = load_street_network()
@@ -275,6 +285,7 @@ def test_iterate_graphfcns():
     """Test the iterate_graphfcns function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     params = parameters.get_full_parameters()
+    params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         addresses = parameters.FilePaths(base_dir = None,
@@ -286,12 +297,13 @@ def test_iterate_graphfcns():
         addresses.model = temp_path
         G = iterate_graphfcns(G, 
                                 ['assign_id',
-                                'format_osmnx_lanes'],
+                                'remove_non_pipe_allowable_links'],
                                 params, 
                                 addresses)
         for u, v, d in G.edges(data=True):
             assert 'id' in d.keys()
-            assert 'width' in d.keys()
+        assert 'primary' not in get_edge_types(G)
+        assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) == 1
 
 def test_fix_geometries():
     """Test the fix_geometries function."""
@@ -308,7 +320,7 @@ def test_fix_geometries():
     # Check that the edge geometry now matches the node coordinates
     assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
         (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
-
+    
 def test_trim_to_outlets():
     """Test the trim_to_outlets function."""
     G, _ = load_street_network()
@@ -320,4 +332,17 @@ def test_trim_to_outlets():
                                     model_number = None)
     addresses.elevation = elev_fid
     G_ = gu.trim_to_outlets(G,addresses)
-    assert set(G_.nodes) == set([107738])
+    assert set(G_.nodes) == set([21392086])
+
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    return abs(a-b) < tol
+
+def test_merge_nodes():
+    """Test the merge_nodes function."""
+    G, _ = load_street_network()
+    subcatchment_derivation = parameters.SubcatchmentDerivation(
+        node_merge_distance = 20)
+    G_ = gu.merge_nodes(G, subcatchment_derivation)
+    assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
+    assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
