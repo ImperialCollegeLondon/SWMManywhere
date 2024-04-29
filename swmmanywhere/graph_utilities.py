@@ -793,15 +793,16 @@ class set_chahinian_slope(BaseGraphFunction,
         """
         G = G.copy()
 
-        # Values where the weight of the angle can be matched to the values 
-        # in weights
-        angle_points = [-1, 0.3, 0.7, 10] 
-        weights = [1, 0, 0, 1]
+        # Values where the weight of the slope can be matched to the values 
+        # in weights - e.g., a slope of 0.3% has 0 weight (preferred), while 
+        # a slope of <=-1% has a weight of 1 (not preferred)
+        slope_points = [-1, 0.3, 0.7, 10] 
+        weights = [1, 0, 0, 1] 
 
         # Calculate weights
         slope = nx.get_edge_attributes(G, "surface_slope")
         weights = np.interp(np.asarray(list(slope.values())) * 100, 
-                            angle_points,
+                            slope_points,
                             weights, 
                             left=1, 
                             right=1)
@@ -1214,6 +1215,7 @@ def design_pipe(ds_elevation: float,
                                                     'v_feasibility',
                                                     'fr_feasibility',
                                                     # 'shear_feasibility',
+                                                    'depth',
                                                     'cost'], 
                                                 ascending = True).iloc[0]
         return ideal_pipe.diam, ideal_pipe.depth
