@@ -734,9 +734,12 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     """
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
-    impervious = gpd.overlay(streetcover[['geometry']], 
-                            building_footprints[['geometry']], 
-                            how='union')
+    impervious = gpd.GeoDataFrame(
+        pd.concat([building_footprints[['geometry']], 
+                   streetcover[['geometry']]]),
+        crs = building_footprints.crs
+    )
+    impervious = impervious.dissolve()
     bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
                                          predicate='intersects')
     sb_idx = subcatchments.iloc[sb_pidx].index
