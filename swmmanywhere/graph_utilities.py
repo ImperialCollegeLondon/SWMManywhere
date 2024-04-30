@@ -410,23 +410,15 @@ class split_long_edges(BaseGraphFunction,
         """
         max_length = subcatchment_derivation.max_street_length
 
-        new_edges = {}
-        new_nodes = set()
-
         # Split edges
-        for u, v, d in G.edges(data=True):
-            # Get new geometry
-            new_linestring = shapely.segmentize(d['geometry'], max_length)
+        new_linestrings = shapely.segmentize([d['geometry'] 
+                                             for u,v,d in G.edges(data=True)], 
+                                             max_length)
+        new_nodes = shapely.get_coordinates(new_linestrings)
 
-            # Create a node at each linestring segment
-            new_nodes.update(
-                [(x,y) for x,y in 
-                np.reshape(
-                    shapely.get_coordinates(new_linestring), 
-                    (-1, 2))
-                ]
-                )
-            
+        
+        new_edges = {}
+        for new_linestring, (u,v,d) in zip(new_linestrings, G.edges(data=True)):
             # Create an arc for each segment
             for start, end in zip(new_linestring.coords[:-1],
                                   new_linestring.coords[1:]):
@@ -443,7 +435,7 @@ class split_long_edges(BaseGraphFunction,
         nx.set_edge_attributes(new_graph, new_edges)
         nx.set_node_attributes(
             new_graph,
-            {node: {'x': node[0], 'y': node[1]} for node in new_nodes}
+            {tuple(node): {'x': node[0], 'y': node[1]} for node in new_nodes}
             )
         return nx.relabel_nodes(new_graph,
                          {node: ix for ix, node in enumerate(new_graph.nodes)}
