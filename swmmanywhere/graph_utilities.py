@@ -358,7 +358,7 @@ class double_directed(BaseGraphFunction,
             include = data.get('edge_type', True)
             if isinstance(include, str):
                 include = include == 'street'
-            if ((v, u) not in G.edges) & include:
+            if ((v, u) not in G_new.edges) & include:
                 reverse_data = data.copy()
                 reverse_data['id'] = f"{data['id']}.reversed"
                 G_new.add_edge(v, u, **reverse_data)
