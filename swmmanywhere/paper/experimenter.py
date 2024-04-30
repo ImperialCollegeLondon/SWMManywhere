@@ -137,6 +137,7 @@ def process_parameters(jobid: int,
     df = pd.DataFrame(X)
     gb = df.groupby('iter')
     n_iter = len(gb)
+    logger.info(f"{n_iter} samples created")
     flooding_results = {}
     nproc = nproc if nproc is not None else n_iter
 
