@@ -134,7 +134,7 @@ matplotlib==3.8.2
     #   swmmanywhere (pyproject.toml)
 multiprocess==0.70.15
     # via salib
-mypy==1.8.0
+mypy==1.10.0
     # via
     #   pytest-mypy
     #   swmmanywhere (pyproject.toml)
