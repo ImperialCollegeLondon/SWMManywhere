@@ -207,7 +207,8 @@ def test_identify_outlets_and_derive_topology():
         d['edge_type'] = 'street'
         d['weight'] = ix
 
-    params = parameters.OutletDerivation(river_buffer_distance = 300)
+    params = parameters.OutletDerivation(river_buffer_distance = 300,
+                                         method = 'separate')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
                                     (699932.546,5709882.575)])
     dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
@@ -246,7 +247,7 @@ def test_identify_outlets_and_derive_topology():
     assert len(outlets) == 2
     
     # Test topo derivation
-    G_ = gu.derive_topology(G_)
+    G_ = gu.derive_topology(G_,params)
     assert len(G_.edges) == 22
 
     # Test outlet derivation parameters
@@ -351,7 +352,8 @@ def test_trim_to_outlets():
                                     bbox_number = None,
                                     model_number = None)
     addresses.elevation = elev_fid
-    G_ = gu.trim_to_outlets(G,addresses)
+    outlet_derivation = parameters.OutletDerivation(method = 'separate')
+    G_ = gu.trim_to_outlets(G,addresses,outlet_derivation)
     assert set(G_.nodes) == set([21392086])
 
 def almost_equal(a, b, tol=1e-6):

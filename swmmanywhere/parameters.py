@@ -59,6 +59,11 @@ class SubcatchmentDerivation(BaseModel):
     
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
+	method: str = Field(default = 'separate',
+        unit = '-',
+        description = """Method to derive outlet locations, 
+            can be 'separate' or 'withtopo'.""")
+
 	river_buffer_distance: float = Field(default = 150.0,
 		ge = 50.0,
 		le = 300.0,
@@ -69,7 +74,7 @@ class OutletDerivation(BaseModel):
 		ge = 10.0,
 		le = 600.0,
 		unit = "m",
-		description = "Length to discourage street drainage into river buffers.")
+		description = "Length to discourage street drainage into river buffers.") 
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
