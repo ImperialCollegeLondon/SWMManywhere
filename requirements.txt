@@ -243,7 +243,7 @@ smmap==5.0.1
     # via gitdb
 snuggs==1.4.7
     # via rasterio
-swmm-toolkit==0.15.3
+swmm-toolkit==0.15.5
     # via pyswmm
 tifffile==2024.1.30
     # via scikit-image
