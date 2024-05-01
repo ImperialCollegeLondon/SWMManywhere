@@ -100,7 +100,7 @@ julian==0.14
     # via pyswmm
 kiwisolver==1.4.5
     # via matplotlib
-lazy-loader==0.3
+lazy-loader==0.4
     # via scikit-image
 llvmlite==0.41.1
     # via numba
