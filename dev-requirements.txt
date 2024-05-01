@@ -217,7 +217,7 @@ pyarrow==14.0.2
     # via swmmanywhere (pyproject.toml)
 pydantic==2.5.3
     # via swmmanywhere (pyproject.toml)
-pydantic-core==2.14.6
+pydantic-core==2.18.2
     # via pydantic
 pyparsing==3.1.1
     # via
