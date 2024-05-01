@@ -1108,8 +1108,7 @@ class derive_topology(BaseGraphFunction,
         
         # Identify outlets
         if outlet_derivation.method == 'withtopo':
-            outlets: list[Hashable] = ['waste']
-            nodes_to_remove: list = []
+            return nx.minimum_spanning_arborescence(G, 'weight',preserve_attrs=True)
         else:
             outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
 
@@ -1176,16 +1175,6 @@ class derive_topology(BaseGraphFunction,
 
         edges_to_keep: set = set()
         for path in paths.values():
-            if outlet_derivation.method == 'withtopo':
-                # Assign outlet
-                outlet = path[0]
-                node_ = outlet
-                for node in path[1:]:
-                    if G.get_edge_data(node,node_,0)['edge_type'] == 'outlet':
-                        outlet = node
-                        break
-                    node_ = node
-
             # Assign outlet
             outlet = path[0]
             for node in path:
@@ -1200,13 +1189,7 @@ class derive_topology(BaseGraphFunction,
         for u,v in G.edges():
             if (u,v) not in edges_to_keep:
                 new_graph.remove_edge(u,v)
-
-        if outlet_derivation.method == 'withtopo':
-            # Remove newly isolated nodes
-            isolated_nodes = list(nx.isolates(new_graph))
-            for u in isolated_nodes:
-                new_graph.remove_node(u)
-
+                
         return new_graph
 
 def design_pipe(ds_elevation: float,

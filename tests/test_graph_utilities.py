@@ -257,6 +257,66 @@ def test_identify_outlets_and_derive_topology():
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
 
+def test_identify_outlets_and_derive_topology_withtopo():
+    """Test the identify_outlets and derive_topology functions."""
+    G, _ = load_street_network()
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+
+    params = parameters.OutletDerivation(river_buffer_distance = 300,
+                                         method = 'withtopo')
+    dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
+                                    (699932.546,5709882.575)])
+    dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
+                                    (700011.524,5710060.636)])
+    dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
+                                    (700103.427,5710169.052)])
+    
+    G.add_edge('river1', 'river2', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river1-to-river2',
+                                    'geometry' :  dummy_river1})
+    G.add_edge('river2', 'river3', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river2-to-river3',
+                                    'geometry' :  dummy_river2})
+    
+    G.add_edge('river3', 'river4', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river3-to-river4',
+                                    'geometry' :  dummy_river3})
+    
+    G.nodes['river1']['x'] = 699913.878
+    G.nodes['river1']['y'] = 5709769.851
+    G.nodes['river2']['x'] = 699932.546
+    G.nodes['river2']['y'] = 5709882.575
+    G.nodes['river3']['x'] = 700011.524
+    G.nodes['river3']['y'] = 5710060.636
+    G.nodes['river4']['x'] = 700103.427
+    G.nodes['river4']['y'] = 5710169.052
+
+    # Test outlet derivation
+    G_ = G.copy()
+    G_ = gu.identify_outlets(G_, params)
+
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 4
+    
+    # Test topo derivation
+    G_ = gu.derive_topology(G_,params)
+    assert len(G_.edges) == 28
+
+    # Test outlet derivation parameters
+    G_ = G.copy()
+    params.outlet_length = 600
+    G_ = gu.identify_outlets(G_, params)
+    G_ = gu.derive_topology(G_, params)
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 1
+
 def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
