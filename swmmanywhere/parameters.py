@@ -39,8 +39,8 @@ class SubcatchmentDerivation(BaseModel):
             unit = "-",
             description = "Stream order for subbasin derivation.")
     
-    subbasin_membership: float = Field(default = 0.8,
-            ge = 0.5,
+    subbasin_membership: float = Field(default = 0.5,
+            ge = 0,
             le = 1,
             unit = "-",
             description = "Membership threshold for subbasin derivation.")

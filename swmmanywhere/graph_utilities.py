@@ -636,6 +636,7 @@ class clip_to_catchments(BaseGraphFunction,
             crs = G.graph['crs']
             ).set_index('id')
         
+        street_points['community'] = 0 
         # Assign louvain membership to street points
         for ix, community in enumerate(louv_membership):
             street_points.loc[list(community), 'community'] = ix
@@ -645,7 +646,58 @@ class clip_to_catchments(BaseGraphFunction,
                                 subbasins.set_index('basin'),
                                 how='left',
                         ).rename(columns = {'index_right': 'basin'})
-                 
+        
+        # Introduce a non catchment basin for nan
+        street_points['basin'] = street_points['basin'].fillna(-1)
+
+        # Calculate most percentage of each subbasin in each community
+        community_basin = (
+            street_points
+            .groupby('community')
+            .basin
+            .value_counts()
+            .reset_index()
+        )
+        community_size = (
+            street_points
+            .community
+            .value_counts()
+            .reset_index()
+        )
+        community_basin = community_basin.merge(community_size, 
+                                                on='community',
+                                                how = 'left',
+                                                suffixes = ('_basin', '_size')
+                                                )
+        
+        # Normalize
+        community_basin['percentage'] = (
+            community_basin['count_basin'] / community_basin['count_size']
+            )
+        
+        # Identify community-basin combinations where the percentage is less than
+        # the threshold
+        community_omit = community_basin.loc[
+            community_basin['percentage'] <= 
+            subcatchment_derivation.subbasin_membership
+            ]
+
+        community_basin = community_basin.set_index('basin')
+        
+        
+        # Cut links between communities in community_omit and commuities in those
+        # basins
+        arcs_to_remove = []
+        for idx, row in community_omit.iterrows():
+            community_nodes = louv_membership[int(row['community'])]
+            basin_nodes = community_basin.loc[row['basin']]['community']
+            arcs_to_remove.extend(
+                [(u, v) for u, v in product(community_nodes, basin_nodes)]
+                )
+        G.remove_edges_from(arcs_to_remove)
+
+        return G
+        
 
 @register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
