@@ -310,7 +310,7 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
 
 @register_graphfcn
 class calculate_streetcover(BaseGraphFunction,
-                         required_edge_attributes = ['lanes']
+                         required_edge_attributes = ['lanes','geometry']
                          ):
     """calculate_streetcover class."""
     # i.e., in osmnx format, i.e., empty for single lane, an int for a

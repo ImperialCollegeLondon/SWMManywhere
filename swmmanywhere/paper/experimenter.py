@@ -159,12 +159,15 @@ def process_parameters(jobid: int,
                                         "param", 
                                         "value"]].itertuples(index=False, 
                                                              name=None):
-            if grp not in overrides:
+            
+            # Experimenter overrides take precedence over the config file
+            if grp in config['parameter_overrides']:
+                overrides[grp] = config['parameter_overrides'][grp]
+            elif grp not in overrides:
                 overrides[grp] = {}
-            overrides[grp][param] = val
-            logger.info(f"Setting {grp} {param} to {val}")
-        config['parameter_overrides'].update(overrides)
 
+            overrides[grp][param] = val       
+        
         # Run the model
         config['model_number'] = ix
         logger.info(f"Running swmmanywhere for model {ix}")
