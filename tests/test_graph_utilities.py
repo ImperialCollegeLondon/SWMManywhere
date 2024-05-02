@@ -302,6 +302,10 @@ def test_identify_outlets_and_derive_topology_withtopo():
     G_ = G.copy()
     G_ = gu.identify_outlets(G_, params)
 
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+               if d['edge_type'] == 'waste-outlet']
+    assert len(outlets) == 1
+
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 4
     
