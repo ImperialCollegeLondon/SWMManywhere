@@ -167,6 +167,7 @@ def process_parameters(jobid: int,
                 overrides[grp] = {}
 
             overrides[grp][param] = val       
+        config['parameter_overrides'] = overrides
         
         # Run the model
         config['model_number'] = ix
