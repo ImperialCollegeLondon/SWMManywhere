@@ -162,6 +162,7 @@ def process_parameters(jobid: int,
             if grp not in overrides:
                 overrides[grp] = {}
             overrides[grp][param] = val
+            logger.info(f"Setting {grp} {param} to {val}")
         config['parameter_overrides'].update(overrides)
 
         # Run the model
