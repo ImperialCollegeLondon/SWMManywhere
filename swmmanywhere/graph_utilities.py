@@ -581,6 +581,73 @@ class fix_geometries(BaseGraphFunction,
         return G
 
 @register_graphfcn
+class clip_to_catchments(BaseGraphFunction,
+                         required_node_attributes = ['x','y'],
+                         required_edge_attributes = ['length'],):
+    """clip_to_catchments class."""
+    def __call__(self, 
+                 G: nx.Graph,
+                addresses: parameters.FilePaths,
+                subcatchment_derivation: parameters.SubcatchmentDerivation,
+                **kwargs) -> nx.Graph:
+        """Clip the graph to the subcatchments.
+
+        Derive the subbasins with `subcatchment_derivation.subbasin_streamorder`.
+        Run Louvain community detection on the road network to create road
+        clusters. Each road network cluster will be assigned to whichever 
+        catchment it has the most nodes in. Any links between clusters in 
+        different subbasins will be removed. If more than 
+        `subcatchment_derivation.subbasin_membership` proportion of nodes in a 
+        road network cluster do not belong to any subbasin, the cluster will be
+        removed.
+
+        Args:
+            G (nx.Graph): A graph
+            addresses (parameters.FilePaths): A FilePaths parameter object
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Derive subbasins
+        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+                                subcatchment_derivation.subbasin_streamorder)
+        
+        # Extract street network
+        street = G.copy()
+        street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
+                                  if d.get('edge_type', 'street') != 'street'])
+
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length')
+        
+        # Create gdf of street points
+        street_points = gpd.GeoDataFrame(G.nodes,
+            columns = ['id'],
+            geometry = gpd.points_from_xy(
+                [G.nodes[u]['x'] for u in G.nodes],
+                [G.nodes[u]['y'] for u in G.nodes]
+                ),
+            crs = G.graph['crs']
+            ).set_index('id')
+        
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
+        
+        # Classify street points by subbasin
+        street_points = gpd.sjoin(street_points,
+                                subbasins.set_index('basin'),
+                                how='left',
+                        ).rename(columns = {'index_right': 'basin'})
+                 
+
+@register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
                                 required_edge_attributes = ['id', 'geometry'],
                                 adds_edge_attributes = ['contributing_area'],

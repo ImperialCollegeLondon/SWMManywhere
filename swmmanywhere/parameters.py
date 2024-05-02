@@ -33,6 +33,18 @@ def get_full_parameters_flat():
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
+    subbasin_streamorder: int = Field(default = 6,
+            ge = 1,
+            le = 20,
+            unit = "-",
+            description = "Stream order for subbasin derivation.")
+    
+    subbasin_membership: float = Field(default = 0.8,
+            ge = 0.5,
+            le = 1,
+            unit = "-",
+            description = "Membership threshold for subbasin derivation.")
+
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
             le = 5.0,
