@@ -87,7 +87,7 @@ def tarjans_pq(G: nx.MultiDiGraph,
 
     nx.set_node_attributes(new_graph, outlets, 'outlet')
     new_graph = nx.relabel_nodes(new_graph, node_mapping)
-
+    new_graph.graph = G.graph.copy()
     return new_graph
 
 def dijkstra_pq(G: nx.MultiDiGraph, 
