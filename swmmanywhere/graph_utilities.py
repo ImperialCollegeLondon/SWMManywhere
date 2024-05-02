@@ -10,7 +10,6 @@ import os
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Optional, cast
@@ -24,7 +23,7 @@ import shapely
 from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere import parameters
+from swmmanywhere import parameters, shortest_path_utils
 from swmmanywhere.logging import logger
 
 
@@ -1059,6 +1058,7 @@ class identify_outlets(BaseGraphFunction,
         # makes sense here over shortest path as each node is only allowed to
         # be visited once - thus encouraging fewer outlets. In shortest path
         # nodes near rivers will always just pick their nearest river node.
+        
         T = nx.minimum_spanning_tree(G_.to_undirected(),
                                         weight = 'length')
         
@@ -1072,12 +1072,32 @@ class identify_outlets(BaseGraphFunction,
                     G.add_edge(v,u,**d)
 
         return G
+    
+def _iterate_upstream(G, node, visited):
+    visited.add(node)
+    for u,v in G.in_edges(node):
+        if u in visited:
+            continue
+        _iterate_upstream(G, u, visited)
+
+def _filter_streets(G):
+    # Remove non-street edges/nodes and unconnected nodes
+    nodes_to_remove = []
+    for u, v, d in G.edges(data=True):
+        if d['edge_type'] != 'street':
+            if d['edge_type'] == 'outlet':
+                nodes_to_remove.append(v)
+            else:
+                nodes_to_remove.extend((u,v))
+    G.remove_nodes_from(nodes_to_remove)
+    return G
 
 @register_graphfcn
 class derive_topology(BaseGraphFunction,
                       required_edge_attributes = ['edge_type', # 'rivers' and 'streets'
                                                   'weight'],
-                      adds_node_attributes = ['outlet', 'shortest_path']):
+                      adds_node_attributes = ['outlet', 
+                                              'shortest_path']):
     """derive_topology class."""
     
 
@@ -1106,91 +1126,36 @@ class derive_topology(BaseGraphFunction,
         """
         G = G.copy()
         
+        visited: set = set()
+
         # Identify outlets
         if outlet_derivation.method == 'withtopo':
-            return nx.minimum_spanning_arborescence(G, 'weight',preserve_attrs=True)
+            _iterate_upstream(G, 'waste', visited)
+
+            G.remove_nodes_from(set(G.nodes) - visited)
+            G = shortest_path_utils.tarjans_pq(G,'waste')
+            
+            G = _filter_streets(G)
         else:
             outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
 
-            # Remove non-street edges/nodes and unconnected nodes
-            nodes_to_remove = []
-            for u, v, d in G.edges(data=True):
-                if d['edge_type'] != 'street':
-                    if d['edge_type'] == 'outlet':
-                        nodes_to_remove.append(v)
-                    else:
-                        nodes_to_remove.extend((u,v))
+            for outlet in outlets:
+                _iterate_upstream(G, outlet, visited)
 
-        isolated_nodes = list(nx.isolates(G))
+            G.remove_nodes_from(set(G.nodes) - visited)
+            G = _filter_streets(G)
 
-        for u in set(nodes_to_remove).union(isolated_nodes):
-            G.remove_node(u)
+            # Check for negative cycles
+            if nx.negative_edge_cycle(G, weight = 'weight'):
+                logger.warning('Graph contains negative cycle')
 
-        # Check for negative cycles
-        if nx.negative_edge_cycle(G, weight = 'weight'):
-            logger.warning('Graph contains negative cycle')
-
-        # Initialize the dictionary with infinity for all nodes
-        shortest_paths = {node: float('inf') for node in G.nodes}
-
-        # Initialize the dictionary to store the paths
-        paths: dict[Hashable,list] = {node: [] for node in G.nodes}
-
-        # Set the shortest path length to 0 for outlets
-        for outlet in outlets:
-            shortest_paths[outlet] = 0
-            paths[outlet] = [outlet]
-
-        # Initialize a min-heap with (distance, node) tuples
-        heap = [(0, outlet) for outlet in outlets]
-        while heap:
-            # Pop the node with the smallest distance
-            dist, node = heappop(heap)
-
-            # For each neighbor of the current node
-            for neighbor, _, edge_data in G.in_edges(node, data=True):
-                # Calculate the distance through the current node
-                alt_dist = dist + edge_data['weight']
-                # If the alternative distance is shorter
-
-                if alt_dist >= shortest_paths[neighbor]:
-                    continue
-                
-                # Update the shortest path length
-                shortest_paths[neighbor] = alt_dist
-                # Update the path
-                paths[neighbor] = paths[node] + [neighbor]
-                # Push the neighbor to the heap
-                heappush(heap, (alt_dist, neighbor))
+            G = shortest_path_utils.dijkstra_pq(G, outlets)
         
-        # Remove nodes with no path to an outlet
-        for node in [node for node, path in paths.items() if not path]:
-            G.remove_node(node)
-            del paths[node], shortest_paths[node]
+        if os.getenv('SWMMANYWHERE_VERBOSE', "false").lower() == "true":
+            total_weight = sum([d['weight'] for u,v,d in G.edges(data=True)])
+            logger.info(f"Total graph weight {total_weight}.")
 
-        if len(G.nodes) == 0:
-            raise ValueError("""No nodes with path to outlet, consider 
-                             broadening bounding box or removing trim_to_outlet
-                             from config graphfcn_list""")
-
-        edges_to_keep: set = set()
-        for path in paths.values():
-            # Assign outlet
-            outlet = path[0]
-            for node in path:
-                G.nodes[node]['outlet'] = outlet
-                G.nodes[node]['shortest_path'] = shortest_paths[node]
-
-            # Store path
-            edges_to_keep.update(zip(path[1:], path[:-1]))
-            
-        # Remove edges not on paths
-        new_graph = G.copy()
-        for u,v in G.edges():
-            if (u,v) not in edges_to_keep:
-                new_graph.remove_edge(u,v)
-                
-        return new_graph
+        return G
 
 def design_pipe(ds_elevation: float,
                        chamber_floor: float, 

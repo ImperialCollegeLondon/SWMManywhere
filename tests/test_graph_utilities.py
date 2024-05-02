@@ -208,6 +208,7 @@ def test_identify_outlets_and_derive_topology():
         d['weight'] = ix
 
     params = parameters.OutletDerivation(river_buffer_distance = 300,
+                                         outlet_length = 10,
                                          method = 'separate')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
                                     (699932.546,5709882.575)])
@@ -249,6 +250,7 @@ def test_identify_outlets_and_derive_topology():
     # Test topo derivation
     G_ = gu.derive_topology(G_,params)
     assert len(G_.edges) == 22
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 2
 
     # Test outlet derivation parameters
     G_ = G.copy()
@@ -267,6 +269,7 @@ def test_identify_outlets_and_derive_topology_withtopo():
         d['weight'] = ix
 
     params = parameters.OutletDerivation(river_buffer_distance = 300,
+                                         outlet_length = 10,
                                          method = 'withtopo')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
                                     (699932.546,5709882.575)])
@@ -311,15 +314,15 @@ def test_identify_outlets_and_derive_topology_withtopo():
     
     # Test topo derivation
     G_ = gu.derive_topology(G_,params)
-    assert len(G_.edges) == 28
+    assert len(G_.edges) == 22
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 2
 
     # Test outlet derivation parameters
     G_ = G.copy()
     params.outlet_length = 600
     G_ = gu.identify_outlets(G_, params)
     G_ = gu.derive_topology(G_, params)
-    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
-    assert len(outlets) == 1
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 1
 
 def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
