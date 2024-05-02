@@ -76,13 +76,15 @@ def tarjans_pq(G: nx.MultiDiGraph,
     if len(parent) != n - 1:
         raise ValueError("Graph is not connected or has multiple roots.")
 
-    new_graph = G.copy()
-    for u,v in G.edges():
-        new_graph.remove_edge(u,v)
+    new_graph = nx.MultiDiGraph()
     
     for u,v in mst_edges:
         d= G_.get_edge_data(u,v)[0]
         new_graph.add_edge(u,v,**d)
+    
+    for u, d in G_.nodes(data=True):
+        new_graph.nodes[u].update(d)
+
     nx.set_node_attributes(new_graph, outlets, 'outlet')
     new_graph = nx.relabel_nodes(new_graph, node_mapping)
 

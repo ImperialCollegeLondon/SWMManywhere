@@ -251,6 +251,10 @@ def test_identify_outlets_and_derive_topology():
     G_ = gu.derive_topology(G_,params)
     assert len(G_.edges) == 22
     assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 2
+    for u,d in G_.nodes(data=True):
+        assert 'x' in d.keys()
+        assert 'y' in d.keys()
+
 
     # Test outlet derivation parameters
     G_ = G.copy()
@@ -258,7 +262,7 @@ def test_identify_outlets_and_derive_topology():
     G_ = gu.identify_outlets(G_, params)
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
-
+        
 def test_identify_outlets_and_derive_topology_withtopo():
     """Test the identify_outlets and derive_topology functions."""
     G, _ = load_street_network()
@@ -323,6 +327,9 @@ def test_identify_outlets_and_derive_topology_withtopo():
     G_ = gu.identify_outlets(G_, params)
     G_ = gu.derive_topology(G_, params)
     assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 1
+    for u,d in G_.nodes(data=True):
+        assert 'x' in d.keys()
+        assert 'y' in d.keys()
 
 def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
