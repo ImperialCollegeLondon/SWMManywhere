@@ -25,6 +25,7 @@ import rioxarray
 from pysheds import grid as pgrid
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
+from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely import ops as sops
 from shapely.errors import GEOSException
@@ -614,8 +615,8 @@ def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
     return polys_gdf
 
 def derive_rc(polys_gdf: gpd.GeoDataFrame,
-              G: nx.Graph,
-              building_footprints: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+              building_footprints: gpd.GeoDataFrame,
+              streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Derive the Runoff Coefficient (RC) of each subcatchment.
 
     The runoff coefficient is the ratio of impervious area to total area. The
@@ -626,10 +627,10 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
             represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        G (nx.Graph): The input graph, with node 'ids' that match polys_gdf and
-            edges with the 'id', 'width' and 'geometry' property.
         building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
             building footprints with a 'geometry' column.
+        streetcover (gpd.GeoDataFrame): A GeoDataFrame containing street cover
+            with a 'geometry' column.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
@@ -638,23 +639,7 @@ def derive_rc(polys_gdf: gpd.GeoDataFrame,
     polys_gdf = polys_gdf.copy()
 
     ## Format as swmm type catchments 
-
-    # TODO think harder about lane widths (am I double counting here?)
-    lines = [
-        {
-            'geometry': x['geometry'].buffer(x['width'], 
-                                             cap_style=2, 
-                                             join_style=2),
-            'id': x['id']
-        }
-        for u, v, x in G.edges(data=True)
-    ]
-    lines_df = pd.DataFrame(lines)
-    lines_gdf = gpd.GeoDataFrame(lines_df, 
-                                geometry=lines_df.geometry,
-                                    crs = polys_gdf.crs)
-
-    result = gpd.overlay(lines_gdf[['geometry']], 
+    result = gpd.overlay(streetcover[['geometry']], 
                          building_footprints[['geometry']], 
                          how='union')
     result = gpd.overlay(polys_gdf, result)
@@ -787,3 +772,50 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
+            
+def merge_points(coordinates: list[tuple[float, float]], 
+                 threshold: float)-> dict:
+    """Merge points that are within a threshold distance.
+
+    Args:
+        coordinates (list): List of coordinates as tuples.
+        threshold(float): The threshold distance for merging points.
+    
+    Returns:
+        dict: A dictionary mapping the original point index to the merged point
+            and new coordinate.
+    """
+    # Create a KDTtree to pair together points within thresholds
+    tree = KDTree(coordinates)
+    pairs = tree.query_pairs(threshold)
+
+    # Merge pairs into families of points that are all nearby
+    families: list = []
+
+    for pair in pairs:
+        matched_families = [family for family in families 
+                            if pair[0] in family or pair[1] in family]
+        
+        if matched_families:
+            # Merge all matched families and add the current pair
+            new_family = set(pair)
+            for family in matched_families:
+                new_family.update(family)
+            
+            # Remove the old families and add the newly formed one
+            for family in matched_families:
+                families.remove(family)
+            families.append(new_family)
+        else:
+            # No matching family found, so create a new one
+            families.append(set(pair))
+
+    # Create a mapping of the original point to the merged point
+    mapping = {}
+    for family in families:
+        average_point = np.mean([coordinates[i] for i in family], axis=0)
+        family_head = min(list(family))
+        for i in family:
+            mapping[i] = {'maps_to' : family_head, 
+                          'coordinate' : tuple(average_point)}
+    return mapping

@@ -63,9 +63,7 @@ colorama==0.4.6
 contourpy==1.2.0
     # via matplotlib
 coverage[toml]==7.3.2
-    # via
-    #   coverage
-    #   pytest-cov
+    # via pytest-cov
 cramjam==2.7.0
     # via fastparquet
 cycler==0.12.1
@@ -229,7 +227,9 @@ pyproj==3.6.1
     #   pysheds
     #   rioxarray
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pysheds==0.3.5
     # via swmmanywhere (pyproject.toml)
 pyswmm==1.5.1

@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Hashable, List, Optional
 import geopandas as gpd
 import networkx as nx
 import numpy as np
-import osmnx as ox
 import pandas as pd
 import shapely
 from tqdm import tqdm
@@ -184,7 +183,8 @@ def iterate_graphfcns(G: nx.Graph,
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
         if verbose:
-            save_graph(G, addresses.model / f"{function}_graph.json")
+            save_graph(graphfcns.fix_geometries(G), 
+                       addresses.model / f"{function}_graph.json")
     return G
 
 @register_graphfcn
@@ -266,36 +266,55 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         return G
 
 @register_graphfcn
-class format_osmnx_lanes(BaseGraphFunction,
-                         required_edge_attributes = ['lanes'],
-                         adds_edge_attributes = ['width']):
-    """format_osmnx_lanes class."""
+class calculate_streetcover(BaseGraphFunction,
+                         required_edge_attributes = ['lanes']
+                         ):
+    """calculate_streetcover class."""
     # i.e., in osmnx format, i.e., empty for single lane, an int for a
     # number of lanes or a list if the edge has multiple carriageways
 
     def __call__(self,
                  G: nx.Graph, 
-                       subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                       **kwargs) -> nx.Graph:
+                subcatchment_derivation: parameters.SubcatchmentDerivation, 
+                addresses: parameters.FilePaths,
+                **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
+            addresses (parameters.FilePaths): A FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
             G (nx.Graph): A graph
         """
         G = G.copy()
+        lines = []
         for u, v, data in G.edges(data=True):
             lanes = data.get('lanes',1)
             if isinstance(lanes, list):
                 lanes = sum([float(x) for x in lanes])
             else:
                 lanes = float(lanes)
-            data['width'] = lanes * subcatchment_derivation.lane_width
+            lines.append({'geometry' : data['geometry'].buffer(lanes * 
+                                subcatchment_derivation.lane_width,
+                                cap_style=2,
+                                join_style=2),
+                            'u' : u,
+                            'v' : v
+                            }
+                        )
+        lines_df = pd.DataFrame(lines)
+        lines_gdf = gpd.GeoDataFrame(lines_df, 
+                                    geometry=lines_df.geometry,
+                                        crs = G.graph['crs'])
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            lines_gdf.to_parquet(addresses.streetcover)
+        else:
+            lines_gdf.to_file(addresses.streetcover, driver='GeoJSON')
+
         return G
 
 @register_graphfcn
@@ -320,24 +339,54 @@ class double_directed(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        #TODO the geometry is left as is currently - should be reversed, however
-        # in original osmnx geometry there are some incorrectly directed ones
-        # someone with more patience might check start and end Points to check
-        # which direction the line should be going in...
+        # Convert to directed
         G_new = G.copy()
+        G_new = nx.MultiDiGraph(G.copy())
+        
+        # MultiDiGraph adds edges in both directions, but rivers (and geometries)
+        # are only in one direction. So we remove the reverse edges and add them
+        # back in with the correct geometry.
+        # This assumes that 'id' is of format 'start-end' (see assign_id)
+        arcs_to_remove = [(u,v) for u,v,d in G_new.edges(data=True)
+                          if f'{u}-{v}' != d.get('id')]
+        
+        # Remove the reverse edges
+        for u, v in arcs_to_remove:
+            G_new.remove_edge(u, v)
+
+        # Add in reversed edges for streets only and with geometry
         for u, v, data in G.edges(data=True):
             include = data.get('edge_type', True)
             if isinstance(include, str):
                 include = include == 'street'
-            if ((v, u) not in G.edges) & include:
+            if ((v, u) not in G_new.edges) & include:
                 reverse_data = data.copy()
                 reverse_data['id'] = f"{data['id']}.reversed"
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
+    
+@register_graphfcn
+class to_undirected(BaseGraphFunction):
+    """to_undirected class."""
+    
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Convert the graph to an undirected graph.
+
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): An undirected graph
+        """
+        # Don't use osmnx.to_undirected! It enables multigraph if the geometries
+        # are different, but we have already saved the street cover so don't 
+        # want this!
+        return G.to_undirected()
 
 @register_graphfcn
 class split_long_edges(BaseGraphFunction,
-                       required_edge_attributes = ['id', 'geometry', 'length']):
+                       required_edge_attributes = ['id', 'geometry']):
     """split_long_edges class."""
     
     def __call__(self, 
@@ -347,10 +396,9 @@ class split_long_edges(BaseGraphFunction,
         """Split long edges into shorter edges.
 
         This function splits long edges into shorter edges. The edges are split
-        into segments of length 'max_street_length'. The first and last segment
-        are connected to the original nodes. Intermediate segments are connected
-        to newly created nodes. The 'geometry' of the original edge must be
-        a LineString.
+        into segments of length 'max_street_length'. The 'geometry' of the 
+        original edge must be a LineString. Intended to follow up with call of 
+        `merge_nodes`.
         
         Args:
             G (nx.Graph): A graph
@@ -361,104 +409,93 @@ class split_long_edges(BaseGraphFunction,
         Returns:
             graph (nx.Graph): A graph
         """
-        #TODO refactor obviously
         max_length = subcatchment_derivation.max_street_length
-        graph = G.copy()
-        edges_to_remove = []
-        edges_to_add = []
-        nodes_to_add = []
-        maxlabel = max(graph.nodes) + 1
-        ll = 0
 
-        def create_new_edge_data(line, data, id_):
-            new_line = shapely.LineString(line)
-            new_data = data.copy()
-            new_data['id'] = id_
-            new_data['length'] = new_line.length
-            new_data['geometry'] =  shapely.LineString([(x[0], x[1]) 
-                                                    for x in new_line.coords])
-            return new_data
+        # Split edges
+        new_linestrings = shapely.segmentize([d['geometry'] 
+                                             for u,v,d in G.edges(data=True)], 
+                                             max_length)
+        new_nodes = shapely.get_coordinates(new_linestrings)
 
-        for u, v, data in graph.edges(data=True):
-            line = data['geometry']
-            length = data['length']
-            if ((u, v) not in edges_to_remove) & ((v, u) not in edges_to_remove):
-                if length > max_length:
-                    new_points = [shapely.Point(x) 
-                                for x in ox.utils_geo.interpolate_points(line, 
-                                                                        max_length)]
-                    if len(new_points) > 2:
-                        for ix, (start, end) in enumerate(zip(new_points[:-1], 
-                                                            new_points[1:])):
-                            new_data = create_new_edge_data([start, 
-                                                            end], 
-                                                            data, 
-                                                            f"{data['id']}.{ix}")
-                            if (v,u) in graph.edges:
-                                # Create reversed data
-                                data_r = graph.get_edge_data(v, u).copy()[0]
-                                id_ = f"{data_r['id']}.{ix}"
-                                new_data_r = create_new_edge_data([end, start], 
-                                                                data_r.copy(), 
-                                                                id_)
-                            if ix == 0:
-                                # Create start to first intermediate
-                                edges_to_add.append((u, maxlabel + ll, new_data.copy()))
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                
-                                if (v, u) in graph.edges:
-                                    # Create first intermediate to start
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        u, 
-                                                        new_data_r.copy()))
-                                
-                                ll += 1
-                            elif ix == len(new_points) - 2:
-                                # Create last intermediate to end
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    v, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create end to last intermediate
-                                    edges_to_add.append((v, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                            else:
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                # Create N-1 intermediate to N intermediate
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    maxlabel + ll, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create N intermediate to N-1 intermediate
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                                ll += 1
-                        edges_to_remove.append((u, v))
-                        if (v, u) in graph.edges:
-                            edges_to_remove.append((v, u))
+        
+        new_edges = {}
+        for new_linestring, (u,v,d) in zip(new_linestrings, G.edges(data=True)):
+            # Create an arc for each segment
+            for start, end in zip(new_linestring.coords[:-1],
+                                  new_linestring.coords[1:]):
+                geom = shapely.LineString([start, end])
+                new_edges[(start, end, 0)] = {**d,
+                                           'length' : geom.length
+                                           }
 
-        for u, v in edges_to_remove:
-            if (u, v) in graph.edges:
-                graph.remove_edge(u, v)
+        # Create new graph
+        new_graph = nx.MultiGraph()
+        new_graph.graph = G.graph.copy()
+        new_graph.add_edges_from(new_edges)
+        nx.set_edge_attributes(new_graph, new_edges)
+        nx.set_node_attributes(
+            new_graph,
+            {tuple(node): {'x': node[0], 'y': node[1]} for node in new_nodes}
+            )
+        return nx.relabel_nodes(new_graph,
+                         {node: ix for ix, node in enumerate(new_graph.nodes)}
+                         )
+    
+@register_graphfcn
+class merge_nodes(BaseGraphFunction):
+    """merge_nodes class."""
+    def __call__(self, 
+                 G: nx.Graph, 
+                 subcatchment_derivation: parameters.SubcatchmentDerivation,
+                 **kwargs) -> nx.Graph:
+        """Merge nodes that are close together.
 
-        for node in nodes_to_add:
-            graph.add_node(node[0], **node[1])
+        This function merges nodes that are within a certain distance of each
+        other. The distance is specified in the `node_merge_distance` attribute
+        of the `subcatchment_derivation` parameter. The merged nodes are given
+        the same coordinates, and the graph is relabeled with nx.relabel_nodes.
 
-        for edge in edges_to_add:
-            graph.add_edge(edge[0], edge[1], **edge[2])
+        Args:
+            G (nx.Graph): A graph
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
 
-        return graph
+        # Identify nodes that are within threshold of each other
+        mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+                              subcatchment_derivation.node_merge_distance)
 
+        # Get indexes of node names
+        node_indices = {ix: node for ix, node in enumerate(G.nodes)}
+
+        # Create a mapping of old node names to new node names
+        node_names = {}
+        for ix, node in enumerate(G.nodes):
+            if ix in mapping:
+                # If the node is in the mapping, then it is mapped and 
+                # given the new coordinate (all nodes in a mapping family must
+                # be given the same coordinate because of how relabel_nodes 
+                # works)
+                node_names[node] = node_indices[mapping[ix]['maps_to']]
+                G.nodes[node]['x'] = mapping[ix]['coordinate'][0]
+                G.nodes[node]['y'] = mapping[ix]['coordinate'][1]
+            else:
+                node_names[node] = node
+
+        G = nx.relabel_nodes(G, node_names)
+
+        # Relabelling will create selfloops within a mapping family, which 
+        # are removed
+        self_loops = list(nx.selfloop_edges(G))
+        G.remove_edges_from(self_loops)
+
+        return G
+    
 @register_graphfcn
 class fix_geometries(BaseGraphFunction,
                      required_edge_attributes = ['geometry'],
@@ -479,10 +516,16 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
-            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
-            start_point_edge = data['geometry'].coords[0]
+            if not data.get('geometry', None):
+                start_point_edge = (None,None)
+                end_point_edge = (None,None)
+            else:
+                start_point_edge = data['geometry'].coords[0]
+                end_point_edge = data['geometry'].coords[-1]
+
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])            
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
-            end_point_edge = data['geometry'].coords[-1]
+
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
                 data['geometry'] = data['geometry'].reverse()
@@ -494,7 +537,7 @@ class fix_geometries(BaseGraphFunction,
 
 @register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
-                                required_edge_attributes = ['id', 'geometry', 'width'],
+                                required_edge_attributes = ['id', 'geometry'],
                                 adds_edge_attributes = ['contributing_area'],
                                 adds_node_attributes = ['contributing_area']):
     """calculate_contributing_area class."""
@@ -507,7 +550,10 @@ class calculate_contributing_area(BaseGraphFunction,
         
         This function calculates the contributing area for each edge. The
         contributing area is the area of the subcatchment that drains to the
-        edge. The contributing area is calculated from the elevation data.
+        edge. The contributing area is calculated from the elevation data. 
+        Runoff coefficient (RC) for each contributing area is also calculated, 
+        the RC is calculated using `addresses.buildings` and 
+        `addresses.streetcover`.        
 
         Also writes the file 'subcatchments.geojson' to addresses.subcatchments.
 
@@ -543,7 +589,12 @@ class calculate_contributing_area(BaseGraphFunction,
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
-        subs_rc = go.derive_rc(subs_gdf, G, buildings)
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            streetcover = gpd.read_parquet(addresses.streetcover)
+        else:
+            streetcover = gpd.read_file(addresses.streetcover)
+
+        subs_rc = go.derive_rc(subs_gdf, buildings, streetcover)
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs
