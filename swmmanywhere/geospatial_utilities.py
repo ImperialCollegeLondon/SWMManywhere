@@ -948,53 +948,6 @@ def graph_to_geojson(graph: nx.Graph,
 
         with fid.open('w') as output_file:
             json.dump(geojson, output_file, indent=2)
-def trim_touching_polygons(polygons: gpd.GeoDataFrame,
-                           fid: Path,
-                           trim: bool = False) -> gpd.GeoDataFrame:
-    """Trim touching polygons in a GeoDataFrame.
-
-    Args:
-        polygons (gpd.GeoDataFrame): A GeoDataFrame containing polygons with 
-            columns: 'geometry', 'area', and 'id'.
-        fid (Path): Filepath to the elevation DEM.
-
-        trim (bool, optional): Whether to trim polygons that touch the edge of
-            the DEM or just to warn a user that they do touch the edge. 
-            Defaults to False.
-
-    Returns:
-        gpd.GeoDataFrame: A GeoDataFrame containing polygons with no touching 
-            polygons.
-    """
-    # Get elevation boundary
-    with rst.open(fid) as src:
-        image = src.read(1)  # Read the first band
-        nodata = src.nodata
-        transform = src.transform
-        crs = src.crs
-        resolution = abs(transform.a)
-
-    # Mask elevation with data
-    data_mask = (image != nodata)
-    image[data_mask] = 1
-    mask_shapes = features.shapes(image, mask=data_mask, transform=transform)
-    
-    # Convert shapes to GeoDataFrame
-    geoms = [sgeom.Polygon(geom['coordinates'][0]) for geom, value in mask_shapes]
-    
-    # Create GeoDataFrame from the list of geometries
-    dem_outline = gpd.GeoDataFrame({'geometry': geoms}, crs=crs).exterior
-    
-    ind = polygons.geometry.exterior.buffer(resolution + 1).apply(
-        lambda x: x.intersects(dem_outline)).values
-    if ind.sum() != 0:
-        logger.warning("""Some catchments touch the edge of the elevation DEM, 
-                       inspect the outputs and check whether the area of 
-                       interest has been included, otherwise widen your bbox""")
-    if trim:
-        trimmed_gdf = polygons.loc[~ind]
-        return trimmed_gdf
-    return polygons
 
 def merge_points(coordinates: list[tuple[float, float]], 
                  threshold: float)-> dict:
