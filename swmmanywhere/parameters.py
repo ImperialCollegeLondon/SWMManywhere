@@ -33,7 +33,7 @@ def get_full_parameters_flat():
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
-    subbasin_streamorder: int = Field(default = 6,
+    subbasin_streamorder: int = Field(default = 7,
             ge = 1,
             le = 20,
             unit = "-",
