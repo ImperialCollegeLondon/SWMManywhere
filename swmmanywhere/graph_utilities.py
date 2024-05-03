@@ -341,7 +341,7 @@ class double_directed(BaseGraphFunction,
         """
         # Convert to directed
         G_new = G.copy()
-        G_new = nx.MultiDiGraph(G_new)
+        G_new = nx.MultiDiGraph(G.copy())
         
         # MultiDiGraph adds edges in both directions, but rivers (and geometries)
         # are only in one direction. So we remove the reverse edges and add them
