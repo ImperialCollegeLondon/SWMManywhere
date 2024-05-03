@@ -669,69 +669,6 @@ class calculate_contributing_area(BaseGraphFunction,
         # Set edge attributes
         nx.set_edge_attributes(G, edge_attributes, 'contributing_area')
         return G
-    
-@register_graphfcn
-class trim_to_outlets(BaseGraphFunction,
-                      required_edge_attributes = ['edge_type'] # i.e., 'outlet'
-                      ):
-    """trim_to_outlets class."""
-    def __call__(self,
-                    G: nx.Graph,
-                    addresses: parameters.FilePaths,
-                    **kwargs) -> nx.Graph:
-            """Trim the graph to the outlets.
-    
-            This function trims the graph to the hydrological catchments that 
-            drains to the outlets. Nodes that are not in the catchment of any
-            outlets are removed. The outlets are the edges with the 'outlet' 
-            edge_type attribute.
-    
-            Args:
-                G (nx.Graph): A graph
-                addresses (parameters.FilePaths): An FilePaths parameter object
-                **kwargs: Additional keyword arguments are ignored.
-    
-            Returns:
-                G (nx.Graph): A graph
-            """
-            G = G.copy()
-            graph_ = G.graph.copy()
-
-            # Create a graph of outlets
-            outlets = {v : G.nodes[v] for u,v, data in G.edges(data=True) 
-                        if data.get('edge_type', None) == 'outlet'}
-            if not outlets:
-                raise ValueError("No outlets found in the graph.")
-            outlet_graph = nx.Graph()
-            outlet_graph.add_nodes_from(outlets)
-            outlet_graph.graph = graph_
-            nx.set_node_attributes(outlet_graph, outlets)
-
-            # Derive outlet subcatchments
-            outlet_catchments = go.derive_subcatchments(outlet_graph, 
-                                                         addresses.elevation,
-                                                         method = 'pyflwdir')
-            
-            # Check whether the outlet catchments are touching the edge of 
-            # the elevation data. trim=False retains these catchments while
-            # trim=True would remove them.
-            outlet_catchments = go.trim_touching_polygons(outlet_catchments,
-                                                          addresses.elevation,
-                                                          trim = False)
-
-            # Keep only nodes within subcatchments
-            nodes_gdf = gpd.GeoDataFrame(G.nodes,
-                                         geometry = gpd.points_from_xy(
-                                            [d['x'] for n,d in G.nodes(data=True)],
-                                            [d['y'] for n,d in G.nodes(data=True)]),
-                                         crs = G.graph['crs'],
-                                         columns = ['id'])
-            keep_nodes = gpd.sjoin(nodes_gdf, 
-                                   outlet_catchments[['geometry']], 
-                                   predicate = 'intersects').id
-            G = G.subgraph(keep_nodes).copy()
-            G.graph = graph_
-            return G
 
 @register_graphfcn
 class set_elevation(BaseGraphFunction,
