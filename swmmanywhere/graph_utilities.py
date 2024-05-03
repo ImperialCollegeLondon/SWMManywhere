@@ -567,10 +567,17 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
+            geom = data.get('geometry', None)
+            
             start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
-            start_point_edge = data['geometry'].coords[0]
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
-            end_point_edge = data['geometry'].coords[-1]
+            if not geom:
+                start_point_edge = (None, None)
+                end_point_edge = (None, None)
+            else:
+                start_point_edge = data['geometry'].coords[0]
+                end_point_edge = data['geometry'].coords[-1]
+
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
                 data['geometry'] = data['geometry'].reverse()
@@ -617,6 +624,11 @@ class clip_to_catchments(BaseGraphFunction,
         subbasins = go.derive_subbasins_streamorder(addresses.elevation,
                                 subcatchment_derivation.subbasin_streamorder)
         
+        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            subbasins.to_file(
+                str(addresses.nodes).replace('nodes','subbasins'), 
+                driver='GeoJSON')
+
         # Extract street network
         street = G.copy()
         street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)

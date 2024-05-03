@@ -658,12 +658,32 @@ def derive_subbasins_streamorder(fid: Path,
             transform = grid.affine,
         )
     # TODO - use highest valid stream order if streamorder is too high
-    subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+    streamorder_ = streamorder
+    subbasins = np.zeros_like(flow_dir)
+    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
+        if (
+            (streamorder == 0) &
+            (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
+            ):
+            raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
+                             Fix your DEM""")
+
+
+        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+        streamorder -= 1
+
+    if (
+        (streamorder != streamorder_) & 
+        (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
+        ):
+        logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
+                       Using {streamorder + 1} instead.""")
+
     gdf_bas = vectorize(subbasins.astype(np.int32),
-                        0,
-                        flw.transform,
-                        grid.crs,
-                        name="basin")
+                            0,
+                            flw.transform,
+                            grid.crs,
+                            name="basin")
     return gdf_bas
     
 
