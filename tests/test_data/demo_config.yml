@@ -32,6 +32,7 @@ graphfcn_list:
   - identify_outlets # Identify potential street->river outlets
   - derive_topology # Shortest path to give network topology
   - pipe_by_pipe # Design pipe diameters and depths
+  - fix_geometries # Ensure geometries present before printing
   - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
   - nc_deltacon0
