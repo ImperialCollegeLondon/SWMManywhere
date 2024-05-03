@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+import os
 import tempfile
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from shapely import geometry as sgeom
 from swmmanywhere import parameters
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
+from swmmanywhere.logging import logger
 
 
 def load_street_network():
@@ -366,3 +368,58 @@ def test_merge_nodes():
     G_ = gu.merge_nodes(G, subcatchment_derivation)
     assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
     assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
+
+def test_clip_to_catchments():
+    """Test the clip_to_catchments function."""
+    G, _ = load_street_network()
+    subcatchment_derivation = parameters.SubcatchmentDerivation(
+        subbasin_streamorder = 1,
+        subbasin_membership = 0.9
+    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+        temp_path = Path(temp_dir)
+        addresses = parameters.FilePaths(base_dir = temp_path,
+                                        project_name = 'test',
+                                        bbox_number = 0,
+                                        model_number = 0)
+        addresses.nodes = addresses.base_dir / 'nodes.geojson'
+        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+
+        # Test clipping
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 3,
+            subbasin_membership = 0.9
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 30
+
+        # Test clipping with different params
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0.5
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 32
+
+        # Check streamorder adjustment
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+        logger.add(temp_path / 'test.log')
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 5,
+            subbasin_membership = 0.9
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        with open(temp_path / 'test.log', 'r') as f:
+            log = f.read()
+            assert 'Stream order 5 resulted in no subbasins' in log
+            assert 'Using 4 instead' in log
+        logger.remove()
+        

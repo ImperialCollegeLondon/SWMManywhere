@@ -622,7 +622,8 @@ class clip_to_catchments(BaseGraphFunction,
 
         # Derive road network clusters
         louv_membership = nx.community.louvain_communities(street,
-                                                           weight = 'length')
+                                                           weight = 'length',
+                                                           seed = 1)
         
         # Create gdf of street points
         street_points = gpd.GeoDataFrame(G.nodes,
@@ -686,13 +687,15 @@ class clip_to_catchments(BaseGraphFunction,
         # Cut links between communities in community_omit and commuities in those
         # basins
         arcs_to_remove = []
+        street_points = street_points.reset_index().set_index('basin')
         for idx, row in community_omit.iterrows():
             community_nodes = louv_membership[int(row['community'])]
-            basin_nodes = community_basin.loc[row['basin']]['community']
+            basin_nodes = street_points.loc[[row['basin']],'id']
+            basin_nodes = set(basin_nodes).difference(community_nodes)
             arcs_to_remove.extend(
-                [(u, v) for u, v in product(community_nodes, basin_nodes)]
+                [(u, v, 0) for u, v in product(community_nodes, basin_nodes)]
                 )
-        G.remove_edges_from(arcs_to_remove)
+        G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
 
         return G
         
@@ -836,8 +839,15 @@ class trim_to_outlets(BaseGraphFunction,
             keep_nodes = gpd.sjoin(nodes_gdf, 
                                    outlet_catchments[['geometry']], 
                                    predicate = 'intersects').id
-            G = G.subgraph(keep_nodes).copy()
-            G.graph = graph_
+            G_ = G.subgraph(keep_nodes).copy()
+            G_.graph = graph_
+            for node in keep_nodes:
+                path_exists = any(nx.has_path(G_, node, target) for target in outlets)
+                if path_exists:        
+                    return G_
+                
+            logger.warning("""trim_to_outlets removed any paths between nodes and
+                            outlets. Returning original graph""")
             return G
 
 @register_graphfcn

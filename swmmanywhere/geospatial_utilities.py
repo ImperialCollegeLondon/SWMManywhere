@@ -673,7 +673,7 @@ def derive_subbasins_streamorder(fid: Path,
         streamorder -= 1
 
     if (
-        (streamorder != streamorder_) & 
+        (streamorder != streamorder_ - 1) & 
         (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
         ):
         logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
