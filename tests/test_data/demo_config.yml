@@ -31,7 +31,6 @@ graphfcn_list:
   - set_chahinian_angle # Transform edge angles to more sensible angle for weights
   - calculate_weights # Calculate weights for each edge
   - identify_outlets # Identify potential street->river outlets
-  - trim_to_outlets # Remove nodes that don't fall in any outlets' catchments
   - derive_topology # Shortest path to give network topology
   - pipe_by_pipe # Design pipe diameters and depths
   - fix_geometries # Ensure geometries present before printing
