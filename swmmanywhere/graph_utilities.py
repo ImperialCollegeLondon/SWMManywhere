@@ -184,7 +184,8 @@ def iterate_graphfcns(G: nx.Graph,
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
         if verbose:
-            save_graph(G, addresses.model / f"{function}_graph.json")
+            save_graph(graphfcns.fix_geometries(G), 
+                       addresses.model / f"{function}_graph.json")
     return G
 
 @register_graphfcn
@@ -373,7 +374,7 @@ class double_directed(BaseGraphFunction,
         """
         # Convert to directed
         G_new = G.copy()
-        G_new = nx.MultiDiGraph(G_new)
+        G_new = nx.MultiDiGraph(G.copy())
         
         # MultiDiGraph adds edges in both directions, but rivers (and geometries)
         # are only in one direction. So we remove the reverse edges and add them
@@ -446,29 +447,20 @@ class split_long_edges(BaseGraphFunction,
         """
         max_length = subcatchment_derivation.max_street_length
 
-        new_edges = {}
-        new_nodes = set()
-
         # Split edges
-        for u, v, d in G.edges(data=True):
-            # Get new geometry
-            new_linestring = shapely.segmentize(d['geometry'], max_length)
+        new_linestrings = shapely.segmentize([d['geometry'] 
+                                             for u,v,d in G.edges(data=True)], 
+                                             max_length)
+        new_nodes = shapely.get_coordinates(new_linestrings)
 
-            # Create a node at each linestring segment
-            new_nodes.update(
-                [(x,y) for x,y in 
-                np.reshape(
-                    shapely.get_coordinates(new_linestring), 
-                    (-1, 2))
-                ]
-                )
-            
+        
+        new_edges = {}
+        for new_linestring, (u,v,d) in zip(new_linestrings, G.edges(data=True)):
             # Create an arc for each segment
             for start, end in zip(new_linestring.coords[:-1],
                                   new_linestring.coords[1:]):
                 geom = shapely.LineString([start, end])
                 new_edges[(start, end, 0)] = {**d,
-                                           'geometry' : geom,
                                            'length' : geom.length
                                            }
 
@@ -479,7 +471,7 @@ class split_long_edges(BaseGraphFunction,
         nx.set_edge_attributes(new_graph, new_edges)
         nx.set_node_attributes(
             new_graph,
-            {node: {'x': node[0], 'y': node[1]} for node in new_nodes}
+            {tuple(node): {'x': node[0], 'y': node[1]} for node in new_nodes}
             )
         return nx.relabel_nodes(new_graph,
                          {node: ix for ix, node in enumerate(new_graph.nodes)}
@@ -539,12 +531,6 @@ class merge_nodes(BaseGraphFunction):
         self_loops = list(nx.selfloop_edges(G))
         G.remove_edges_from(self_loops)
 
-        # Recalculate geometries
-        for u, v, data in G.edges(data=True):
-            data['geometry'] = shapely.LineString([(G.nodes[u]['x'], 
-                                                    G.nodes[u]['y']),
-                                                   (G.nodes[v]['x'], 
-                                                    G.nodes[v]['y'])])
         return G
     
 @register_graphfcn
@@ -567,10 +553,16 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
-            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
-            start_point_edge = data['geometry'].coords[0]
+            if not data.get('geometry', None):
+                start_point_edge = (None,None)
+                end_point_edge = (None,None)
+            else:
+                start_point_edge = data['geometry'].coords[0]
+                end_point_edge = data['geometry'].coords[-1]
+
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])            
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
-            end_point_edge = data['geometry'].coords[-1]
+
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
                 data['geometry'] = data['geometry'].reverse()
