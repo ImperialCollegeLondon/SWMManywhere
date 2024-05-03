@@ -222,8 +222,8 @@ class assign_id(BaseGraphFunction,
         return G
     
 @register_graphfcn
-class remove_isolated_nodes(BaseGraphFunction):
-    """remove_isolated_nodes class."""
+class remove_parallel_edges(BaseGraphFunction):
+    """remove_parallel_edges class."""
 
     def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
         """Remove parallel edges from a street network.
