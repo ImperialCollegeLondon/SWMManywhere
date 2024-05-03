@@ -372,10 +372,7 @@ def test_merge_nodes():
 def test_clip_to_catchments():
     """Test the clip_to_catchments function."""
     G, _ = load_street_network()
-    subcatchment_derivation = parameters.SubcatchmentDerivation(
-        subbasin_streamorder = 1,
-        subbasin_membership = 0.9
-    )
+
     with tempfile.TemporaryDirectory() as temp_dir:
         
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
@@ -400,12 +397,32 @@ def test_clip_to_catchments():
         # Test clipping with different params
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 4,
-            subbasin_membership = 0.5
+            subbasin_membership = 0.3
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
                                 subcatchment_derivation=subcatchment_derivation)
-        assert len(G_.edges) == 32
+        assert len(G_.edges) == 38
+
+        # Test no cuts
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 39
+
+        # Cut between every community not entirely within the same basin
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 1
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 28
 
         # Check streamorder adjustment
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'

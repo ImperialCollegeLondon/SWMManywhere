@@ -692,8 +692,12 @@ class clip_to_catchments(BaseGraphFunction,
             community_nodes = louv_membership[int(row['community'])]
             basin_nodes = street_points.loc[[row['basin']],'id']
             basin_nodes = set(basin_nodes).difference(community_nodes)
+            
+            # Include both directions because operation should work on 
+            # undirected or directed graph
             arcs_to_remove.extend(
-                [(u, v, 0) for u, v in product(community_nodes, basin_nodes)]
+                [(u, v, 0) for u, v in product(community_nodes, basin_nodes)] +
+                [(v, u, 0) for u, v in product(community_nodes, basin_nodes)]
                 )
         G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
 
