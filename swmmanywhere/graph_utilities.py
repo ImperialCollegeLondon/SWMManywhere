@@ -586,13 +586,16 @@ class clip_to_catchments(BaseGraphFunction,
         """Clip the graph to the subcatchments.
 
         Derive the subbasins with `subcatchment_derivation.subbasin_streamorder`.
-        Run Louvain community detection on the road network to create road
-        clusters. Each road network cluster will be assigned to whichever 
-        catchment it has the most nodes in. Any links between clusters in 
-        different subbasins will be removed. If more than 
-        `subcatchment_derivation.subbasin_membership` proportion of nodes in a 
-        road network cluster do not belong to any subbasin, the cluster will be
-        removed.
+        If no subbasins exist for that stream order, the value is iterated 
+        downwards and a warning it flagged. 
+        
+        Run Louvain community detection on the street network to create street 
+        node communities. 
+
+        Communities with less than `subcatchment_derivation.subbasin_membership`
+        proportion of nodes in a subbasin have their links to all other nodes
+        in that subbasin removed. Nodes not in any subbasin are assigned to a 
+        subbasin to cover all unassigned nodes.
 
         Args:
             G (nx.Graph): A graph
@@ -648,6 +651,9 @@ class clip_to_catchments(BaseGraphFunction,
         
         # Introduce a non catchment basin for nan
         street_points['basin'] = street_points['basin'].fillna(-1)
+        # TODO possibly it makes sense to just remove these nodes, or at least
+        # any communities that are all nan
+
 
         # Calculate most percentage of each subbasin in each community
         community_basin = (
