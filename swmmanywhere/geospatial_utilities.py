@@ -286,6 +286,9 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
         dict: A dictionary where keys are labels from points1 and values are 
             labels from points2 of the nearest nodes within the threshold.
     """
+    if not points1 or not points2:
+        return {}
+    
     # Convert the keys of points2 to a list
     labels2 = list(points2.keys())
     

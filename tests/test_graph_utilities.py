@@ -177,7 +177,79 @@ def test_calculate_weights():
     for u, v, data in G.edges(data=True):
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
-        
+
+def test_identify_outlets_sg():
+    """Test the identify_outlets with subgraphs."""
+    G, _ = load_street_network()
+    
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    addresses.elevation = elev_fid
+    G = gu.set_elevation(G, addresses)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+
+    params = parameters.OutletDerivation(river_buffer_distance = 200,
+                                         outlet_length = 10,
+                                         method = 'withtopo')
+    dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
+                                    (699932.546,5709882.575)])
+    dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
+                                    (700011.524,5710060.636)])
+    dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
+                                    (700103.427,5710169.052)])
+    
+    G.add_edge('river1', 'river2', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river1-to-river2',
+                                    'geometry' :  dummy_river1})
+    G.add_edge('river2', 'river3', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river2-to-river3',
+                                    'geometry' :  dummy_river2})
+    
+    G.add_edge('river3', 'river4', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river3-to-river4',
+                                    'geometry' :  dummy_river3})
+
+    G.nodes['river1']['x'] = 699913.878
+    G.nodes['river1']['y'] = 5709769.851
+    G.nodes['river2']['x'] = 699932.546
+    G.nodes['river2']['y'] = 5709882.575
+    G.nodes['river3']['x'] = 700011.524
+    G.nodes['river3']['y'] = 5710060.636
+    G.nodes['river4']['x'] = 700103.427
+    G.nodes['river4']['y'] = 5710169.052
+
+    # Cut into subgraphs
+    G.remove_edge(12354833, 25472373)
+    G.remove_edge(25472373, 12354833)
+    G.remove_edge(109753, 25472854)
+    G.remove_edge(25472854, 109753)
+
+    # Test outlet derivation
+    G_ = G.copy()
+    G_ = gu.identify_outlets(G_, params)
+
+    # Two subgraphs = two routes to waste
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+               if d['edge_type'] == 'waste-outlet']
+    assert len(outlets) == 2
+
+    # With buffer distance 300, the subgraph near the river will have an outlet
+    # between the nearest street node to each river node (there are 3 potential
+    # links in 150m). The subgraph further from the river is too far to be linked 
+    # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 3
+
 def test_identify_outlets_no_river():
     """Test the identify_outlets in the no river case."""
     G, _ = load_street_network()
@@ -207,7 +279,7 @@ def test_identify_outlets_and_derive_topology():
         d['edge_type'] = 'street'
         d['weight'] = ix
 
-    params = parameters.OutletDerivation(river_buffer_distance = 300,
+    params = parameters.OutletDerivation(river_buffer_distance = 200,
                                          outlet_length = 10,
                                          method = 'separate')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
@@ -272,7 +344,7 @@ def test_identify_outlets_and_derive_topology_withtopo():
         d['edge_type'] = 'street'
         d['weight'] = ix
 
-    params = parameters.OutletDerivation(river_buffer_distance = 300,
+    params = parameters.OutletDerivation(river_buffer_distance = 250,
                                          outlet_length = 10,
                                          method = 'withtopo')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
@@ -318,8 +390,8 @@ def test_identify_outlets_and_derive_topology_withtopo():
     
     # Test topo derivation
     G_ = gu.derive_topology(G_,params)
-    assert len(G_.edges) == 22
-    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 2
+    assert len(G_.edges) == 20
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 4
 
     # Test outlet derivation parameters
     G_ = G.copy()

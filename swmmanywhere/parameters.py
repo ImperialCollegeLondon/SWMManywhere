@@ -65,8 +65,8 @@ class OutletDerivation(BaseModel):
             can be 'separate' or 'withtopo'.""")
 
 	river_buffer_distance: float = Field(default = 150.0,
-		ge = 50.0,
-		le = 300.0,
+		ge = 10.0,
+		le = 1000.0,
 		unit = "m",
 		description = "Buffer distance to link rivers to streets.")
 

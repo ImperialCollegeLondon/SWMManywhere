@@ -906,38 +906,61 @@ class identify_outlets(BaseGraphFunction,
                 street_points[u] = upoint
                 street_points[v] = vpoint
         
-        # Pair up the river and street nodes
-        matched_outlets = go.nearest_node_buffer(river_points,
-                                                street_points,
-                                                outlet_derivation.river_buffer_distance)
-        
-        # Copy graph to run shortest path on
-        G_ = G.copy()
+        matched_outlets = {}
 
-        if not matched_outlets:
+        # Insert a dummy river node and use lowest elevation node as outlet
+        # for each subgraph with no matched outlets
+        subgraphs = []
+        for sg in nx.weakly_connected_components(G):      
+            sg = G.subgraph(sg).copy()
+            subgraphs.append(sg)
+
+            # Ignore the rivers, they are drained later
+            if set(
+                [d['edge_type'] for u,v,d in sg.edges(data=True)]
+                ).issubset(['river']):
+                continue
+            
+            # Pair up the river and street nodes for each subgraph
+            street_points_ = {k: v for k, v in street_points.items() 
+                              if k in sg.nodes}
+            matched_outlets.update(
+                go.nearest_node_buffer(street_points_,
+                                       river_points,
+                                       outlet_derivation.river_buffer_distance))
+
+            # Check if there are any matched outlets
+            if set(matched_outlets).intersection(sg.nodes):
+                continue
+
             # In cases of e.g., an area with no rivers to discharge into or too
             # small a buffer
 
             # Identify the lowest elevation node
-            lowest_elevation_node = min(G.nodes, 
-                                    key = lambda x: G.nodes[x]['surface_elevation'])
+            lowest_elevation_node = min(sg.nodes, 
+                        key = lambda x: sg.nodes[x]['surface_elevation'])
             
             # Create a dummy river to discharge into
-            dummy_river = {'id' : 'dummy_river',
-                           'x' : G.nodes[lowest_elevation_node]['x'] + 1,
-                           'y' : G.nodes[lowest_elevation_node]['y'] + 1}
-            G_.add_node('dummy_river')
-            nx.set_node_attributes(G_, {'dummy_river' : dummy_river})
+            name = f'{lowest_elevation_node}-dummy_river'
+            dummy_river = {'id' : name,
+                        'x' : G.nodes[lowest_elevation_node]['x'] + 1,
+                        'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+            sg.add_node(name)
+            nx.set_node_attributes(sg, {name : dummy_river})
 
             # Update function's dicts
-            matched_outlets = {'dummy_river' : lowest_elevation_node}
-            river_points['dummy_river'] = shapely.Point(dummy_river['x'],
-                                                        dummy_river['y'])
+            matched_outlets[lowest_elevation_node] = name
+            river_points[name] = shapely.Point(dummy_river['x'],
+                                                dummy_river['y'])
             
-            logger.warning('No outlets found, using lowest elevation node as outlet')
+            logger.warning(f"""No outlets found for subgraph containing 
+                           {lowest_elevation_node}, using this node as outlet.""")
+
+        G = nx.compose_all(subgraphs)
+        G_ = G.copy()
 
         # Add edges between the paired river and street nodes
-        for river_id, street_id in matched_outlets.items():
+        for street_id, river_id in matched_outlets.items():
             # TODO instead use a weight based on the distance between the two nodes
             G_.add_edge(street_id, river_id,
                         **{'length' : outlet_derivation.outlet_length,
