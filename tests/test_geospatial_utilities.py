@@ -18,12 +18,19 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
+from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
 
 def load_street_network():
     """Load a street network."""
     G = ge.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     return G
+
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    if hasattr(a, 'shape'):
+        return ((a - b) < tol).all().all()
+    return abs(a-b) < tol
 
 def test_interp_with_nans():
     """Test the interp_interp_with_nans function."""
@@ -127,11 +134,6 @@ def test_reproject_raster():
         fid.unlink(missing_ok=True)
         new_fid.unlink(missing_ok=True)
 
-
-def almost_equal(a, b, tol=1e-6):
-    """Check if two numbers are almost equal."""
-    return abs(a-b) < tol
-
 def test_get_transformer():
     """Test the get_transformer function."""
     # Test a northern hemisphere point
@@ -223,16 +225,23 @@ def test_derive_subcatchments():
     """Test the derive_subcatchments function."""
     G = load_street_network()
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    
-    polys = go.derive_subcatchments(G, elev_fid)
-    assert 'slope' in polys.columns
-    assert 'area' in polys.columns
-    assert 'geometry' in polys.columns
-    assert 'id' in polys.columns
-    assert polys.shape[0] > 0
-    assert polys.dropna().shape == polys.shape
-    assert polys.crs == G.graph['crs']
+    for method in ['pysheds', 'pyflwdir']:
+        polys = go.derive_subcatchments(G, elev_fid,method=method)
+        assert 'slope' in polys.columns
+        assert 'area' in polys.columns
+        assert 'geometry' in polys.columns
+        assert 'id' in polys.columns
+        assert polys.shape[0] > 0
+        assert polys.dropna().shape == polys.shape
+        assert polys.crs == G.graph['crs']
 
+        # Pyflwdir and pysheds catchment derivation aren't absolutely identical
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'area'], 
+                            1499, tol = 1)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'slope'], 
+                            0.06145, tol = 0.001)
+        assert almost_equal(polys.set_index('id').loc[2623975694, 'width'], 
+                            21.845, tol = 0.001)
 
 def test_derive_rc():
     """Test the derive_rc function."""
@@ -271,6 +280,9 @@ def test_derive_rc():
                             (700329, 5709883),
                             (700351, 5709883)])]
 
+    streetcover = [d['geometry'].buffer(5) for u,v,d in G.edges(data=True)]
+    streetcover = gpd.GeoDataFrame(geometry = streetcover, crs = crs)
+
     subs = gpd.GeoDataFrame(data = {'id' : [107733,
                                             1696030874,
                                             6277683849]
@@ -279,15 +291,48 @@ def test_derive_rc():
                                     crs = crs)
     subs['area'] = subs.geometry.area
 
+    # Test no RC
     subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
     assert subs_rc.loc[6277683849,'impervious_area'] == 0
     assert subs_rc.loc[107733,'impervious_area'] > 0
 
-    buildings.geometry = buildings.buffer(50)
-    subs_rc = go.derive_rc(subs, buildings, buildings).set_index('id')
-    assert subs_rc.loc[6277683849,'impervious_area'] > 0
-    assert subs_rc.loc[6277683849,'rc'] > 0
+    # Test alt method
+    subs_rc_alt = derive_rc_alt(subs, buildings, buildings).set_index('id')
+    assert almost_equal(
+        subs_rc[['area','impervious_area','rc']],
+        subs_rc_alt[['area','impervious_area','rc']]
+        )
+    
+    # Test some RC
+    subs_rc = go.derive_rc(subs, buildings, streetcover).set_index('id')
+    assert almost_equal(subs_rc.loc[6277683849,'impervious_area'],
+                        1092.452579)
+    assert almost_equal(subs_rc.loc[6277683849,'rc'],
+                        21.770677)
     assert subs_rc.rc.max() <= 100
+
+    # Test alt method
+    subs_rc_alt = derive_rc_alt(subs, buildings, streetcover).set_index('id')
+    assert almost_equal(
+        subs_rc[['area','impervious_area','rc']],
+        subs_rc_alt[['area','impervious_area','rc']]
+        )
+
+    # Test intersecting buildings and streets
+    buildings = buildings.overlay(streetcover.dissolve(), how = 'union')
+    subs_rc = go.derive_rc(subs, buildings, streetcover).set_index('id')
+    assert almost_equal(subs_rc.loc[6277683849,'impervious_area'],
+                        1092.452579)
+    assert almost_equal(subs_rc.loc[6277683849,'rc'],
+                        21.770677)
+    assert subs_rc.rc.max() <= 100
+
+    # Test alt method
+    subs_rc_alt = derive_rc_alt(subs, buildings, streetcover).set_index('id')
+    assert almost_equal(
+        subs_rc[['area','impervious_area','rc']],
+        subs_rc_alt[['area','impervious_area','rc']]
+        )
 
 def test_calculate_angle():
     """Test the calculate_angle function."""

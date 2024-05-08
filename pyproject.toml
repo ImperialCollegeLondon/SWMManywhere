@@ -42,6 +42,7 @@ dependencies = [
   "pandas",
   "pyarrow",
   "pydantic",
+  "pyflwdir",
   "pysheds",
   "pyswmm",
   "PyYAML",

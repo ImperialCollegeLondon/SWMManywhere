@@ -13,11 +13,12 @@ from collections import defaultdict
 from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
-from typing import Any, Callable, Dict, Hashable, List, Optional
+from typing import Any, Callable, Dict, Hashable, List, Optional, cast
 
 import geopandas as gpd
 import networkx as nx
 import numpy as np
+import osmnx as ox
 import pandas as pd
 import shapely
 from tqdm import tqdm
@@ -214,12 +215,44 @@ class assign_id(BaseGraphFunction,
         for u, v, key, data in G.edges(data=True, keys = True):
             data['id'] = f'{u}-{v}'
             if data['id'] in edge_ids:
-                logger.warning(f"Duplicate edge ID: {data['id']}")
                 edges_to_remove.append((u, v, key))
             edge_ids.add(data['id'])
         for u, v, key in edges_to_remove:
             G.remove_edge(u, v, key)
         return G
+    
+@register_graphfcn
+class remove_parallel_edges(BaseGraphFunction):
+    """remove_parallel_edges class."""
+
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Remove parallel edges from a street network.
+
+        Retain the edge with the smallest weight (i.e., length).
+
+        Args:
+            G (nx.MultiDiGraph): A graph.
+            **kwargs: Additional keyword arguments are ignored.
+        
+        Returns:
+            G (nx.DiGraph): The graph with parallel edges removed.
+
+        Author:
+            Taher Chegini
+        """
+        # Set the attribute (weight) used to determine which parallel edge to
+        # retain. Could make this a parameter in parameters.py if needed.
+        weight = 'length' 
+        graph = ox.get_digraph(G)
+        _, _, attr_list = next(iter(graph.edges(data=True)))  # type: ignore
+        attr_list = cast("dict[str, Any]", attr_list)
+        if weight not in attr_list:
+            raise ValueError(f"{weight} not in edge attributes.")
+        attr = nx.get_node_attributes(graph, weight)
+        parallels = (e for e in attr if e[::-1] in attr)
+        graph.remove_edges_from({e if attr[e] > attr[e[::-1]] 
+                                else e[::-1] for e in parallels})
+        return graph
     
 @register_graphfcn
 class remove_non_pipe_allowable_links(BaseGraphFunction):
@@ -362,6 +395,9 @@ class double_directed(BaseGraphFunction,
             if ((v, u) not in G_new.edges) & include:
                 reverse_data = data.copy()
                 reverse_data['id'] = f"{data['id']}.reversed"
+                new_geometry = shapely.LineString(
+                    list(reversed(data['geometry'].coords)))
+                reverse_data['geometry'] = new_geometry
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
     
@@ -454,6 +490,7 @@ class merge_nodes(BaseGraphFunction):
         other. The distance is specified in the `node_merge_distance` attribute
         of the `subcatchment_derivation` parameter. The merged nodes are given
         the same coordinates, and the graph is relabeled with nx.relabel_nodes.
+        Suggest to follow with call of `assign_id` to remove duplicate edges.
 
         Args:
             G (nx.Graph): A graph
@@ -614,7 +651,7 @@ class calculate_contributing_area(BaseGraphFunction,
         # Set edge attributes
         nx.set_edge_attributes(G, edge_attributes, 'contributing_area')
         return G
-
+    
 @register_graphfcn
 class set_elevation(BaseGraphFunction,
                     required_node_attributes = ['x', 'y'],
