@@ -699,6 +699,7 @@ def derive_subcatchments(G: nx.Graph,
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
 
+
 def derive_rc(subcatchments: gpd.GeoDataFrame,
               building_footprints: gpd.GeoDataFrame,
               streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
