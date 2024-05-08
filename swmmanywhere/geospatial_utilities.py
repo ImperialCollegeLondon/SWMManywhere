@@ -699,6 +699,7 @@ def derive_subcatchments(G: nx.Graph,
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
 
+
 def derive_rc(subcatchments: gpd.GeoDataFrame,
               building_footprints: gpd.GeoDataFrame,
               streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -758,7 +759,7 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     )
 
     # Store as impervious area in subcatchments
-    subcatchments["impervious_area"] = 0
+    subcatchments["impervious_area"] = 0.0
     subcatchments.loc[areas.index, "impervious_area"] = areas
     subcatchments["rc"] = subcatchments["impervious_area"] / \
         subcatchments.geometry.area * 100
