@@ -657,7 +657,8 @@ def derive_subbasins_streamorder(fid: Path,
             check_ftype = False,
             transform = grid.affine,
         )
-    # TODO - use highest valid stream order if streamorder is too high
+    
+    # Iterate over stream orders to find the first one with subbasins
     streamorder_ = streamorder
     subbasins = np.zeros_like(flow_dir)
     while np.unique(subbasins.reshape(-1)).shape[0] == 1:
