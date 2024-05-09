@@ -670,18 +670,21 @@ def derive_subbasins_streamorder(fid: Path,
         subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
         streamorder -= 1
 
-    if (
-        (streamorder != streamorder_ - 1) & 
-        (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
-        ):
-        logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
-                       Using {streamorder + 1} instead.""")
-
     gdf_bas = vectorize(subbasins.astype(np.int32),
                             0,
                             flw.transform,
                             grid.crs,
                             name="basin")
+    
+    if (
+        (streamorder != streamorder_ - 1) & 
+        (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
+        ):
+        logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
+                       Using {streamorder + 1} instead. You can manually inspect
+                       these at {fid.parent / 'subbasins.geojson'}.""")
+        gdf_bas.to_file(fid.parent / 'subbasins.geojson', driver='GeoJSON')
+
     return gdf_bas
     
 
