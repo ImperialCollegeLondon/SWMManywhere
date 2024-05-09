@@ -679,7 +679,7 @@ def derive_subbasins_streamorder(fid: Path,
     if streamorder != streamorder_ - 1:
         logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
                        Using {streamorder + 1} instead. You can manually inspect
-                       these at {fid.parent / 'subbasins.geojson'}.""")
+                       these in the model folder.""")
 
     return gdf_bas
     
