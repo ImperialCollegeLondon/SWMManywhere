@@ -26,7 +26,7 @@ def get_full_parameters_flat():
     #                     for k, y in v.model_json_schema()['properties'].items()}
     parameters_flat = {}
     for cat, v in parameters.items():
-        for k, y in v.schema()['properties'].items():
+        for k, y in v.model_json_schema()['properties'].items():
             parameters_flat[k] = {**y, **{'category' : cat}}
 
     return parameters_flat
@@ -44,7 +44,11 @@ class SubcatchmentDerivation(BaseModel):
             le = 1,
             unit = "-",
             description = "Membership threshold for subbasin derivation.")
-
+    
+    subbasin_clip_method: str = Field(default = 'subbasin',
+            unit = '-',
+            description = "Method to clip subbasins, can be subbasin or community.")
+    
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
             le = 5.0,
@@ -174,7 +178,8 @@ class TopologyDerivation(BaseModel):
 
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
-    diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
+    diameters: list = Field(default = 
+                            np.linspace(0.15,3,int((3-0.15)/0.075) + 1).tolist(),
                             min_items = 1,
                             unit = "m",
                             description = """Diameters to consider in 

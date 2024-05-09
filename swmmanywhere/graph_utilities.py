@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -587,7 +588,8 @@ class fix_geometries(BaseGraphFunction,
 @register_graphfcn
 class clip_to_catchments(BaseGraphFunction,
                          required_node_attributes = ['x','y'],
-                         required_edge_attributes = ['length'],):
+                         required_edge_attributes = ['length'],
+                         adds_node_attributes = ['community','basin']):
     """clip_to_catchments class."""
     def __call__(self, 
                  G: nx.Graph,
@@ -607,6 +609,8 @@ class clip_to_catchments(BaseGraphFunction,
         proportion of nodes in a subbasin have their links to all other nodes
         in that subbasin removed. Nodes not in any subbasin are assigned to a 
         subbasin to cover all unassigned nodes.
+
+        Community and basin ids are added to nodes mainly to help with debugging.
 
         Args:
             G (nx.Graph): A graph
@@ -634,11 +638,6 @@ class clip_to_catchments(BaseGraphFunction,
         street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
                                   if d.get('edge_type', 'street') != 'street'])
 
-        # Derive road network clusters
-        louv_membership = nx.community.louvain_communities(street,
-                                                           weight = 'length',
-                                                           seed = 1)
-        
         # Create gdf of street points
         street_points = gpd.GeoDataFrame(G.nodes,
             columns = ['id'],
@@ -649,22 +648,44 @@ class clip_to_catchments(BaseGraphFunction,
             crs = G.graph['crs']
             ).set_index('id')
         
-        street_points['community'] = 0 
-        # Assign louvain membership to street points
-        for ix, community in enumerate(louv_membership):
-            street_points.loc[list(community), 'community'] = ix
-        
         # Classify street points by subbasin
         street_points = gpd.sjoin(street_points,
                                 subbasins.set_index('basin'),
                                 how='left',
                         ).rename(columns = {'index_right': 'basin'})
+
+        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
+            edges_to_remove = [
+                (u,v) for u, v in G.edges()
+                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
+                ]
+            G.remove_edges_from(edges_to_remove)
+            return G
+        
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length',
+                                                           seed = 1)
+        
+        street_points['community'] = 0 
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
+        
+        
         
         # Introduce a non catchment basin for nan
         street_points['basin'] = street_points['basin'].fillna(-1)
         # TODO possibly it makes sense to just remove these nodes, or at least
         # any communities that are all nan
-
+        
+        nx.set_node_attributes(G,
+                               street_points['community'].to_dict(),
+                               'community')
+        nx.set_node_attributes(G,
+                               street_points['basin'].to_dict(),
+                               'basin')
+        
 
         # Calculate most percentage of each subbasin in each community
         community_basin = (
@@ -717,7 +738,14 @@ class clip_to_catchments(BaseGraphFunction,
                 [(v, u, 0) for u, v in product(community_nodes, basin_nodes)]
                 )
         G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
-
+        if G.is_directed():
+            logger.info(f"""clip_to_catchments has created 
+                    {len([sg for sg in nx.weakly_connected_components(G)])} 
+                    subgraphs.""")
+        else:
+            logger.info(f"""clip_to_catchments has created 
+                    {len([sg for sg in nx.connected_components(G)])} 
+                    subgraphs.""")
         return G
         
 
@@ -1207,12 +1235,21 @@ class derive_topology(BaseGraphFunction,
         G = G.copy()
         
         visited: set = set()
+        
+        # Increase recursion limit to allow to iterate over the entire graph
+        # Seems to be the quickest way to identify which nodes have a path to
+        # the outlet
+        original_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(max(original_limit, len(G.nodes)))
 
         # Identify outlets
         if outlet_derivation.method == 'withtopo':
             _iterate_upstream(G, 'waste', visited)
 
+            # Remove nodes not reachable from waste
             G.remove_nodes_from(set(G.nodes) - visited)
+
+            # Run shorted path
             G = shortest_path_utils.tarjans_pq(G,'waste')
             
             G = _filter_streets(G)
@@ -1230,10 +1267,13 @@ class derive_topology(BaseGraphFunction,
                 logger.warning('Graph contains negative cycle')
 
             G = shortest_path_utils.dijkstra_pq(G, outlets)
-        
-        if os.getenv('SWMMANYWHERE_VERBOSE', "false").lower() == "true":
-            total_weight = sum([d['weight'] for u,v,d in G.edges(data=True)])
-            logger.info(f"Total graph weight {total_weight}.")
+
+        # Reset recursion limit
+        sys.setrecursionlimit(original_limit)
+
+        # Log total weight
+        total_weight = sum([d['weight'] for u,v,d in G.edges(data=True)])
+        logger.info(f"Total graph weight {total_weight}.")
 
         return G
 

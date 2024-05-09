@@ -521,7 +521,8 @@ def test_clip_to_catchments():
         # Test clipping
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 3,
-            subbasin_membership = 0.9
+            subbasin_membership = 0.9,
+            subbasin_clip_method = 'community'
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
@@ -531,7 +532,8 @@ def test_clip_to_catchments():
         # Test clipping with different params
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 4,
-            subbasin_membership = 0.3
+            subbasin_membership = 0.3,
+            subbasin_clip_method = 'community'
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
@@ -541,7 +543,8 @@ def test_clip_to_catchments():
         # Test no cuts
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 4,
-            subbasin_membership = 0
+            subbasin_membership = 0,
+            subbasin_clip_method = 'community'
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
@@ -551,7 +554,8 @@ def test_clip_to_catchments():
         # Cut between every community not entirely within the same basin
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 4,
-            subbasin_membership = 1
+            subbasin_membership = 1,
+            subbasin_clip_method = 'community'
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
@@ -563,7 +567,8 @@ def test_clip_to_catchments():
         logger.add(temp_path / 'test.log')
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 5,
-            subbasin_membership = 0.9
+            subbasin_membership = 0.9,
+            subbasin_clip_method = 'community'
         )
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
