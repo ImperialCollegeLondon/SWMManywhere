@@ -15,9 +15,9 @@ import networkx as nx
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
+from swmmanywhere.custom_logging import logger
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger
 
 
 def load_street_network():

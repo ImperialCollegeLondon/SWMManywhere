@@ -36,7 +36,7 @@ import pyflwdir  # noqa: E402
 import pysheds  # noqa: E402
 from pysheds import grid as pgrid  # noqa: E402
 
-from swmmanywhere.logging import logger  # noqa: E402
+from swmmanywhere.custom_logging import logger  # noqa: E402
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
