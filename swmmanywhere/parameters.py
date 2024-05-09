@@ -46,8 +46,8 @@ class SubcatchmentDerivation(BaseModel):
             description = "Membership threshold for subbasin derivation.")
     
     subbasin_clip_method: str = Field(default = 'subbasin',
-            unit = '-',
-            description = "Method to clip subbasins, can be subbasin or community.")
+        unit = '-',
+        description = "Method to clip subbasins, can be `subbasin` or `community`.")
     
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
