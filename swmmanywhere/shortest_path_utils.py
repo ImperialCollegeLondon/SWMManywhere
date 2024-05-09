@@ -14,7 +14,7 @@ def tarjans_pq(G: nx.MultiDiGraph,
     """Tarjan's algorithm for a directed minimum spanning tree.
 
     Also known as a minimum spanning arborescence, this algorithm finds the
-    minimum directed spanning tree rooted at a given vertex in a directed
+    minimum directed spanning tree rooted at a given vertex (root) in a directed
     graph.
 
     Args:
@@ -95,7 +95,7 @@ def dijkstra_pq(G: nx.MultiDiGraph,
     """Dijkstra's algorithm for shortest paths to outlets.
 
     This function calculates the shortest paths from each node in the graph to
-    the nearest outlet. The graph is modified in place to include the outlet
+    the nearest outlet. The graph is modified to include the outlet
     and the shortest path length.
 
     Args:
@@ -105,6 +105,7 @@ def dijkstra_pq(G: nx.MultiDiGraph,
     Returns:
         nx.MultiDiGraph: The graph with the shortest paths to outlets.
     """
+    G = G.copy()
     # Initialize the dictionary with infinity for all nodes
     shortest_paths = {node: float('inf') for node in G.nodes}
 
@@ -144,7 +145,7 @@ def dijkstra_pq(G: nx.MultiDiGraph,
         del paths[node], shortest_paths[node]
 
     if len(G.nodes) == 0:
-        raise ValueError("""No nodes with path to outlet""")
+        raise ValueError("""No nodes with path to outlet, """)
 
     edges_to_keep: set = set()
 

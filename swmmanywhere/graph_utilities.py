@@ -1038,7 +1038,26 @@ class identify_outlets(BaseGraphFunction,
         """Identify outlets in a combined river-street graph.
 
         This function identifies outlets in a combined river-street graph. An
-        outlet is a node that is connected to a river and a street. 
+        outlet is a node that is connected to a river and a street. Each street
+        node is paired with the nearest river node provided that it is within
+        a distance of outlet_derivation.river_buffer_distance - this provides a
+        large set of plausible outlets. If there are no plausible outlets for an
+        entire subgraph, then a dummy river node is created and the lowest
+        elevation node is paired with it. Any street->river/outlet link is given
+        a `weight` and `length` of outlet_derivation.outlet_length, this is to
+        ensure some penalty on the total number of outlets selected.
+
+        Two methods are available for determining which plausible outlets to 
+        retain:
+
+        - `withtopo`: all plausible outlets are retained, connected to a single
+        'waste' node and assumed to be later identified as part of the 
+        `derive_topology` graphfcn.
+        
+        - `separate`: the retained outlets are those that are selected as part 
+        of the minimum spanning tree (MST) of the combined street-river graph. 
+        This method can be temporamental because the MST is undirected, because
+        rivers are inherently directed unusual outlet locations may be retained.
 
         Args:
             G (nx.Graph): A graph
@@ -1215,13 +1234,23 @@ class derive_topology(BaseGraphFunction,
                  **kwargs) -> nx.Graph:
         """Derive the topology of a graph.
 
-        Runs a djiikstra-based algorithm to identify the shortest path from each
-        node to its nearest outlet (weighted by the 'weight' edge value). The 
+        Derives the network topology based on the weighted graph of potential
+        pipe carrying edges in the graph.
+
+        Two methods are available:
+        - `separate`: The original and that assumes outlets have already been
+        narrowed down from the original plausible set. Runs a djiikstra-based 
+        algorithm to identify the shortest path from each node to its nearest 
+        outlet (weighted by the 'weight' edge value). The 
         returned graph is one that only contains the edges that feature  on the 
-        shortest paths. Street nodes that cannot be connected to any outlet (i.e., 
-        they are a distance greater than `outlet_derivation.river_buffer_distance` 
-        from any river node or any street node that is connected to an outlet) 
-        are removed from the graph.
+        shortest paths. 
+        - `withtopo`: The alternative method that assumes no narrowing of plausible
+        outlets has been performed. This method runs a Tarjan's algorithm to
+        identify the spanning forest starting from a `waste` node that all 
+        plausible outlets are connected to (whether via a river or directly).
+        
+        In both methods, street nodes that have no plausible route to any outlet
+        are removed.
 
         Args:
             G (nx.Graph): A graph
