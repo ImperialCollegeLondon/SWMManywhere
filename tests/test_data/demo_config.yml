@@ -17,6 +17,7 @@ graphfcn_list:
   - fix_geometries # Ensure consistent geometry directions
   - remove_non_pipe_allowable_links # Filter out things like bridges/motorways
   - calculate_streetcover # Create shapefile of impervious street cover
+  - remove_parallel_edges # Remove parallel edges retaining the shorter one
   - to_undirected # Convert graph to undirected to facilitate cleanup
   - split_long_edges # Set a maximum edge length
   - merge_nodes # Merge nodes that are too close together
@@ -32,6 +33,7 @@ graphfcn_list:
   - identify_outlets # Identify potential street->river outlets
   - derive_topology # Shortest path to give network topology
   - pipe_by_pipe # Design pipe diameters and depths
+  - fix_geometries # Ensure geometries present before printing
   - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
   - nc_deltacon0

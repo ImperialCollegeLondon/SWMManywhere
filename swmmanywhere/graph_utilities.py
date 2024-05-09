@@ -226,8 +226,8 @@ class assign_id(BaseGraphFunction,
         return G
     
 @register_graphfcn
-class remove_isolated_nodes(BaseGraphFunction):
-    """remove_isolated_nodes class."""
+class remove_parallel_edges(BaseGraphFunction):
+    """remove_parallel_edges class."""
 
     def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
         """Remove parallel edges from a street network.
@@ -385,8 +385,7 @@ class double_directed(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         # Convert to directed
-        G_new = G.copy()
-        G_new = nx.MultiDiGraph(G_new)
+        G_new = nx.MultiDiGraph(G.copy())
         
         # MultiDiGraph adds edges in both directions, but rivers (and geometries)
         # are only in one direction. So we remove the reverse edges and add them
@@ -473,7 +472,6 @@ class split_long_edges(BaseGraphFunction,
                                   new_linestring.coords[1:]):
                 geom = shapely.LineString([start, end])
                 new_edges[(start, end, 0)] = {**d,
-                                           'geometry' : geom,
                                            'length' : geom.length
                                            }
 
@@ -550,12 +548,6 @@ class merge_nodes(BaseGraphFunction):
         self_loops = list(nx.selfloop_edges(G))
         G.remove_edges_from(self_loops)
 
-        # Recalculate geometries
-        for u, v, data in G.edges(data=True):
-            data['geometry'] = shapely.LineString([(G.nodes[u]['x'], 
-                                                    G.nodes[u]['y']),
-                                                   (G.nodes[v]['x'], 
-                                                    G.nodes[v]['y'])])
         return G
     
 @register_graphfcn
@@ -578,10 +570,16 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
-            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
-            start_point_edge = data['geometry'].coords[0]
+            if not data.get('geometry', None):
+                start_point_edge = (None,None)
+                end_point_edge = (None,None)
+            else:
+                start_point_edge = data['geometry'].coords[0]
+                end_point_edge = data['geometry'].coords[-1]
+
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])            
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
-            end_point_edge = data['geometry'].coords[-1]
+
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
                 data['geometry'] = data['geometry'].reverse()
