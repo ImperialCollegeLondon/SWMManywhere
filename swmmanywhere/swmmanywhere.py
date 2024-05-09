@@ -415,3 +415,5 @@ if __name__ == '__main__':
 
     # Run the model
     inp, metrics = swmmanywhere(config)
+    logger.info(f"Model run complete. Results saved to {inp}")
+    logger.info(f"Metrics:\n {metrics}")
