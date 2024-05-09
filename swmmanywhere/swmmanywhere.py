@@ -1,6 +1,7 @@
 """The main SWMManywhere module to generate and run a synthetic network."""
 from __future__ import annotations
 
+import argparse
 import os
 from pathlib import Path
 
@@ -12,8 +13,8 @@ import yaml
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import parameters, preprocessing
+from swmmanywhere.custom_logging import logger
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
 
@@ -64,7 +65,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Identify the starting graph
     logger.info("Iterating graphs.")
-    if config['starting_graph']:
+    if config.get('starting_graph', None):
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
@@ -385,3 +386,32 @@ def run(model: Path,
             
     logger.info("Model run complete.")
     return pd.DataFrame(results)
+
+def parse_arguments():
+    """Parse the command line arguments.
+
+    Returns:
+        Path: The path to the configuration file.
+    """
+    parser = argparse.ArgumentParser(description='Process command line arguments.')
+    parser.add_argument('--config_path', 
+                        type=Path, 
+                        default=Path(__file__).parent.parent.parent / 'tests' /\
+                                    'test_data' / 'demo_config.yml',
+                        help='Configuration file path')
+    parser.add_argument('--verbose', 
+                        type=bool, 
+                        default=False,
+                        help='Configuration verbosity')
+    args = parser.parse_args()
+    return args.config_path, args.verbose
+
+if __name__ == '__main__':
+    # Parse the arguments
+    config_path, verbose  = parse_arguments()
+    os.environ["SWMMANYWHERE_VERBOSE"] = str(verbose).lower()
+
+    config = load_config(config_path)
+
+    # Run the model
+    inp, metrics = swmmanywhere(config)
