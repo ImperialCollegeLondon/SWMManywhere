@@ -97,7 +97,7 @@ def synthetic_write(addresses: FilePaths):
     # TODO automatically match units to storm.csv?
     event = {'name' : '1',
              'unit' : 'mm',
-             'interval' : '00:05',
+             'interval' : '00:05', # hh:mm
              'fid' : str(addresses.precipitation)
                                  }
 
