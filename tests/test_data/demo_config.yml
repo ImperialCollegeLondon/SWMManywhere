@@ -22,6 +22,7 @@ graphfcn_list:
   - split_long_edges # Set a maximum edge length
   - merge_nodes # Merge nodes that are too close together
   - assign_id # Remove duplicates arising from merge_nodes
+  - clip_to_catchments # Clip graph to catchment subbasins
   - calculate_contributing_area # Calculate runoff coefficient
   - set_elevation # Set node elevation from DEM
   - double_directed # Format as directed graph enabling travel in both directions

@@ -638,6 +638,85 @@ def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
     gdf_bas['id'] = [u[x-1] for x in gdf_bas['basin']]
     return gdf_bas
 
+def derive_subbasins_streamorder(fid: Path,
+                                 streamorder: int):
+    """Derive subbasins of a given stream order.
+
+    Args:
+        fid (Path): Filepath to the DEM.
+        streamorder (int): The stream order to delineate subbasins for.
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons.
+    """
+    # Load and process the DEM
+    grid, flow_dir, _, _ = load_and_process_dem(fid)
+
+    flw = pyflwdir.from_array(
+            flow_dir,
+            ftype = 'd8',
+            check_ftype = False,
+            transform = grid.affine,
+        )
+    
+    # Iterate over stream orders to find the first one with subbasins
+    streamorder_ = streamorder
+    subbasins = np.zeros_like(flow_dir)
+    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
+        if streamorder == 0:
+            raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
+                             Fix your DEM""")
+
+
+        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+        streamorder -= 1
+
+    gdf_bas = vectorize(subbasins.astype(np.int32),
+                            0,
+                            flw.transform,
+                            grid.crs,
+                            name="basin")
+    
+    if (
+        (streamorder != streamorder_ - 1) & 
+        (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
+        ):
+        logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
+                       Using {streamorder + 1} instead. You can manually inspect
+                       these at {fid.parent / 'subbasins.geojson'}.""")
+        gdf_bas.to_file(fid.parent / 'subbasins.geojson', driver='GeoJSON')
+
+    return gdf_bas
+    
+
+def load_and_process_dem(fid: Path) -> tuple[pysheds.sgrid.sGrid,
+                                                  pysheds.sview.Raster,
+                                                    tuple,
+                                                  pysheds.sview.Raster]:
+    """Load and condition a DEM.
+
+    Args:
+        fid (Path): Filepath to the DEM.
+
+    Returns:
+        tuple: A tuple containing the grid, flow directions, direction mapping, 
+            and cell slopes.
+    """
+    # Initialise pysheds grids
+    grid = pgrid.Grid.from_raster(str(fid))
+    dem = grid.read_raster(str(fid))
+
+    # Condition the DEM
+    inflated_dem = condition_dem(grid, dem)
+
+     # Compute flow directions
+    flow_dir, dirmap = compute_flow_directions(grid, inflated_dem)
+
+    # Calculate slopes
+    cell_slopes = grid.cell_slopes(dem, flow_dir)
+    
+    return grid, flow_dir, dirmap, cell_slopes
+
 def derive_subcatchments(G: nx.Graph, 
                          fid: Path, 
                          method = 'pyflwdir') -> gpd.GeoDataFrame:
@@ -657,18 +736,8 @@ def derive_subcatchments(G: nx.Graph,
     if method not in ['pyflwdir', 'pysheds']:
         raise ValueError("Invalid method. Must be 'pyflwdir' or 'pysheds'.")
     
-    # Initialise pysheds grids
-    grid = pgrid.Grid.from_raster(str(fid))
-    dem = grid.read_raster(str(fid))
-
-    # Condition the DEM
-    inflated_dem = condition_dem(grid, dem)
-
-    # Compute flow directions
-    flow_dir, dirmap = compute_flow_directions(grid, inflated_dem)
-
-    # Calculate slopes
-    cell_slopes = grid.cell_slopes(dem, flow_dir)
+    # Load and process the DEM
+    grid, flow_dir, dirmap, cell_slopes = load_and_process_dem(fid)
 
     if method == 'pysheds':
         # Calculate flow accumulations
