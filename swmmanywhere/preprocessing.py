@@ -221,21 +221,39 @@ def prepare_building(bbox: tuple[float, float, float, float],
 def prepare_street(bbox: tuple[float, float, float, float],
                      addresses: parameters.FilePaths,
                      target_crs: str,
-                     source_crs: str = 'EPSG:4326'):
-    """Download and reproject street graph."""
+                     source_crs: str = 'EPSG:4326',
+                     network_types = ['drive']):
+    """Download and reproject street graph.
+    
+    Download the street graph within the bbox and reproject it to the UTM zone.
+    The street graph is downloaded for all network types in network_types. The
+    street graph is saved to the addresses.street directory.
+
+    Args:
+        bbox (tuple[float, float, float, float]): Bounding box coordinates in 
+            the format (minx, miny, maxx, maxy) in EPSG:4326.
+        addresses (FilePaths): Class containing the addresses of the directories.
+        target_crs (str): Target CRS to reproject the graph to.
+        source_crs (str): Source CRS of the graph.
+        network_types (list): List of network types to download. For duplicate 
+            edges, nx.compose_all selects the attributes in priority of last to
+            first. In likelihood, you want to ensure that the last network in 
+            the list is `drive`, so as to retain information about `lanes`, 
+            which is needed to calculate impervious area.
+    """
     if addresses.street.exists():
         return
-    logger.info(f'downloading street network to {addresses.street}')
+    logger.info(f'downloading network to {addresses.street}')
+    if network_types[-1] != 'drive':
+        logger.warning("""The last network type should be `drive` to retain 
+                       `lanes` attribute, needed to calculate impervious area.""")
+    networks = []
+    for network_type in network_types:
+        network = prepare_data.download_street(bbox, network_type=network_type)
+        nx.set_edge_attributes(network, network_type, 'network_type')
+        networks.append(network)
+    street_network = nx.compose_all(networks)
     street_network = prepare_data.download_street(bbox, network_type='drive')
-    nx.set_edge_attributes(street_network, 'drive', 'network_type')
-
-    # Download walk network to enable pipes along walkways
-    walk_network = prepare_data.download_street(bbox, network_type='walk')
-    nx.set_edge_attributes(walk_network, 'walk', 'network_type')
-
-    # Combine streets and walkways (use street_network as first arg so that 
-    # parameters from street_network are used where there are conflicts)
-    street_network = nx.compose(walk_network, street_network)
 
     # Reproject graph
     street_network = go.reproject_graph(street_network, 

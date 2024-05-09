@@ -73,7 +73,7 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
-    allowable_networks: list = Field(default = ['drive', 'walk'],
+    allowable_networks: list = Field(default = ['walk', 'drive'],
                                      min_items = 1,
                         unit = "-",
                         description = "OSM networks to consider")
