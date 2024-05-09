@@ -1045,11 +1045,6 @@ class derive_topology(BaseGraphFunction,
             G.remove_node(node)
             del paths[node], shortest_paths[node]
 
-        if len(G.nodes) == 0:
-            raise ValueError("""No nodes with path to outlet, consider 
-                             broadening bounding box or removing trim_to_outlet
-                             from config graphfcn_list""")
-
         edges_to_keep: set = set()
         for path in paths.values():
             # Assign outlet
