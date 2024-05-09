@@ -168,15 +168,10 @@ def process_parameters(jobid: int,
         # Run the model
         config['model_number'] = ix
         logger.info(f"Running swmmanywhere for model {ix}")
-        try:
-            # Code that might throw an exception
-            address, metrics = swmmanywhere.swmmanywhere(config)
-            if metrics is None:
-                raise ValueError(f"Model run {ix} failed.")
-        except Exception as e:
-            # Print the error message
-            print(f"An error occurred: {e}")
-            metrics = {metric: None for metric in config_base['metric_list']}
+
+        address, metrics = swmmanywhere.swmmanywhere(config)
+        if metrics is None:
+            raise ValueError(f"Model run {ix} failed.")
 
         # Save the results
         flooding_results[ix] = {'iter': ix, 
