@@ -291,11 +291,6 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         """
         edges_to_remove = set()
         for u, v, keys, data in G.edges(data=True,keys = True):
-            if data.get('network_type','drive') \
-                not in topology_derivation.allowable_networks:
-                
-                edges_to_remove.add((u, v, keys))
-                continue
             for omit in topology_derivation.omit_edges:
                 if data.get('highway', None) == omit:
                     # Check whether the 'highway' property is 'omit'

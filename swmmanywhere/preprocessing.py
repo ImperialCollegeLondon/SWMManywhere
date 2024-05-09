@@ -278,7 +278,8 @@ def prepare_river(bbox: tuple[float, float, float, float],
 
 def run_downloads(bbox: tuple[float, float, float, float],
                   addresses: parameters.FilePaths,
-                  api_keys: dict[str, str]):
+                  api_keys: dict[str, str],
+                  network_types = ['drive']):
     """Run the data downloads.
 
     Run the precipitation, elevation, building, street and river network
@@ -290,6 +291,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
             the format (minx, miny, maxx, maxy) in EPSG:4326.
         addresses (FilePaths): Class containing the addresses of the directories.
         api_keys (dict): Dictionary containing the API keys.
+        network_types (list): List of network types to download.
     """
     target_crs = go.get_utm_epsg(bbox[0], bbox[1])
 
@@ -303,7 +305,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
     prepare_building(bbox, addresses, target_crs)
     
     # Download street network data
-    prepare_street(bbox, addresses, target_crs)
+    prepare_street(bbox, addresses, target_crs, network_types=network_types)
 
     # Download river network data
     prepare_river(bbox, addresses, target_crs)
