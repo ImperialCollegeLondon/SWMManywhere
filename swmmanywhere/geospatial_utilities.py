@@ -660,7 +660,7 @@ def derive_subbasins_streamorder(fid: Path,
     subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
     if np.unique(subbasins.reshape(-1)).shape[0] == 1:
         raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
-                Use a lower `subcatchment_derivation.subbasin_streamorder and 
+                Use a lower `subcatchment_derivation.subbasin_streamorder` and 
                 probably check your DEM.""")
 
     gdf_bas = vectorize(subbasins.astype(np.int32),
