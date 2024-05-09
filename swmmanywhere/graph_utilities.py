@@ -566,15 +566,16 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
-            if not data.get('geometry', None):
-                start_point_edge = (None,None)
-                end_point_edge = (None,None)
+            geom = data.get('geometry', None)
+            
+            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
+            end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
+            if not geom:
+                start_point_edge = (None, None)
+                end_point_edge = (None, None)
             else:
                 start_point_edge = data['geometry'].coords[0]
                 end_point_edge = data['geometry'].coords[-1]
-
-            start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])            
-            end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
 
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
@@ -584,6 +585,143 @@ class fix_geometries(BaseGraphFunction,
                 data['geometry'] = shapely.LineString([start_point_node,
                                                        end_point_node])
         return G
+
+@register_graphfcn
+class clip_to_catchments(BaseGraphFunction,
+                         required_node_attributes = ['x','y'],
+                         required_edge_attributes = ['length'],):
+    """clip_to_catchments class."""
+    def __call__(self, 
+                 G: nx.Graph,
+                addresses: parameters.FilePaths,
+                subcatchment_derivation: parameters.SubcatchmentDerivation,
+                **kwargs) -> nx.Graph:
+        """Clip the graph to the subcatchments.
+
+        Derive the subbasins with `subcatchment_derivation.subbasin_streamorder`.
+        If no subbasins exist for that stream order, the value is iterated 
+        downwards and a warning it flagged. 
+        
+        Run Louvain community detection on the street network to create street 
+        node communities. 
+
+        Communities with less than `subcatchment_derivation.subbasin_membership`
+        proportion of nodes in a subbasin have their links to all other nodes
+        in that subbasin removed. Nodes not in any subbasin are assigned to a 
+        subbasin to cover all unassigned nodes.
+
+        Args:
+            G (nx.Graph): A graph
+            addresses (parameters.FilePaths): A FilePaths parameter object
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Derive subbasins
+        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+                                subcatchment_derivation.subbasin_streamorder)
+        
+        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            subbasins.to_file(
+                str(addresses.nodes).replace('nodes','subbasins'), 
+                driver='GeoJSON')
+
+        # Extract street network
+        street = G.copy()
+        street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
+                                  if d.get('edge_type', 'street') != 'street'])
+
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length',
+                                                           seed = 1)
+        
+        # Create gdf of street points
+        street_points = gpd.GeoDataFrame(G.nodes,
+            columns = ['id'],
+            geometry = gpd.points_from_xy(
+                [G.nodes[u]['x'] for u in G.nodes],
+                [G.nodes[u]['y'] for u in G.nodes]
+                ),
+            crs = G.graph['crs']
+            ).set_index('id')
+        
+        street_points['community'] = 0 
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
+        
+        # Classify street points by subbasin
+        street_points = gpd.sjoin(street_points,
+                                subbasins.set_index('basin'),
+                                how='left',
+                        ).rename(columns = {'index_right': 'basin'})
+        
+        # Introduce a non catchment basin for nan
+        street_points['basin'] = street_points['basin'].fillna(-1)
+        # TODO possibly it makes sense to just remove these nodes, or at least
+        # any communities that are all nan
+
+
+        # Calculate most percentage of each subbasin in each community
+        community_basin = (
+            street_points
+            .groupby('community')
+            .basin
+            .value_counts()
+            .reset_index()
+        )
+        community_size = (
+            street_points
+            .community
+            .value_counts()
+            .reset_index()
+        )
+        community_basin = community_basin.merge(community_size, 
+                                                on='community',
+                                                how = 'left',
+                                                suffixes = ('_basin', '_size')
+                                                )
+        
+        # Normalize
+        community_basin['percentage'] = (
+            community_basin['count_basin'] / community_basin['count_size']
+            )
+        
+        # Identify community-basin combinations where the percentage is less than
+        # the threshold
+        community_omit = community_basin.loc[
+            community_basin['percentage'] <= 
+            subcatchment_derivation.subbasin_membership
+            ]
+
+        community_basin = community_basin.set_index('basin')
+        
+        
+        # Cut links between communities in community_omit and commuities in those
+        # basins
+        arcs_to_remove = []
+        street_points = street_points.reset_index().set_index('basin')
+        for idx, row in community_omit.iterrows():
+            community_nodes = louv_membership[int(row['community'])]
+            basin_nodes = street_points.loc[[row['basin']],'id']
+            basin_nodes = set(basin_nodes).difference(community_nodes)
+            
+            # Include both directions because operation should work on 
+            # undirected or directed graph
+            arcs_to_remove.extend(
+                [(u, v, 0) for u, v in product(community_nodes, basin_nodes)] +
+                [(v, u, 0) for u, v in product(community_nodes, basin_nodes)]
+                )
+        G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
+
+        return G
+        
 
 @register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
