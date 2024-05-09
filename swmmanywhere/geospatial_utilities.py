@@ -36,8 +36,6 @@ import pyflwdir  # noqa: E402
 import pysheds  # noqa: E402
 from pysheds import grid as pgrid  # noqa: E402
 
-from swmmanywhere.custom_logging import logger  # noqa: E402
-
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
 def get_utm_epsg(x: float, 
@@ -661,17 +659,12 @@ def derive_subbasins_streamorder(fid: Path,
             transform = grid.affine,
         )
     
-    # Iterate over stream orders to find the first one with subbasins
-    streamorder_ = streamorder
-    subbasins = np.zeros_like(flow_dir)
-    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
-        if streamorder == 0:
-            raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
-                             Fix your DEM""")
-
-
-        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
-        streamorder -= 1
+    # Identify stream order
+    subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+    if np.unique(subbasins.reshape(-1)).shape[0] == 1:
+        raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
+                Use a lower `subcatchment_derivation.subbasin_streamorder` and 
+                probably check your DEM.""")
 
     gdf_bas = vectorize(subbasins.astype(np.int32),
                             0,
@@ -679,15 +672,6 @@ def derive_subbasins_streamorder(fid: Path,
                             grid.crs,
                             name="basin")
     
-    if (
-        (streamorder != streamorder_ - 1) & 
-        (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
-        ):
-        logger.warning(f"""Stream order {streamorder_} resulted in no subbasins. 
-                       Using {streamorder + 1} instead. You can manually inspect
-                       these at {fid.parent / 'subbasins.geojson'}.""")
-        gdf_bas.to_file(fid.parent / 'subbasins.geojson', driver='GeoJSON')
-
     return gdf_bas
     
 

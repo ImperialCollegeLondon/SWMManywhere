@@ -59,7 +59,8 @@ def test_swmmanywhere():
             'building': str(test_data_dir / 'building.geoparquet'),
             'precipitation': str(defs_dir / 'storm.dat')
             }
-        
+        config['parameter_overrides'] = {'subcatchment_derivation' : 
+                                         {'subbasin_streamorder' : 5}}
         config['run_settings']['duration'] = 1000
         api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
         with open(base_dir / 'api_keys.yml', 'w') as f:

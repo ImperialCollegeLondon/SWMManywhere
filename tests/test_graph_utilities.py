@@ -12,10 +12,10 @@ from pathlib import Path
 
 import geopandas as gpd
 import networkx as nx
+import pytest
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
-from swmmanywhere.custom_logging import logger
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
@@ -563,19 +563,11 @@ def test_clip_to_catchments():
         assert len(G_.edges) == 28
 
         # Check streamorder adjustment
-        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
-        logger.add(temp_path / 'test.log')
-        subcatchment_derivation = parameters.SubcatchmentDerivation(
-            subbasin_streamorder = 5,
-            subbasin_membership = 0.9,
-            subbasin_clip_method = 'community'
-        )
-        G_ = gu.clip_to_catchments(G, 
-                                addresses=addresses,
-                                subcatchment_derivation=subcatchment_derivation)
-        with open(temp_path / 'test.log', 'r') as f:
-            log = f.read()
-            assert 'Stream order 5 resulted in no subbasins' in log
-            assert 'Using 4 instead' in log
-        logger.remove()
-        
+        with pytest.raises(ValueError):
+            subcatchment_derivation = parameters.SubcatchmentDerivation(
+                subbasin_streamorder = 5,
+                subbasin_membership = 0.9
+            )
+            G_ = gu.clip_to_catchments(G, 
+                                    addresses=addresses,
+                                    subcatchment_derivation=subcatchment_derivation)
