@@ -184,12 +184,11 @@ def iterate_graphfcns(G: nx.Graph,
         logger.info(f"graphfcn: {function} completed.")
         if verbose:
             save_graph(G, addresses.model / f"{function}_graph.json")
-            go.graph_to_geojson(G,
+            go.graph_to_geojson(graphfcns.fix_geometries(G),
                                 addresses.model / f"{function}_nodes.geojson",
                                 addresses.model / f"{function}_edges.geojson",
                                 G.graph['crs']
                                 )
-            
     return G
 
 @register_graphfcn
@@ -291,11 +290,6 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         """
         edges_to_remove = set()
         for u, v, keys, data in G.edges(data=True,keys = True):
-            if data.get('network_type','drive') \
-                not in topology_derivation.allowable_networks:
-                
-                edges_to_remove.add((u, v, keys))
-                continue
             for omit in topology_derivation.omit_edges:
                 if data.get('highway', None) == omit:
                     # Check whether the 'highway' property is 'omit'

@@ -137,6 +137,7 @@ def process_parameters(jobid: int,
     df = pd.DataFrame(X)
     gb = df.groupby('iter')
     n_iter = len(gb)
+    logger.info(f"{n_iter} samples created")
     flooding_results = {}
     nproc = nproc if nproc is not None else n_iter
 
@@ -172,11 +173,11 @@ def process_parameters(jobid: int,
         # Run the model
         config['model_number'] = ix
         logger.info(f"Running swmmanywhere for model {ix}")
-        address, metrics = swmmanywhere.swmmanywhere(config)
 
+        address, metrics = swmmanywhere.swmmanywhere(config)
         if metrics is None:
             raise ValueError(f"Model run {ix} failed.")
-        
+
         # Save the results
         flooding_results[ix] = {'iter': ix, 
                                 **metrics, 
