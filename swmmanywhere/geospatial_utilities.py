@@ -662,10 +662,7 @@ def derive_subbasins_streamorder(fid: Path,
     streamorder_ = streamorder
     subbasins = np.zeros_like(flow_dir)
     while np.unique(subbasins.reshape(-1)).shape[0] == 1:
-        if (
-            (streamorder == 0) &
-            (os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true")
-            ):
+        if streamorder == 0:
             raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
                              Fix your DEM""")
 
