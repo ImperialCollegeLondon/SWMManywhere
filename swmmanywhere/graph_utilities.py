@@ -1080,7 +1080,7 @@ class identify_outlets(BaseGraphFunction,
         for u, v, d in G.edges(data=True):
             upoint = shapely.Point(G.nodes[u]['x'], G.nodes[u]['y'])
             vpoint = shapely.Point(G.nodes[v]['x'], G.nodes[v]['y'])
-            if d['edge_type'] == 'river':
+            if d.get('edge_type','street') == 'river':
                 river_points[u] = upoint
                 river_points[v] = vpoint
             else:
@@ -1098,7 +1098,7 @@ class identify_outlets(BaseGraphFunction,
 
             # Ignore the rivers, they are drained later
             if set(
-                [d['edge_type'] for u,v,d in sg.edges(data=True)]
+                [d.get('edge_type','street') for u,v,d in sg.edges(data=True)]
                 ).issubset(['river']):
                 continue
             
@@ -1176,7 +1176,7 @@ class identify_outlets(BaseGraphFunction,
         # once water is in the river we don't care about the length - since it 
         # costs nothing
         for u,v,d in G_.edges(data=True):
-            if d['edge_type'] == 'river':
+            if d.get('edge_type','street') == 'river':
                 d['length'] = 0
                 d['weight'] = 0
         
@@ -1195,7 +1195,7 @@ class identify_outlets(BaseGraphFunction,
         
         # Retain the shortest path outlets in the original graph
         for u,v,d in T.edges(data=True):
-            if (d['edge_type'] == 'outlet') & (v != 'waste'):
+            if (d.get('edge_type','street') == 'outlet') & (v != 'waste'):
                 # Need to check both directions since T is undirected
                 if (u,v) in G_.edges():
                     G.add_edge(u,v,**d)
@@ -1215,7 +1215,7 @@ def _filter_streets(G):
     # Remove non-street edges/nodes and unconnected nodes
     nodes_to_remove = []
     for u, v, d in G.edges(data=True):
-        if d['edge_type'] != 'street':
+        if d.get('edge_type','street') != 'street':
             if d['edge_type'] == 'outlet':
                 nodes_to_remove.append(v)
             else:
@@ -1287,7 +1287,8 @@ class derive_topology(BaseGraphFunction,
             
             G = _filter_streets(G)
         else:
-            outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+            outlets = [u for u,v,d in G.edges(data=True) 
+                       if d.get('edge_type','street') == 'outlet']
 
             for outlet in outlets:
                 _iterate_upstream(G, outlet, visited)
