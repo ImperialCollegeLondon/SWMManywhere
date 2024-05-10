@@ -317,6 +317,10 @@ class calculate_streetcover(BaseGraphFunction,
                 **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
+        Only the `drive` network is assumed to contribute to impervious area and 
+        so others `network_types` have lanes set to 0. If no `network_type` is
+        present, the edge is assumed to be of type `drive`. 
+
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
@@ -484,7 +488,7 @@ class split_long_edges(BaseGraphFunction,
                          )
     
 @register_graphfcn
-class merge_nodes(BaseGraphFunction):
+class merge_street_nodes(BaseGraphFunction):
     """merge_nodes class."""
     def __call__(self, 
                  G: nx.Graph, 
@@ -492,7 +496,7 @@ class merge_nodes(BaseGraphFunction):
                  **kwargs) -> nx.Graph:
         """Merge nodes that are close together.
 
-        This function merges nodes that are within a certain distance of each
+        Merges `street` nodes that are within a certain distance of each
         other. The distance is specified in the `node_merge_distance` attribute
         of the `subcatchment_derivation` parameter. The merged nodes are given
         the same coordinates, and the graph is relabeled with nx.relabel_nodes.
