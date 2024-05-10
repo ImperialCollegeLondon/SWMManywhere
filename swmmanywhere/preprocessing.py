@@ -253,7 +253,6 @@ def prepare_street(bbox: tuple[float, float, float, float],
         nx.set_edge_attributes(network, network_type, 'network_type')
         networks.append(network)
     street_network = nx.compose_all(networks)
-    street_network = prepare_data.download_street(bbox, network_type='drive')
 
     # Reproject graph
     street_network = go.reproject_graph(street_network, 
