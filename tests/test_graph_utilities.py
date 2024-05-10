@@ -327,12 +327,12 @@ def almost_equal(a, b, tol=1e-6):
     """Check if two numbers are almost equal."""
     return abs(a-b) < tol
 
-def test_merge_nodes():
-    """Test the merge_nodes function."""
+def test_merge_street_nodes():
+    """Test the merge_street_nodes function."""
     G, _ = load_street_network()
     subcatchment_derivation = parameters.SubcatchmentDerivation(
         node_merge_distance = 20)
-    G_ = gu.merge_nodes(G, subcatchment_derivation)
+    G_ = gu.merge_street_nodes(G, subcatchment_derivation)
     assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
     assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
 

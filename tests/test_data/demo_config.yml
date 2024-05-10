@@ -20,8 +20,8 @@ graphfcn_list:
   - remove_parallel_edges # Remove parallel edges retaining the shorter one
   - to_undirected # Convert graph to undirected to facilitate cleanup
   - split_long_edges # Set a maximum edge length
-  - merge_nodes # Merge nodes that are too close together
-  - assign_id # Remove duplicates arising from merge_nodes
+  - merge_street_nodes # Merge street nodes that are too close together
+  - assign_id # Remove duplicates arising from merge_street_nodes
   - clip_to_catchments # Clip graph to catchment subbasins
   - calculate_contributing_area # Calculate runoff coefficient
   - set_elevation # Set node elevation from DEM
