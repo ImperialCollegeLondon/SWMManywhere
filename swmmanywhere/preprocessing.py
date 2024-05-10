@@ -244,9 +244,12 @@ def prepare_street(bbox: tuple[float, float, float, float],
     if addresses.street.exists():
         return
     logger.info(f'downloading network to {addresses.street}')
-    if network_types[-1] != 'drive':
+    if 'drive' in network_types and network_types[-1] != 'drive':
         logger.warning("""The last network type should be `drive` to retain 
-                       `lanes` attribute, needed to calculate impervious area.""")
+                        `lanes` attribute, needed to calculate impervious area.
+                        Moving it to the last position.""")
+        network_types.pop("drive")
+        network_types.append("drive")
     networks = []
     for network_type in network_types:
         network = prepare_data.download_street(bbox, network_type=network_type)
