@@ -217,7 +217,7 @@ def pbias(y: np.ndarray,
 
     .. math::
 
-        pbias = \\frac{{\sum(synthetic) - \sum(real)}}{{\sum(real)}}
+        pbias = \\frac{{\mean(synthetic) - \mean(real)}}{{\mean(real)}}
 
     where:
     - :math:`synthetic` is the synthetic data,
@@ -230,10 +230,10 @@ def pbias(y: np.ndarray,
     Returns:
         float: The PBIAS value.
     """
-    total_observed = y.sum()
+    total_observed = y.mean()
     if total_observed == 0:
         return np.inf
-    return (yhat.sum() - total_observed) / total_observed
+    return (yhat.mean() - total_observed) / total_observed
 
 @register_coef
 def nse(y: np.ndarray,
@@ -750,7 +750,12 @@ def outlet(synthetic_results: pd.DataFrame,
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
     sg_real, real_outlet = dominant_outlet(real_G, real_results)
     
-    allowable_var = ['nmanholes', 'npipes', 'length', 'flow', 'flooding']
+    allowable_var = ['nmanholes', 
+                     'diameter', 
+                     'npipes', 
+                     'length', 
+                     'flow', 
+                     'flooding']
     if var not in allowable_var:
         raise ValueError(f"Invalid variable {var}. Can be {allowable_var}")
 
@@ -766,10 +771,20 @@ def outlet(synthetic_results: pd.DataFrame,
         # Calculate the coefficient based on the total length of the pipes
         return coef_func(
             np.array(
-                list(nx.get_edge_attributes(sg_real, 'length').values())
+                sum(nx.get_edge_attributes(sg_real, var).values())
                 ),
             np.array(
-                list(nx.get_edge_attributes(sg_syn, 'length').values())
+                sum(nx.get_edge_attributes(sg_syn, var).values())
+                )
+            )
+    if var == 'diameter':
+        # Calculate the coefficient based on the average diameter of the pipes
+        return coef_func(
+            np.array(
+                list(nx.get_edge_attributes(sg_real, var).values())
+                ),
+            np.array(
+                list(nx.get_edge_attributes(sg_syn, var).values())
                 )
             )
     if var == 'flow':
@@ -836,6 +851,7 @@ metrics.register(metric_factory('outlet_pbias_flow'))
 metrics.register(metric_factory('outlet_pbias_length'))
 metrics.register(metric_factory('outlet_pbias_npipes'))
 metrics.register(metric_factory('outlet_pbias_nmanholes'))
+metrics.register(metric_factory('outlet_pbias_diameter'))
 
 metrics.register(metric_factory('outlet_nse_flooding'))
 metrics.register(metric_factory('outlet_kge_flooding'))
