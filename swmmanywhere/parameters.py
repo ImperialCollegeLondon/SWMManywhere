@@ -85,6 +85,11 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
+    allowable_networks: list = Field(default = ['walk', 'drive'],
+                                     min_items = 1,
+                        unit = "-",
+                        description = "OSM networks to consider")
+    
     weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
@@ -96,7 +101,8 @@ class TopologyDerivation(BaseModel):
     omit_edges: list = Field(default = ['motorway', 
                                         'motorway_link',
                                         'bridge', 
-                                        'tunnel'],
+                                        'tunnel',
+                                        'corridor'],
                         min_items = 1,
                         unit = "-",
                         description = "OSM paths pipes are not allowed under")
@@ -207,8 +213,8 @@ class HydraulicDesign(BaseModel):
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
     grid_scale: float = Field(default = 100,
-                        le = 10,
-                        ge = 5000,
+                        le = 5000,
+                        ge = 10,
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
 

@@ -137,6 +137,7 @@ def process_parameters(jobid: int,
     df = pd.DataFrame(X)
     gb = df.groupby('iter')
     n_iter = len(gb)
+    logger.info(f"{n_iter} samples created")
     flooding_results = {}
     nproc = nproc if nproc is not None else n_iter
 
@@ -167,11 +168,11 @@ def process_parameters(jobid: int,
         # Run the model
         config['model_number'] = ix
         logger.info(f"Running swmmanywhere for model {ix}")
-        address, metrics = swmmanywhere.swmmanywhere(config)
 
+        address, metrics = swmmanywhere.swmmanywhere(config)
         if metrics is None:
             raise ValueError(f"Model run {ix} failed.")
-        
+
         # Save the results
         flooding_results[ix] = {'iter': ix, 
                                 **metrics, 
@@ -206,7 +207,7 @@ def parse_arguments() -> tuple[int, int | None, Path]:
     parser = argparse.ArgumentParser(description='Process command line arguments.')
     parser.add_argument('--jobid', 
                         type=int, 
-                        default=1, 
+                        default=0, 
                         help='Job ID')
     parser.add_argument('--nproc', 
                         type=int, 
@@ -215,7 +216,7 @@ def parse_arguments() -> tuple[int, int | None, Path]:
     parser.add_argument('--config_path', 
                         type=Path, 
                         default=Path(__file__).parent.parent.parent / 'tests' /\
-                                    'test_data' / 'demo_config_sa.yml',
+                                    'test_data' / 'demo_config.yml',
                         help='Configuration file path')
 
     args = parser.parse_args()

@@ -45,13 +45,21 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     for key, val in config.get('address_overrides', {}).items():
         setattr(addresses, key, val)
 
+    # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides', {}).items():
+        for key, val in overrides.items():
+            setattr(params[category], key, val)
+
     # Run downloads
     logger.info("Running downloads.")
     api_keys = yaml.safe_load(config['api_keys'].open('r'))
     preprocessing.run_downloads(config['bbox'],
-                                addresses,
-                                api_keys
-                                )
+                addresses,
+                api_keys,
+                network_types = params['topology_derivation'].allowable_networks
+                )
 
     # Identify the starting graph
     logger.info("Iterating graphs.")
@@ -59,13 +67,6 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
-
-    # Load the parameters and perform any manual overrides
-    logger.info("Loading and setting parameters.")
-    params = parameters.get_full_parameters()
-    for category, overrides in config.get('parameter_overrides', {}).items():
-        for key, val in overrides.items():
-            setattr(params[category], key, val)
 
     # Iterate the graph functions
     logger.info("Iterating graph functions.")

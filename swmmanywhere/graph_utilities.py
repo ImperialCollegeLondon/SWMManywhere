@@ -184,8 +184,12 @@ def iterate_graphfcns(G: nx.Graph,
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
         if verbose:
-            save_graph(graphfcns.fix_geometries(G), 
-                       addresses.model / f"{function}_graph.json")
+            save_graph(G, addresses.model / f"{function}_graph.json")
+            go.graph_to_geojson(graphfcns.fix_geometries(G),
+                                addresses.model / f"{function}_nodes.geojson",
+                                addresses.model / f"{function}_edges.geojson",
+                                G.graph['crs']
+                                )
     return G
 
 @register_graphfcn
@@ -313,6 +317,10 @@ class calculate_streetcover(BaseGraphFunction,
                 **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
+        Only the `drive` network is assumed to contribute to impervious area and 
+        so others `network_types` have lanes set to 0. If no `network_type` is
+        present, the edge is assumed to be of type `drive`. 
+
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
@@ -326,7 +334,10 @@ class calculate_streetcover(BaseGraphFunction,
         G = G.copy()
         lines = []
         for u, v, data in G.edges(data=True):
-            lanes = data.get('lanes',1)
+            if data.get('network_type','drive') == 'drive':
+                lanes = data.get('lanes',1)
+            else:
+                lanes = 0
             if isinstance(lanes, list):
                 lanes = sum([float(x) for x in lanes])
             else:
@@ -478,7 +489,7 @@ class split_long_edges(BaseGraphFunction,
                          )
     
 @register_graphfcn
-class merge_nodes(BaseGraphFunction):
+class merge_street_nodes(BaseGraphFunction):
     """merge_nodes class."""
     def __call__(self, 
                  G: nx.Graph, 
@@ -486,7 +497,7 @@ class merge_nodes(BaseGraphFunction):
                  **kwargs) -> nx.Graph:
         """Merge nodes that are close together.
 
-        This function merges nodes that are within a certain distance of each
+        Merges `street` nodes that are within a certain distance of each
         other. The distance is specified in the `node_merge_distance` attribute
         of the `subcatchment_derivation` parameter. The merged nodes are given
         the same coordinates, and the graph is relabeled with nx.relabel_nodes.
@@ -503,16 +514,22 @@ class merge_nodes(BaseGraphFunction):
         """
         G = G.copy()
 
+        # Separate out streets         
+        street_edges = [(u, v, k) for u, v, k, d in G.edges(data=True, keys=True)
+                        if d.get('edge_type','street') == 'street']
+        streets = G.edge_subgraph(street_edges).copy()
+
         # Identify nodes that are within threshold of each other
-        mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+        mapping = go.merge_points([(d['x'], d['y']) 
+                                   for u,d in streets.nodes(data=True)],
                               subcatchment_derivation.node_merge_distance)
 
         # Get indexes of node names
-        node_indices = {ix: node for ix, node in enumerate(G.nodes)}
+        node_indices = {ix: node for ix, node in enumerate(streets.nodes)}
 
         # Create a mapping of old node names to new node names
         node_names = {}
-        for ix, node in enumerate(G.nodes):
+        for ix, node in enumerate(streets.nodes):
             if ix in mapping:
                 # If the node is in the mapping, then it is mapped and 
                 # given the new coordinate (all nodes in a mapping family must
