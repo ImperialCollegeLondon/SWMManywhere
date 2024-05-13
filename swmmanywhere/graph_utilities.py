@@ -1050,6 +1050,28 @@ class identify_outlets(BaseGraphFunction,
         # Copy graph to run shortest path on
         G_ = G.copy()
 
+        if not matched_outlets:
+            # In cases of e.g., an area with no rivers to discharge into or too
+            # small a buffer
+
+            # Identify the lowest elevation node
+            lowest_elevation_node = min(G.nodes, 
+                                    key = lambda x: G.nodes[x]['surface_elevation'])
+            
+            # Create a dummy river to discharge into
+            dummy_river = {'id' : 'dummy_river',
+                           'x' : G.nodes[lowest_elevation_node]['x'] + 1,
+                           'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+            G_.add_node('dummy_river')
+            nx.set_node_attributes(G_, {'dummy_river' : dummy_river})
+
+            # Update function's dicts
+            matched_outlets = {'dummy_river' : lowest_elevation_node}
+            river_points['dummy_river'] = shapely.Point(dummy_river['x'],
+                                                        dummy_river['y'])
+            
+            logger.warning('No outlets found, using lowest elevation node as outlet')
+
         # Add edges between the paired river and street nodes
         for river_id, street_id in matched_outlets.items():
             # TODO instead use a weight based on the distance between the two nodes
