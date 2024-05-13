@@ -281,7 +281,8 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
                   coef_func: Callable = nse) -> float:
     """Align and calculate coef_func.
 
-    Aggregate synthetic and real results by date for specifics ids. 
+    Aggregate synthetic and real results by date for specifics ids (i.e., sum
+    up over all ids - so we are only comparing timeseries for one aggregation). 
     Align the synthetic and real dates and calculate the coef_func metric
     of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
@@ -371,7 +372,8 @@ def median_coef_by_group(results: pd.DataFrame,
 
     Calculate the median coef_func value of a variable over time
     for each group in the results dataframe, and return the median of these
-    values.
+    values. Assumes that the results dataframe has a 'value_real' and 'value_syn'
+    and that these properly line up.
 
     Args:
         results (pd.DataFrame): The results dataframe.
@@ -383,9 +385,6 @@ def median_coef_by_group(results: pd.DataFrame,
     """
     val = (
         results
-        .groupby(['date',gb_key])
-        .sum()
-        .reset_index()
         .groupby(gb_key)
         .apply(lambda x: coef_func(x.value_real, x.value_syn))
     )
@@ -512,10 +511,12 @@ def align_by_shape(var,
                           real_results: pd.DataFrame,
                           shapes: gpd.GeoDataFrame,
                           synthetic_G: nx.Graph,
-                          real_G: nx.Graph) -> pd.DataFrame:
+                          real_G: nx.Graph,
+                          key: str = 'sub_id') -> pd.DataFrame:
     """Align by subcatchment.
 
-    Align synthetic and real results by shape and return the results.
+    Align synthetic and real results by shape and return the results. If multiple
+    ids exist in the same shape, these are aggregated by sum.
 
     Args:
         var (str): The variable to align.
@@ -524,6 +525,7 @@ def align_by_shape(var,
         shapes (gpd.GeoDataFrame): The shapes to align by (e.g., grid or real_subs).
         synthetic_G (nx.Graph): The synthetic graph.
         real_G (nx.Graph): The real graph.
+        key (str): The column to align by.
     """
     synthetic_joined = nodes_to_subs(synthetic_G, shapes)
     real_joined = nodes_to_subs(real_G, shapes)
@@ -541,20 +543,42 @@ def align_by_shape(var,
 
     # Align data
     synthetic_results = pd.merge(synthetic_results,
-                                 synthetic_joined[['id','sub_id']],
+                                 synthetic_joined[['id',key]],
                                  on='id')
+    synthetic_gb = (
+        synthetic_results
+        .groupby(['date',key])
+        .value
+        .sum()
+        .reset_index()
+    )
     real_results = pd.merge(real_results,
-                            real_joined[['id','sub_id']],
+                            real_joined[['id',key]],
                             on='id')
-    
-    results = pd.merge(real_results[['date','sub_id','value']],
-                            synthetic_results[['date','sub_id','value']],
-                            on = ['date','sub_id'],
+    real_gb = (
+        real_results
+        .groupby(['date',key])
+        .value
+        .sum()
+        .reset_index()
+    )
+    results = pd.merge(real_gb[['date',key,'value']],
+                            synthetic_gb[['date',key,'value']],
+                            on = ['date',key],
                             suffixes = ('_real', '_syn'),
                             how = 'outer'
                             )
     
-    results['value_syn'] = results.value_syn.interpolate().to_numpy()
+    syn_interp = (
+        results
+        .groupby(key)
+        .apply(func = lambda x : x.set_index('date')[['value_syn']].interpolate(),
+               include_groups = False)
+        .reset_index()
+    )
+    results = pd.merge(results.drop('value_syn', axis=1), 
+                       syn_interp, 
+                       on = ['sub_id','date'])
     results = results.dropna(subset=['value_real'])
 
     return results
