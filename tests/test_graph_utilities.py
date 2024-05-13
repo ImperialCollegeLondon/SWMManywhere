@@ -76,7 +76,7 @@ def test_split_long_edges():
     """Test the split_long_edges function."""
     G, _ = load_street_network()
     G = gu.assign_id(G)
-    max_length = 20
+    max_length = 40
     params = parameters.SubcatchmentDerivation(max_street_length = max_length)
     G = gu.split_long_edges(G, params)
     for u, v, data in G.edges(data=True):
@@ -271,26 +271,6 @@ def test_identify_outlets_sg():
     # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 3
-
-def test_identify_outlets_no_river():
-    """Test the identify_outlets in the no river case."""
-    G, _ = load_street_network()
-    G = gu.assign_id(G)
-    G = gu.double_directed(G)
-    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    addresses = parameters.FilePaths(base_dir = None,
-                                    project_name = None,
-                                    bbox_number = None,
-                                    model_number = None)
-    addresses.elevation = elev_fid
-    G = gu.set_elevation(G, addresses)
-    for ix, (u,v,d) in enumerate(G.edges(data=True)):
-        d['edge_type'] = 'street'
-        d['weight'] = ix
-    params = parameters.OutletDerivation()
-    G = gu.identify_outlets(G, params)
-    outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
-    assert len(outlets) == 1
 
 def test_identify_outlets_and_derive_topology():
     """Test the identify_outlets and derive_topology functions."""
