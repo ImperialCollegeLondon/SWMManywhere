@@ -11,28 +11,32 @@ from __future__ import annotations
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.metric_utilities import (
     align_by_shape,
     best_outlet_match,
+    create_grid,
     dominant_outlet,
     extract_var,
     iterate_metrics,
+    pbias,
 )
 from swmmanywhere.parameters import MetricEvaluation
 from swmmanywhere.swmmanywhere import load_config
 
 if __name__ == 'main':
-    project = 'cranbrook'
+    project = 'subselect'
     base = Path.home() / "Documents" / "data" / "swmmanywhere"
-    config_path = base / project / f'{project}_hpc.yml'
+    config_path = base / project / f'{project}.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base / project
     real_dir = config['base_dir'] / 'real'
 
-    model_number = 5523
+    model_number = 24
 
     model_dir = config['base_dir'] / 'bbox_1' / f'model_{model_number}'
 
@@ -45,14 +49,14 @@ if __name__ == 'main':
     syn_subcatchments = gpd.read_file(model_dir / 'subcatchments.geoparquet')
     real_subcatchments = gpd.read_file(real_dir / 'subcatchments.geojson')
 
+    
     syn_metrics = iterate_metrics(syn_results, 
                                   syn_subcatchments,
                                   syn_G,
                                   real_results,
                                   real_subcatchments,
                                   real_G,
-                                  ['grid_nse_flooding',
-                                   'subcatchment_nse_flooding'],
+                                  config['metric_list'],
                                   MetricEvaluation()
                                   )
     
@@ -67,17 +71,63 @@ if __name__ == 'main':
     print(f'n real nodes {len(sg_real.nodes)}')
 
     # Check contributing area
-    #syn_subcatchments['impervious_area'].sum() / syn_subcatchments['area'].sum()
-    #real_subcatchments['impervious_area'].sum() / real_subcatchments['area'].sum()
+    syn_subcatchments['impervious_area'].sum() / syn_subcatchments['area'].sum()
+    real_subcatchments['impervious_area'].sum() /\
+          real_subcatchments['Area'].mul(10000).sum()
+    
     variable = 'flooding'
+    method = 'grid'
+
+    if method == 'grid':
+        if variable != 'flooding':
+            raise ValueError('Only flooding can be compared by grid')
+        scale = 100
+        grid = create_grid(real_subcatchments.total_bounds,
+                       scale)
+        grid.crs = real_subcatchments.crs
+        shps = grid
+    elif method == 'subcatchment':
+        shps = real_subcatchments
 
     #e.g., subs
     results = align_by_shape(variable,
                                 synthetic_results = synthetic_results,
                                 real_results = real_results,
-                                shapes = real_subcatchments,
+                                shapes = shps,
                                 synthetic_G = syn_G,
                                 real_G = real_G)
+    if method == 'grid':
+        gb = (
+            results
+            .groupby(['date','sub_id'])
+            .sum()
+            .reset_index()
+            .pivot(index = 'date',
+                columns = 'sub_id',
+                values = ['value_real','value_syn']
+                )
+        )
+        val = (
+            results
+            .groupby(['date','sub_id'])
+            .sum()
+            .reset_index()
+            .groupby('sub_id')
+            .apply(lambda x: pbias(x.value_real, x.value_syn))
+            .rename('pbias')
+            .reset_index()
+        )
+        val = val[np.isfinite(val)]
+        grid = pd.merge(grid, val, on = 'sub_id')
+
+
+        for sub in gb['value_real'].columns:        
+            f,ax=plt.subplots()
+            gb['value_real'][[sub]].plot(color='r',ax=ax)
+            gb['value_syn'][[sub]].plot(color='b',ax=ax)
+            plt.legend(['real','syn'])
+            f.savefig(model_dir / f'debug{sub}.png')
+            plt.close(f)
 
     # e.g., outlet
     if variable == 'flow':
@@ -98,12 +148,23 @@ if __name__ == 'main':
     real_ids = [str(x) for x in real_ids]
     # Extract data
     syn_data = extract_var(synthetic_results, variable)
+    
+    # All syn flowing to outlet
+    syn_nodes = gpd.read_file(model_dir / 'nodes.geoparquet')
+    nodes_group = syn_nodes.loc[syn_nodes.outlet == syn_outlet]
+    syn_group = syn_data.loc[
+        syn_data.id.isin([f'{u}-{v}' for u,v in syn_G.edges() 
+                          if v in nodes_group.id.values])
+                          ]
+    
+    # Sum all flow to outlet
     syn_data = syn_data.loc[syn_data["id"].isin(syn_ids)]
     syn_data = syn_data.groupby('date').value.sum()
 
     real_data = extract_var(real_results, variable)
     real_data = real_data.loc[real_data["id"].isin(real_ids)]
     real_data = real_data.groupby('date').value.sum()
+    
     
     # Align data
     df = pd.merge(syn_data, 
@@ -116,3 +177,7 @@ if __name__ == 'main':
     # Interpolate to time in real data
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
+
+    f,ax = plt.subplots()
+    df.plot(ax=ax)
+    f.savefig(model_dir / 'debug.png')
