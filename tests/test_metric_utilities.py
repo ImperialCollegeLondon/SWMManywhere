@@ -343,6 +343,7 @@ def test_design_params():
     
     # Target results
     design_results = {'outlet_kstest_diameters' : 0.0625,
+                'outlet_pbias_diameter': 0.0625,
                'outlet_pbias_length' : -0.15088965,
                'outlet_pbias_nmanholes' : -0.05,
                'outlet_pbias_npipes' : -0.15789473}
