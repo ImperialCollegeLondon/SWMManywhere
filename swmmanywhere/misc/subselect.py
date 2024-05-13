@@ -15,11 +15,32 @@ from swmmanywhere.post_processing import synthetic_write
 def main():
     """Subselect a SWMM model based on a query arc."""
     # Define addresses
-    base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere\cranbrook')
-    graph = load_graph(base_dir / 'real' / 'graph.json')
-    subcatchments = gpd.read_file(base_dir / 'real' / 'subcatchments.geojson')
+    base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
+    graph = nx.MultiDiGraph(
+        load_graph(base_dir / 'cranbrook' / 'real' / 'graph.json'))
+    subcatchments = gpd.read_file(
+        base_dir / 'cranbrook' / 'real' / 'subcatchments.geojson')
 
-    new_dir = base_dir / 'subselect'
+    # Tidy graph
+    edges_to_remove = []
+    for u,v,d in graph.edges(data=True):
+        if d['diameter'] <= 0:
+            edges_to_remove.append((u,v))
+        if d['length'] == 0:
+            d['length'] = 1
+        d['edge_type'] = 'street'
+    for u,v in edges_to_remove:
+        graph.remove_edge(u,v)
+    nx.set_edge_attributes(graph, 0, 'contributing_area')
+    nx.set_node_attributes(graph, 0, 'contributing_area')
+    for idx, row in subcatchments.iterrows():
+        for u,v,d in graph.edges(row['Outlet'],data=True):
+            d['contributing_area'] = row['impervious_area']
+        nx.set_node_attributes(graph, 
+                               {row['Outlet']:row['impervious_area']}, 
+                               'contributing_area')
+
+    new_dir = base_dir / 'subselect_whole' / 'real'
     addresses = parameters.FilePaths(base_dir = new_dir,
                         project_name = None,
                         bbox_number = None,
@@ -50,10 +71,11 @@ def main():
                                                     'PercImperv':'rc',
                                                     'Width':'width',
                                                     'PercSlope':'slope'})
+    subcatchments = subcatchments.drop_duplicates('id')
     subcatchments['area'] = subcatchments.geometry.area
 
     # Define where to cut the model
-    query_arc = 'node_2039.1'
+    query_arc = 'node_1439.1'
 
     # Get the nodes
     (us_node, ds_node) = [(u,v) for u,v,d in graph.edges(data=True) 
@@ -80,5 +102,6 @@ def main():
                     new_graph.graph['crs'])
     synthetic_write(addresses)
     save_graph(new_graph, new_dir / 'graph.json')
+
     # Provide info
     print(f'new bbox: {subcatchments.to_crs(4326).total_bounds}')
