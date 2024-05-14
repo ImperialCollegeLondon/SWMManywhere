@@ -98,7 +98,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
-    if config['real'].get('results',None):
+    if config.get('real',{}).get('results',None):
         logger.info("Loading real results.")
         # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])
