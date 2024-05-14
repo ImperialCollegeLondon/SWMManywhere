@@ -102,7 +102,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         logger.info("Loading real results.")
         # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])
-    elif config['real']['inp']:
+    elif config.get('real',{}).get('inp',None):
         logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
