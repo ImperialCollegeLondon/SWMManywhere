@@ -36,7 +36,7 @@ jobs:
       run: pytest
 
   test-pr-merge:
-    if: github.event.pull_request.merged == true
+    if: ${{ github.event.pull_request.merged }}
     needs: qa
     runs-on: ${{ matrix.os }}
     strategy:
