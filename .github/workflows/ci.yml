@@ -28,20 +28,20 @@ jobs:
       run: pytest
     
   test-pr-merge:
+    needs: qa
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: [ "3.10" ]
     if: github.event.pull_request.merged == true
-      needs: qa
-      runs-on: ${{ matrix.os }}
-      strategy:
-        fail-fast: false
-        matrix:
-          os: [windows-latest, macos-latest, ubuntu-latest]
-          python-version: [ "3.10" ]
-      steps:
-        - uses: actions/checkout@v4
-        - uses: actions/setup-python@v5
-          with:
-            python-version: ${{ matrix.python-version }}
-        - name: Install dependencies
-          run: pip install -r dev-requirements.txt
-        - name: Run tests
-          run: pytest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r dev-requirements.txt
+      - name: Run tests
+        run: pytest
