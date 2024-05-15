@@ -1,14 +1,6 @@
 name: Test
 
-on:
-  push:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - closed
-  workflow_call:
+on: [push,pull_request,workflow_call]
 
 jobs:
   qa:
@@ -34,22 +26,3 @@ jobs:
       run: pip install -r dev-requirements.txt
     - name: Run tests
       run: pytest
-
-  test-pr-merge:
-    if: ${{ github.event.pull_request.merged }}
-    needs: qa
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        python-version: [ "3.10" ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install -r dev-requirements.txt
-      - name: Run tests
-        run: pytest
