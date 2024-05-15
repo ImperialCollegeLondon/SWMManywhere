@@ -1,6 +1,14 @@
 name: Test
 
-on: [push, pull_request, workflow_call]
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+  workflow_call:
 
 jobs:
   qa:
@@ -27,18 +35,6 @@ jobs:
     - name: Run tests
       run: pytest
 
-on:
-  pull_request:
-    types:
-      - closed
-  
-jobs:
-  qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pre-commit/action@v3.0.1
-      
   test-pr-merge:
     if: github.event.pull_request.merged == true
     needs: qa
