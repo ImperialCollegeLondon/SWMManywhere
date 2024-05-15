@@ -17,13 +17,14 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [ "3.10" ]
-        include:
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' &&  github.event.pull_request.merged == true:
+          include:
           - os: windows-latest
-            python-version: "3.10"
-            if: github.event_name == 'pull_request' && github.event.action == 'closed' &&  github.event.pull_request.merged == true
+            python-version: "3.10"  
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' &&  github.event.pull_request.merged == true:
+          include:
           - os: macos-latest
-            python-version: "3.10"
-            if: github.event_name == 'pull_request' && github.event.action == 'closed' &&  github.event.pull_request.merged == true
+            python-version: "3.10"  
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
