@@ -28,6 +28,7 @@ jobs:
       run: pytest
     
   test-pr-merge:
+    if: github.event.pull_request.merged == true
     needs: qa
     runs-on: ${{ matrix.os }}
     strategy:
@@ -35,7 +36,6 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         python-version: [ "3.10" ]
-    if: github.event.pull_request.merged == true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
