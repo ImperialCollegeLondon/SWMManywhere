@@ -6,9 +6,125 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 from SALib.plotting.bar import plot as barplot
+
+from swmmanywhere import metric_utilities
+from swmmanywhere.graph_utilities import load_graph
+from swmmanywhere.parameters import MetricEvaluation
+from swmmanywhere.preprocessing import create_project_structure
+from swmmanywhere.swmmanywhere import load_config
+
+
+class ResultsPlotter():
+    """Plotter object."""
+    def __init__(self, 
+                 config_path: Path,
+                 model_number: int | None = None,
+                 bbox_number: int | None = None
+                 ):
+        """Initialise results plotter."""
+        self.config = load_config(config_path)
+        if model_number is not None:
+            self.config['model_number'] = model_number
+        if bbox_number is not None:
+            self.config['bbox_number'] = bbox_number
+        self.addresses = create_project_structure(self.config['bbox'],
+                                self.config['project'],
+                                self.config['base_dir'],
+                                self.config['model_number']
+                                )
+        self._synthetic_results = pd.read_parquet(
+            self.addresses.model / 'results.parquet')
+        self._real_results = pd.read_parquet(self.config['real']['results'])
+        
+        self._synthetic_G = load_graph(self.addresses.graph)
+        self._real_G = load_graph(self.config['real']['graph'])
+
+        self._synthetic_subcatchments = gpd.read_file(self.addresses.subcatchments)
+        self._real_subcatchments = gpd.read_file(self.config['real']['subcatchments'])
+
+    def outlet_plot(self, 
+                    var: str = 'flow',
+                    fid: Path | None = None,):
+        """Plot flow at outlet."""
+        if not fid:
+            fid = self.addresses.model / f'outlet-{var}.png'
+        sg_syn, syn_outlet = metric_utilities.best_outlet_match(self.synthetic_G, 
+                                                                self.real_subcatchments)
+        sg_real, real_outlet = metric_utilities.dominant_outlet(self.real_G, 
+                                                                self.real_results)
+        if var == 'flow':
+            # Identify synthetic and real arcs that flow into the best outlet node
+            syn_arc = [d['id'] for u,v,d in self.synthetic_G.edges(data=True)
+                        if v == syn_outlet]
+            real_arc = [d['id'] for u,v,d in self.real_G.edges(data=True)
+                    if v == real_outlet]
+        elif var == 'flooding':
+            # Use all nodes in the subgraphs
+            syn_arc = list(sg_syn.nodes)
+            real_arc = list(sg_real.nodes)
+        df = metric_utilities.align_by_id(self.synthetic_results,
+                                           self.real_results,
+                                           var,
+                                           syn_arc,
+                                           real_arc
+                                           )
+        f, ax = plt.subplots()
+        df.plot(ax=ax)
+        f.savefig(fid)
+
+    def recalculate_metrics(self, metric_list: list[str] | None = None):
+        """recalculate_metrics."""
+        if not metric_list:
+            metric_list_ = self.config['metric_list']
+        else:
+            metric_list_ = metric_list
+        if 'metric_evaluation' in self.config['parameter_overrides']:
+            metric_evaluation = MetricEvaluation(
+                **self.config['parameter_overrides']['metric_evaluation'])
+
+        return metric_utilities.iterate_metrics(self.synthetic_results, 
+                                  self.synthetic_subcatchments,
+                                  self.synthetic_G,
+                                  self.real_results,
+                                  self.real_subcatchments,
+                                  self.real_G,
+                                  metric_list_,
+                                  metric_evaluation
+                                  )
+
+    @property
+    def synthetic_results(self):
+        """synthetic_results."""
+        return self._synthetic_results.copy()
+    
+    @property
+    def real_results(self):
+        """real_results."""
+        return self._real_results.copy()
+    
+    @property
+    def synthetic_G(self):
+        """synthetic_G."""
+        return self._synthetic_G.copy()
+    
+    @property
+    def real_G(self):
+        """real_G."""
+        return self._real_G.copy()
+    
+    @property
+    def synthetic_subcatchments(self):
+        """synthetic_subcatchments."""
+        return self._synthetic_subcatchments.copy()
+    
+    @property
+    def real_subcatchments(self):
+        """real_subcatchments."""
+        return self._real_subcatchments.copy()
 
 
 def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:

@@ -273,18 +273,16 @@ def kge(y: np.ndarray,yhat: np.ndarray) -> float:
     kge = 1 - np.sqrt((r - 1)**2 + (alpha - 1)**2 + (beta - 1)**2)
     return kge
 
-def align_calc_coef(synthetic_results: pd.DataFrame, 
+def align_by_id(synthetic_results: pd.DataFrame, 
                   real_results: pd.DataFrame, 
                   variable: str, 
                   syn_ids: list,
-                  real_ids: list,
-                  coef_func: Callable = nse) -> float:
-    """Align and calculate coef_func.
+                  real_ids: list):
+    """Align and interpolate data by id.
 
     Aggregate synthetic and real results by date for specifics ids (i.e., sum
     up over all ids - so we are only comparing timeseries for one aggregation). 
-    Align the synthetic and real dates and calculate the coef_func metric
-    of the variable over time. In cases where the synthetic
+    Align the synthetic and real dates. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
 
     Args:
@@ -333,8 +331,7 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
-    # Calculate coef_func
-    return coef_func(df.value_real, df.value_syn)
+    return df
 
 def create_subgraph(G: nx.Graph,
                     nodes: list) -> nx.Graph:
@@ -823,12 +820,14 @@ def outlet(synthetic_results: pd.DataFrame,
         real_arc = list(sg_real.nodes)
 
     # Calculate the coefficient
-    return align_calc_coef(synthetic_results, 
-                         real_results, 
-                         var,
-                         syn_arc, 
-                         real_arc,
-                         coef_func = coef_func)
+    df = align_by_id(synthetic_results, 
+                  real_results, 
+                  var, 
+                  syn_arc,
+                  real_arc)
+
+    # Calculate coef_func
+    return coef_func(df.value_real, df.value_syn)
 
 def metric_factory(name: str):
     """Create a metric function.
