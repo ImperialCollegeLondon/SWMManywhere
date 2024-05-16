@@ -1339,7 +1339,7 @@ def design_pipe(ds_elevation: float,
     designs = product(hydraulic_design.diameters,
                           np.linspace(hydraulic_design.min_depth, 
                                       hydraulic_design.max_depth, 
-                                      10) # TODO should 10 be a param?
+                                      hydraulic_design.depth_resolution)
                           )
     pipes = []
     for diam, depth in designs:
@@ -1398,12 +1398,7 @@ def design_pipe(ds_elevation: float,
     
     pipes_df = pd.DataFrame(pipes).dropna()
     if pipes_df.shape[0] > 0:
-        ideal_pipe = pipes_df.sort_values(by=['surcharge_feasibility',
-                                                    'v_feasibility',
-                                                    'fr_feasibility',
-                                                    # 'shear_feasibility',
-                                                    'depth',
-                                                    'cost'], 
+        ideal_pipe = pipes_df.sort_values(by=hydraulic_design.design_priority, 
                                                 ascending = True).iloc[0]
         return ideal_pipe.diam, ideal_pipe.depth
     else:

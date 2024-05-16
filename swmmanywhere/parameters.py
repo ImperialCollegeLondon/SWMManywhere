@@ -184,6 +184,17 @@ class HydraulicDesign(BaseModel):
                             unit = "m",
                             description = """Diameters to consider in 
                             pipe by pipe method""")
+    
+    design_priority: list = Field(default = ['surcharge_feasibility',
+        'v_feasibility',
+        'fr_feasibility',
+        # 'shear_feasibility',
+        'depth',
+        'cost'],
+        min_items = 1,
+        unit = '-',
+        description = 'Order of priorities (highest to lowest) in design')
+    
     max_fr: float = Field(default = 0.8,
 		le = 1,
 		ge = 0,
@@ -204,16 +215,23 @@ class HydraulicDesign(BaseModel):
 		ge = 3,
 		unit = "m/s",
 		description = "Maximum velocity in pipe by pipe method")
+    
     min_depth: float = Field(default = 0.5,
 		le = 1,
 		ge = 0,
 		unit = "m",
 		description = "Minimum excavation depth in pipe by pipe method")
+    
     max_depth: float = Field(default = 5,
 		le = 10,
 		ge = 2,
 		unit = "m",
 		description = "Maximum excavation depth in pipe by pipe method")
+    
+    depth_resolution: int = Field(default = 10,
+		unit = "-",
+		description = "Number of allowable depths between min_depth and max_depth")
+
     precipitation: float = Field(default = 0.006,
 		le = 0.010,
 		ge = 0.001,
