@@ -181,7 +181,7 @@ class ResultsPlotter():
             metric_list_ = self.config['metric_list']
         else:
             metric_list_ = metric_list
-        if 'metric_evaluation' in self.config['parameter_overrides']:
+        if 'metric_evaluation' in self.config.get('parameter_overrides', {}):
             metric_evaluation = MetricEvaluation(
                 **self.config['parameter_overrides']['metric_evaluation'])
         else:
