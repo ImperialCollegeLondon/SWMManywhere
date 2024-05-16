@@ -572,7 +572,8 @@ def align_by_shape(var,
     syn_interp = (
         results
         .groupby(key)
-        .apply(func = lambda x : x.set_index('date')[['value_syn']].interpolate())
+        .apply(func = 
+               lambda x : x.set_index('date')[['value_syn']].interpolate('nearest'))
         .reset_index()
     )
     results = pd.merge(results.drop('value_syn', axis=1), 
