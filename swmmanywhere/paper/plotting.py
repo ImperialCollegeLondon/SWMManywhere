@@ -22,8 +22,8 @@ class ResultsPlotter():
     """Plotter object."""
     def __init__(self, 
                  config_path: Path,
-                 model_number: int | None = None,
-                 bbox_number: int | None = None
+                 bbox_number: int | None = None,
+                 model_number: int | None = None
                  ):
         """Initialise results plotter."""
         self.config = load_config(config_path)
@@ -36,12 +36,22 @@ class ResultsPlotter():
                                 self.config['base_dir'],
                                 self.config['model_number']
                                 )
+        for key, val in self.config.get('address_overrides', {}).items():
+            setattr(self.addresses, key, val)
         self._synthetic_results = pd.read_parquet(
             self.addresses.model / 'results.parquet')
-        self._real_results = pd.read_parquet(self.config['real']['results'])
+        
+        if not self.config['real'].get('results',None):
+            results_fid = self.config['real']['inp'].parent /\
+                f'real_results.{self.addresses.extension}'
+        else:
+            results_fid = self.config['real']['results']
+        self._real_results = pd.read_parquet(results_fid)
         
         self._synthetic_G = load_graph(self.addresses.graph)
+        calculate_slope(self._synthetic_G)
         self._real_G = load_graph(self.config['real']['graph'])
+        calculate_slope(self._real_G)
 
         self._synthetic_subcatchments = gpd.read_file(self.addresses.subcatchments)
         self._real_subcatchments = gpd.read_file(self.config['real']['subcatchments'])
@@ -76,6 +86,52 @@ class ResultsPlotter():
         df.plot(ax=ax)
         f.savefig(fid)
 
+    def shape_bias_plot(self, 
+                        shape: str = 'grid',
+                        fid: Path | None = None):
+        """shape_bias_plot."""
+        if not fid:
+            fid = self.addresses.model / f'{shape}-pbias.geojson'
+        variable = 'flooding'
+        if shape == 'grid':
+            scale = self.config.get('metric_evaluation', {}).get('grid_scale',1000)
+            shapes = metric_utilities.create_grid(self.real_subcatchments.total_bounds,
+                                                scale)
+            shapes.crs = self.real_subcatchments.crs
+        elif shape == 'subcatchment':
+            shapes = self.real_subcatchments
+            shapes = shapes.rename(columns={'id':'sub_id'})
+        else:
+            raise ValueError("shape must be 'grid' or 'subcatchment'")
+        
+        results = metric_utilities.align_by_shape(variable,
+                                synthetic_results = self.synthetic_results,
+                                real_results = self.real_results,
+                                shapes = shapes,
+                                synthetic_G = self.synthetic_G,
+                                real_G = self.real_G)
+        val = (
+            results
+            .groupby('sub_id')
+            .apply(lambda x: metric_utilities.pbias(x.value_real, x.value_syn))
+            .rename('pbias')
+            .reset_index()
+        )
+        total = (
+            results
+            .groupby('sub_id')
+            [['value_real','value_syn']]
+            .sum()
+        )
+        
+        shapes = pd.merge(shapes[['geometry','sub_id']],
+                          val,
+                          on ='sub_id')
+        shapes = pd.merge(shapes, 
+                          total,
+                          on = 'sub_id')
+        shapes.to_file(fid,driver='GeoJSON')
+
     def recalculate_metrics(self, metric_list: list[str] | None = None):
         """recalculate_metrics."""
         if not metric_list:
@@ -85,6 +141,8 @@ class ResultsPlotter():
         if 'metric_evaluation' in self.config['parameter_overrides']:
             metric_evaluation = MetricEvaluation(
                 **self.config['parameter_overrides']['metric_evaluation'])
+        else:
+            metric_evaluation = MetricEvaluation()
 
         return metric_utilities.iterate_metrics(self.synthetic_results, 
                                   self.synthetic_subcatchments,
@@ -95,6 +153,30 @@ class ResultsPlotter():
                                   metric_list_,
                                   metric_evaluation
                                   )
+    
+    def design_distribution(self, 
+                            fid: Path | None = None,
+                            value: str = 'diameter',
+                            weight: str='length'):
+        """design_distribution."""
+        if not fid:
+            fid = self.addresses.model / f'{value}_{weight}_distribution.png'
+        syn_v, syn_cdf = weighted_cdf(self.synthetic_G,value,weight)
+        real_v, real_cdf = weighted_cdf(self.real_G,value,weight)
+        f, ax = plt.subplots()
+        ax.plot(real_v,
+                 real_cdf, 
+                 'b')
+        ax.plot(syn_v,
+                 syn_cdf, 
+                 '--k')
+        ax.set_xlabel(f'{value.title()} (m)')
+        ax.set_ylabel('P(X <= x)')
+        plt.legend(['real','synthetic'])
+
+        f.savefig(fid)  
+        
+        
 
     @property
     def synthetic_results(self):
@@ -125,7 +207,37 @@ class ResultsPlotter():
     def real_subcatchments(self):
         """real_subcatchments."""
         return self._real_subcatchments.copy()
+    
+def calculate_slope(G):
+    """calculate_slope."""
+    for u,v,d in G.edges(data=True):
+        d['slope'] = (G.nodes[v]['chamber_floor_elevation'] - \
+                      G.nodes[u]['chamber_floor_elevation'])/d['length']
 
+def weighted_cdf(G, value: str = 'diameter', weight: str = 'length'):
+    """weighted_cdf."""
+    # Create a DataFrame from the provided lists
+    if value in ['diameter','slope']:
+        data = pd.DataFrame([
+            {value: d[value], 'weight': d.get(weight,1)}
+            for u,v,d in G.edges(data=True)
+        ])
+    elif value == 'chamber_floor_elevation':
+        data = pd.DataFrame([
+                    {value: d[value], 'weight': d.get(weight,1)}
+                    for u,d in G.nodes(data=True)
+        ])        
+
+    # Sort by diameter
+    data_sorted = data.sort_values(by=value)
+
+    # Calculate cumulative weights
+    cumulative_weights = data_sorted['weight'].cumsum()
+
+    # Normalize the cumulative weights to form the CDF
+    cumulative_weights /= cumulative_weights.iloc[-1]
+
+    return data_sorted[value].tolist(), cumulative_weights.tolist()
 
 def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """Create behavioral indices for a dataframe.
@@ -138,9 +250,9 @@ def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
             behavioural indices for 'strict' objectives (KGE/NSE), the second 
             is the behavioural indices for less strict objectives (PBIAS).
     """
-    behavioural_ind_nse = ((df.loc[:, df.columns.str.contains('nse')] > 0) & \
+    behavioural_ind_nse = ((df.loc[:, df.columns.str.contains('nse')] > 0.7) & \
                            (df.loc[:, df.columns.str.contains('nse')] < 1)).any(axis=1)
-    behavioural_ind_kge = ((df.loc[:, df.columns.str.contains('kge')] > -0.41) &\
+    behavioural_ind_kge = ((df.loc[:, df.columns.str.contains('kge')] > 0.7) &\
                             (df.loc[:, df.columns.str.contains('kge')] < 1)).any(axis=1)
     behavioural_ind_bias = (df.loc[:, 
                                    df.columns.str.contains('bias')].abs() < 0.1
@@ -216,8 +328,8 @@ def add_threshold_lines(ax, objective, xmin, xmax):
     """
     thresholds = {
         'bias': [-0.1, 0.1],
-        'nse': [0],
-        'kge': [-0.41]
+        'nse': [0.7],
+        'kge': [0.7]
     }
     for key, values in thresholds.items():
         if key in objective:
