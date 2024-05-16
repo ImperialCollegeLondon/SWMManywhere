@@ -248,7 +248,7 @@ def prepare_street(bbox: tuple[float, float, float, float],
         logger.warning("""The last network type should be `drive` to retain 
                         `lanes` attribute, needed to calculate impervious area.
                         Moving it to the last position.""")
-        network_types.pop("drive")
+        network_types.remove("drive")
         network_types.append("drive")
     networks = []
     for network_type in network_types:
