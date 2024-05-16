@@ -12,6 +12,7 @@ import pandas as pd
 from SALib.plotting.bar import plot as barplot
 
 from swmmanywhere import metric_utilities
+from swmmanywhere.geospatial_utilities import graph_to_geojson
 from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.parameters import MetricEvaluation
 from swmmanywhere.preprocessing import create_project_structure
@@ -36,6 +37,8 @@ class ResultsPlotter():
                                 self.config['base_dir'],
                                 self.config['model_number']
                                 )
+        self.plotdir = self.addresses.model / 'plots'
+        self.plotdir.mkdir(exist_ok = True)
         for key, val in self.config.get('address_overrides', {}).items():
             setattr(self.addresses, key, val)
         self._synthetic_results = pd.read_parquet(
@@ -56,12 +59,52 @@ class ResultsPlotter():
         self._synthetic_subcatchments = gpd.read_file(self.addresses.subcatchments)
         self._real_subcatchments = gpd.read_file(self.config['real']['subcatchments'])
 
+    def make_all_plots(self):
+        """make_all_plots."""
+        self.outlet_plot('flow')
+        self.outlet_plot('flooding')
+        self.shape_bias_plot('grid')
+        self.shape_bias_plot('subcatchment')
+        self.design_distribution(value='diameter')
+        self.design_distribution(value='chamber_floor_elevation')
+        self.design_distribution(value='slope')
+        self.annotate_flows_and_depths()
+
+    def annotate_flows_and_depths(self):
+        """annotate_flows_and_depths."""
+        synthetic_max = self.synthetic_results.groupby(['id','variable']).max()
+        real_max = self.real_results.groupby(['id','variable']).max()
+
+        syn_G = self.synthetic_G
+        for u,v,d in syn_G.edges(data=True):
+            d['flow'] = synthetic_max.loc[(d['id'],'flow'),'value']
+        
+        real_G = self.real_G
+        for u,v,d in real_G.edges(data=True):
+            d['flow'] = real_max.loc[(d['id'],'flow'),'value']
+
+        for u,d in syn_G.nodes(data=True):
+            d['flood'] = synthetic_max.loc[(u,'flooding'),'value']
+        
+        for u,d in real_G.nodes(data=True):
+            d['flood'] = real_max.loc[(u,'flooding'),'value']
+
+        graph_to_geojson(syn_G, 
+                         self.plotdir / 'synthetic_graph_nodes.geojson',
+                         self.plotdir / 'synthetic_graph_edges.geojson',
+                         syn_G.graph['crs'])
+        graph_to_geojson(real_G, 
+                         self.plotdir / 'real_graph_nodes.geojson',
+                         self.plotdir / 'real_graph_edges.geojson',
+                         real_G.graph['crs'])
+        
+
     def outlet_plot(self, 
                     var: str = 'flow',
                     fid: Path | None = None,):
         """Plot flow at outlet."""
         if not fid:
-            fid = self.addresses.model / f'outlet-{var}.png'
+            fid = self.plotdir / f'outlet-{var}.png'
         sg_syn, syn_outlet = metric_utilities.best_outlet_match(self.synthetic_G, 
                                                                 self.real_subcatchments)
         sg_real, real_outlet = metric_utilities.dominant_outlet(self.real_G, 
@@ -91,7 +134,7 @@ class ResultsPlotter():
                         fid: Path | None = None):
         """shape_bias_plot."""
         if not fid:
-            fid = self.addresses.model / f'{shape}-pbias.geojson'
+            fid = self.plotdir / f'{shape}-pbias.geojson'
         variable = 'flooding'
         if shape == 'grid':
             scale = self.config.get('metric_evaluation', {}).get('grid_scale',1000)
@@ -160,7 +203,7 @@ class ResultsPlotter():
                             weight: str='length'):
         """design_distribution."""
         if not fid:
-            fid = self.addresses.model / f'{value}_{weight}_distribution.png'
+            fid = self.plotdir / f'{value}_{weight}_distribution.png'
         syn_v, syn_cdf = weighted_cdf(self.synthetic_G,value,weight)
         real_v, real_cdf = weighted_cdf(self.real_G,value,weight)
         f, ax = plt.subplots()
