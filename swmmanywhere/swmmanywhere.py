@@ -54,8 +54,8 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
             logger.info(f"Setting {category} {key} to {val}")
             setattr(params[category], key, val)
 
-    # Write config
-    save_config(config, addresses.model / 'config.yml')
+    # Write config TODO: fix
+    # save_config(config, addresses.model / 'config.yml')
 
     # Run downloads
     logger.info("Running downloads.")
