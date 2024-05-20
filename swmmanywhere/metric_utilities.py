@@ -486,6 +486,7 @@ def edge_betweenness_centrality(G: nx.Graph,
                                 njobs: int = -1):
     """Parallel betweenness centrality function."""
     njobs = joblib.cpu_count(True) if njobs == -1 else njobs
+    njobs = 1
     node_chunks = tlz.partition_all(G.order() // njobs, G.nodes())
     bt_func = tlz.partial(nx.edge_betweenness_centrality_subset, 
                           G=G, 
@@ -569,7 +570,8 @@ def align_by_shape(var,
     syn_interp = (
         results
         .groupby(key)
-        .apply(func = lambda x : x.set_index('date')[['value_syn']].interpolate('nearest'))
+        .apply(func = lambda x : x.set_index('date')[['value_syn']]
+               .interpolate('nearest'))
         .reset_index()
     )
     results = pd.merge(results.drop('value_syn', axis=1), 
