@@ -327,9 +327,8 @@ def plot_objectives(df: pd.DataFrame,
                                 objective, 
                                 df[parameter].min(), 
                                 df[parameter].max())
-        fig.tight_layout()
         fig.suptitle(parameter)
-
+        fig.tight_layout()
         fig.savefig(plot_fid / f"{parameter.replace('_', '-')}.png", dpi=500)
         plt.close(fig)
     return fig
@@ -355,11 +354,13 @@ def setup_axes(ax: plt.Axes,
                df.loc[behavioral_indices[1], objective], s=2, c='c')
     ax.scatter(df.loc[behavioral_indices[0], parameter], 
                df.loc[behavioral_indices[0], objective], s=2, c='r')
-    ax.set_yscale('symlog')
-    ax.set_title(objective)
+    #ax.set_yscale('symlog')
+    ax.set_title(objective.replace('_','\n'))
     ax.grid(True)
     if 'nse' in objective:
-        ax.set_ylim([-10, 1])
+        ax.set_ylim([0, 1])
+    if 'kge' in objective:
+        ax.set_ylim([-0.41,1])
 
 def add_threshold_lines(ax, objective, xmin, xmax):
     """Add threshold lines to the axes.
