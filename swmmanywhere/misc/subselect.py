@@ -14,23 +14,22 @@ from swmmanywhere.post_processing import synthetic_write
 
 def main():
     """Subselect a SWMM model based on a query arc."""
+    project = 'bellinge'
     # Define addresses
     base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
     graph = nx.MultiDiGraph(
-        load_graph(base_dir / 'cranbrook' / 'real' / 'graph.json'))
+        load_graph(base_dir / project / 'real' / 'graph.json'))
     subcatchments = gpd.read_file(
-        base_dir / 'cranbrook' / 'real' / 'subcatchments.geojson')
+        base_dir / project / 'real' / 'subcatchments.geojson')
 
     # Tidy graph
-    edges_to_remove = []
     for u,v,d in graph.edges(data=True):
         if d['diameter'] <= 0:
-            edges_to_remove.append((u,v))
+            d['diameter'] = 3
         if d['length'] == 0:
             d['length'] = 1
         d['edge_type'] = 'street'
-    for u,v in edges_to_remove:
-        graph.remove_edge(u,v)
+
     nx.set_edge_attributes(graph, 0, 'contributing_area')
     nx.set_node_attributes(graph, 0, 'contributing_area')
     for idx, row in subcatchments.iterrows():
@@ -40,30 +39,45 @@ def main():
                                {row['Outlet']:row['impervious_area']}, 
                                'contributing_area')
 
-    new_dir = base_dir / 'subselect_whole' / 'real'
+    new_dir = base_dir / f'{project}_formatted' / 'real'
     addresses = parameters.FilePaths(base_dir = new_dir,
                         project_name = None,
                         bbox_number = None,
                         model_number = None,
                         extension = 'json')
-
+    
     addresses.edges = new_dir / 'edges.geojson'
     addresses.nodes = new_dir / 'nodes.geojson'
     addresses.subcatchments = new_dir / 'subcatchments.geojson'
     addresses.inp = new_dir / 'model.inp'
     addresses.precipitation = Path(
         r'C:\Users\bdobson\Documents\GitHub\SWMManywhere\swmmanywhere\defs\storm.dat')
-    # For some reason the graph nodes don't have all the necessary info
-    nodes = gpd.read_file(
-        r'C:\Users\bdobson\Documents\data\infoworks_models\cranbrook\Nodes.shp')
-    nodes = nodes.rename(columns = {'chamber_fl':'chamber_floor_elevation' , 
-                                    'ground_lev':'surface_elevation'})
-    nx.set_node_attributes(graph, 
-                           nodes.set_index('node_id').chamber_floor_elevation.to_dict(), 
-                           'chamber_floor_elevation')
-    nx.set_node_attributes(graph, 
-                           nodes.set_index('node_id').surface_elevation.to_dict(), 
-                           'surface_elevation')
+    iw_models = Path(r'C:\Users\bdobson\Documents\data\infoworks_models')
+    if project == 'cranbrook':
+        # For some reason the graph nodes don't have all the necessary info
+        nodes = gpd.read_file(iw_models / "cranbrook" / "Nodes.shp")
+        nodes = nodes.rename(columns = {'chamber_fl':'chamber_floor_elevation' , 
+                                        'ground_lev':'surface_elevation'})
+        nx.set_node_attributes(graph, 
+                            nodes.set_index('node_id').chamber_floor_elevation.to_dict(), 
+                            'chamber_floor_elevation')
+        nx.set_node_attributes(graph, 
+                            nodes.set_index('node_id').surface_elevation.to_dict(), 
+                            'surface_elevation')
+    elif project == 'bellinge':
+        nodes = gpd.read_file(
+            iw_models / "bellinge" / "swmmio_conversion" / "nodes.geojson"
+            )
+        nodes = nodes.rename(columns = {'InvertElev' : 'chamber_floor_elevation',
+                                        'Name' : 'node_id'})
+        nodes['surface_elevation'] = nodes['chamber_floor_elevation'] +\
+              nodes['MaxDepth']
+        nx.set_node_attributes(graph, 
+                            nodes.set_index('node_id').chamber_floor_elevation.to_dict(), 
+                            'chamber_floor_elevation')
+        nx.set_node_attributes(graph, 
+                            nodes.set_index('node_id').surface_elevation.to_dict(), 
+                            'surface_elevation')
     
     # And subcatchments aren't formatted
     subcatchments = subcatchments.rename(columns = {'id':'misc_id',
@@ -75,7 +89,10 @@ def main():
     subcatchments['area'] = subcatchments.geometry.area
 
     # Define where to cut the model
-    query_arc = 'node_1439.1'
+    if project == 'cranbrook':
+        query_arc = 'node_1439.1'
+    elif project == 'bellinge':
+        query_arc = 'F74F370_F74F360_l1'
 
     # Get the nodes
     (us_node, ds_node) = [(u,v) for u,v,d in graph.edges(data=True) 
@@ -94,7 +111,7 @@ def main():
         d['v'] = d.pop('OutletNode')
 
     # Write the new model
-    new_dir.mkdir(exist_ok=True)
+    new_dir.mkdir(exist_ok=True, parents = True)
     subcatchments.to_file(new_dir / 'subcatchments.geojson')
     graph_to_geojson(new_graph,
                     addresses.nodes,
