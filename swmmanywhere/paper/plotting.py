@@ -9,6 +9,7 @@ from pathlib import Path
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from SALib.plotting.bar import plot as barplot
 
 from swmmanywhere import metric_utilities
@@ -408,3 +409,43 @@ def plot_sensitivity_indices(r_: dict[str, pd.DataFrame],
     f.tight_layout()
     f.savefig(plot_fid)  
     plt.close(f)
+
+def heatmaps(r_: dict[str, pd.DataFrame],
+                             plot_fid: Path):
+    """Plot heatmap of sensitivity indices.
+
+    Args:
+        r_ (dict[str, pd.DataFrame]): A dictionary containing the sensitivity 
+            indices as produced by SALib.analyze.
+        plot_fid (Path): The directory to save the plots to.
+    """
+    totals = []
+    interactions = []
+    for (objective,r) in r_.items():
+        total, first, second = r.to_df()
+        interaction = total['ST'] - first['S1']
+        
+        total = total['ST'].to_dict()
+        total['objective'] = objective
+        totals.append(total)
+
+        interaction = interaction.to_dict()
+        interaction['objective'] = objective
+        interactions.append(interaction)
+
+    totals = pd.DataFrame(totals).set_index('objective')
+    interactions = pd.DataFrame(interactions).set_index('objective')
+
+    f,axs = plt.subplots(2,1,figsize=(10,10))
+
+    cmap = sns.color_palette("YlOrRd", as_cmap=True)
+    cmap.set_bad(color='grey')  # Color for NaN values
+    cmap.set_under(color='#d5f5eb')  # Color for 0.0 values
+
+    sns.heatmap(totals, vmin = 1e-6, linewidth=0.5,ax=axs[0],cmap=cmap)
+    sns.heatmap(interactions, vmin = 1e-6, linewidth=0.5,ax=axs[1],cmap=cmap)
+    f.tight_layout()
+    f.savefig(plot_fid)
+    plt.close(f)
+
+
