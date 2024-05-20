@@ -19,9 +19,9 @@ from swmmanywhere.swmmanywhere import load_config
 # %%
 # Load the configuration file and extract relevant data
 if __name__ == 'main':
-    project = 'cranbrook'
+    project = 'pilot'
     base_dir = Path.home() / "Documents" / "data" / "swmmanywhere"
-    config_path = base_dir / project / f'{project}_hpc.yml'
+    config_path = base_dir / project / 'hpc.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base_dir / project
     objectives = config['metric_list']
@@ -80,10 +80,12 @@ if __name__ == 'main':
     # Perform the sensitivity analysis for groups
     problem['outputs'] = objectives
     rg = {objective: sobol.analyze(problem, 
-                        df[objective].iloc[0:
-                                            (2**(config['sample_magnitude'] + 1) * 10)]
-                                            .values,
-                        print_to_console=False) 
+            df[objective].iloc[0:
+                (2**(config['sample_magnitude'] + 1) *\
+                  (len(set(problem['groups']))+1)*2)]
+                .values,
+            print_to_console=False
+            ) 
                         for objective in objectives}
 
     # Perform the sensitivity analysis for parameters
@@ -99,3 +101,6 @@ if __name__ == 'main':
         swplt.plot_sensitivity_indices(r_, 
                                      objectives, 
                                      plot_fid / f'{groups}_indices.png')
+        
+    for r_, groups in zip([rg,ri],  ['groups','parameters']):
+        swplt.heatmaps(r_, plot_fid / f'heatmap_{groups}_indices.png')
