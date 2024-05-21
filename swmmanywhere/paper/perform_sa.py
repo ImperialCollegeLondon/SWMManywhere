@@ -19,9 +19,9 @@ from swmmanywhere.swmmanywhere import load_config
 # %%
 # Load the configuration file and extract relevant data
 if __name__ == 'main':
-    project = 'pilot'
+    project = 'bellinge_formatted'
     base_dir = Path.home() / "Documents" / "data" / "swmmanywhere"
-    config_path = base_dir / project / 'hpc.yml'
+    config_path = base_dir / project / 'bf_hpc.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base_dir / project
     objectives = config['metric_list']
@@ -44,7 +44,7 @@ if __name__ == 'main':
     df = df.sort_values(by = 'iter')
 
     # Make a directory to store plots in
-    plot_fid = results_dir / 'plots'
+    plot_fid = results_dir.parent / 'plots'
     plot_fid.mkdir(exist_ok=True, parents=True)
 
     # %% [markdown]
