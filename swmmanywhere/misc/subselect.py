@@ -1,6 +1,7 @@
 """A script to subselect a SWMM model based on a query arc."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import geopandas as gpd
@@ -12,11 +13,9 @@ from swmmanywhere.graph_utilities import load_graph, save_graph
 from swmmanywhere.post_processing import synthetic_write
 
 
-def main():
+def subselect_cut(base_dir, project, cut):
     """Subselect a SWMM model based on a query arc."""
-    project = 'bellinge'
     # Define addresses
-    base_dir = Path(r'C:\Users\bdobson\Documents\data\swmmanywhere')
     graph = nx.MultiDiGraph(
         load_graph(base_dir / project / 'real' / 'graph.json'))
     subcatchments = gpd.read_file(
@@ -39,7 +38,7 @@ def main():
                                {row['Outlet']:row['impervious_area']}, 
                                'contributing_area')
 
-    new_dir = base_dir / f'{project}_formatted' / 'real'
+    new_dir = base_dir / f'{project}_{cut}' / 'real'
     addresses = parameters.FilePaths(base_dir = new_dir,
                         project_name = None,
                         bbox_number = None,
@@ -64,7 +63,7 @@ def main():
         nx.set_node_attributes(graph, 
                             nodes.set_index('node_id').surface_elevation.to_dict(), 
                             'surface_elevation')
-    elif project == 'bellinge':
+    elif 'bellinge' in project:
         nodes = gpd.read_file(
             iw_models / "bellinge" / "swmmio_conversion" / "nodes.geojson"
             )
@@ -88,19 +87,17 @@ def main():
     subcatchments = subcatchments.drop_duplicates('id')
     subcatchments['area'] = subcatchments.geometry.area
 
-    # Define where to cut the model
-    if project == 'cranbrook':
-        query_arc = 'node_1439.1'
-    elif project == 'bellinge':
-        query_arc = 'F74F370_F74F360_l1'
-
     # Get the nodes
     (us_node, ds_node) = [(u,v) for u,v,d in graph.edges(data=True) 
-                          if d['id'] == query_arc][0]
+                          if d['id'] == cut][0]
 
     anc = nx.ancestors(graph,us_node)
     anc = anc.union([us_node, ds_node])
 
+    # Trim edges in some cases
+    if cut == 'G71F06R_G71F060_l1':
+        anc_exclude = nx.ancestors(graph,'G73F620')
+        anc = set(anc).difference(anc_exclude)
     # Remove elements not in anc
     subcatchments = subcatchments[subcatchments['id'].isin(anc)]
     new_graph = graph.subgraph(anc).copy()
@@ -121,4 +118,16 @@ def main():
     save_graph(new_graph, new_dir / 'graph.json')
 
     # Provide info
-    print(f'new bbox: {subcatchments.to_crs(4326).total_bounds}')
+    print(f'{cut} bbox: {subcatchments.to_crs(4326).total_bounds}')
+    bounding_box_info = {"bbox": tuple(subcatchments.to_crs(4326).total_bounds),
+                         "project": project}
+    with open(new_dir / 'real_bbox.json', 'w') as info_file:
+        json.dump(bounding_box_info, info_file, indent=2)
+
+# Whole model
+project = None
+# Define where to cut the model
+if project == 'cranbrook':
+    query_arc = 'node_1439.1'
+elif project == 'bellinge':
+    query_arc = 'F74F370_F74F360_l1'
