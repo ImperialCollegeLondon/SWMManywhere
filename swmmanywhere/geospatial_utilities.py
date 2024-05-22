@@ -660,7 +660,12 @@ def derive_subbasins_streamorder(fid: Path,
         )
     
     # Identify stream order
-    subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+    subbasins = np.zeros_like(flow_dir)
+    
+    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
+        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
+        streamorder -= 1
+
     if np.unique(subbasins.reshape(-1)).shape[0] == 1:
         raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
                 Use a lower `subcatchment_derivation.subbasin_streamorder` and 
