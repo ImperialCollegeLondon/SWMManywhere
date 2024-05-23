@@ -181,4 +181,24 @@ def test_check_parameters_to_sample():
             swmmanywhere.load_config(base_dir / 'test_config.yml')
             assert "not_a_parameter" in str(exc_info.value)
 
+def test_save_config():
+    """Test the save_config function."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        test_data_dir = Path(__file__).parent / 'test_data'
+        defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
+        
+        with (test_data_dir / 'demo_config.yml').open('r') as f:
+            config = yaml.safe_load(f)
+        
+        # Correct and avoid filevalidation errors
+        config['real'] = None
+        
+        # Fill with unused paths to avoid filevalidation errors
+        config['base_dir'] = str(defs_dir / 'storm.dat')
+        config['api_keys'] = str(defs_dir / 'storm.dat')
 
+        swmmanywhere.save_config(config, temp_dir / 'test.yml')
+
+        # Reload to check OK
+        config = swmmanywhere.load_config(temp_dir / 'test.yml')

@@ -45,6 +45,10 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     for key, val in config.get('address_overrides', {}).items():
         setattr(addresses, key, val)
 
+    # Save config file
+    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        save_config(config, addresses.model / 'config.yml')
+
     # Run downloads
     logger.info("Running downloads.")
     api_keys = yaml.safe_load(config['api_keys'].open('r'))
@@ -65,6 +69,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     params = parameters.get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
+            logger.info(f"Setting {category} {key} to {val}")
             setattr(params[category], key, val)
 
     # Iterate the graph functions
@@ -237,6 +242,23 @@ def check_starting_graph(config: dict):
                                 {config['starting_graph']}""")
 
     return config
+
+# Define a custom Dumper class to write Path
+class _CustomDumper(yaml.SafeDumper):
+    def represent_data(self, data):
+        if isinstance(data, Path):
+            return self.represent_scalar('tag:yaml.org,2002:str', str(data))
+        return super().represent_data(data)
+
+def save_config(config: dict, config_path: Path):
+    """Save the configuration to a file.
+
+    Args:
+        config (dict): The configuration.
+        config_path (Path): The path to save the configuration.
+    """
+    with config_path.open('w') as f:
+        yaml.dump(config, f, Dumper=_CustomDumper, default_flow_style=False)
 
 def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
