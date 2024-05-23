@@ -433,6 +433,9 @@ def best_outlet_match(synthetic_G: nx.Graph,
     """
     nodes_joined = nodes_to_subs(synthetic_G, real_subs)
     
+    if nodes_joined.shape[0] == 0:
+        return (nx.Graph(),None)
+
     # Select the most common outlet
     outlet = nodes_joined.outlet.value_counts().idxmax()
 
@@ -770,6 +773,10 @@ def outlet(synthetic_results: pd.DataFrame,
     """
     # Identify synthetic and real arcs that flow into the best outlet node
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    
+    if len(sg_syn.nodes) == 0:
+        return np.inf
+    
     sg_real, real_outlet = dominant_outlet(real_G, real_results)
     
     allowable_var = ['nmanholes', 
