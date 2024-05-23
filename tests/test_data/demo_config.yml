@@ -37,6 +37,21 @@ graphfcn_list:
   - fix_geometries # Ensure geometries present before printing
   - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
+  - outlet_nse_flow
+  - outlet_kge_flow
+  - outlet_relerror_flow
+  - outlet_relerror_length
+  - outlet_relerror_npipes
+  - outlet_relerror_nmanholes
+  - outlet_nse_flooding
+  - outlet_kge_flooding
+  - outlet_relerror_flooding
+  - grid_nse_flooding
+  - grid_kge_flooding
+  - grid_relerror_flooding
+  - subcatchment_nse_flooding
+  - subcatchment_kge_flooding
+  - subcatchment_relerror_flooding
   - nc_deltacon0
   - nc_laplacian_dist
   - nc_laplacian_norm_dist
@@ -46,8 +61,7 @@ metric_list:
   - bias_flood_depth
   - kstest_edge_betweenness
   - kstest_betweenness
-  - outlet_nse_flow
-  - outlet_nse_flooding
+  - outlet_kstest_diameters
 parameter_overrides:
   hydraulic_design:
     diameters:

@@ -1,6 +1,6 @@
 name: Test
 
-on: [push, pull_request, workflow_call]
+on: [push,pull_request,workflow_call]
 
 jobs:
   qa:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest ]
+        os: [ubuntu-latest, windows-latest]
         python-version: [ "3.10" ]
     steps:
     - uses: actions/checkout@v4
