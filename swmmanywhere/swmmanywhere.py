@@ -42,7 +42,13 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                 config.get('model_number',None)
                                 )
     
+    logger.info(f"Project structure created at {addresses.base_dir}")
+    logger.info(f"Project name: {config['project']}")
+    logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_number}")
+    logger.info(f"Model number: {addresses.model_number}")
+
     for key, val in config.get('address_overrides', {}).items():
+        logger.info(f"Setting {key} to {val}")
         setattr(addresses, key, val)
 
     # Save config file
@@ -350,6 +356,7 @@ def run(model: Path,
         results = []
         t_ = sim.current_time
         ind = 0
+        logger.info(f"Starting simulation for: {model}")
         while ((sim.current_time - t_).total_seconds() <= duration) & \
             (sim.current_time < sim.end_time) & (not sim._terminate_request):
             
