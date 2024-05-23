@@ -94,8 +94,8 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
+    logger.info("Writing synthetic results.")
     if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
-        logger.info("Writing synthetic results.")
         synthetic_results.to_parquet(addresses.model /\
                                       f'results.{addresses.extension}')
 
