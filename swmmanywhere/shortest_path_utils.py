@@ -91,7 +91,8 @@ def tarjans_pq(G: nx.MultiDiGraph,
     return new_graph
 
 def dijkstra_pq(G: nx.MultiDiGraph, 
-                outlets: list) -> nx.MultiDiGraph:
+                outlets: list,
+                weight_attr: str = 'weight') -> nx.MultiDiGraph:
     """Dijkstra's algorithm for shortest paths to outlets.
 
     This function calculates the shortest paths from each node in the graph to
@@ -101,6 +102,8 @@ def dijkstra_pq(G: nx.MultiDiGraph,
     Args:
         G (nx.MultiDiGraph): The input graph.
         outlets (list): A list of outlet nodes.
+        weight_attr (str): The name of the edge attribute containing the edge
+            weights. Defaults to 'weight'.
 
     Returns:
         nx.MultiDiGraph: The graph with the shortest paths to outlets.
@@ -126,7 +129,7 @@ def dijkstra_pq(G: nx.MultiDiGraph,
         # For each neighbor of the current node
         for neighbor, _, edge_data in G.in_edges(node, data=True):
             # Calculate the distance through the current node
-            alt_dist = dist + edge_data['weight']
+            alt_dist = dist + edge_data[weight_attr]
             # If the alternative distance is shorter
 
             if alt_dist >= shortest_paths[neighbor]:
