@@ -1032,5 +1032,9 @@ def outlet_kstest_diameters(real_G: nx.Graph,
     # Extract the diameters
     syn_diameters = nx.get_edge_attributes(sg_syn, 'diameter')
     real_diameters = nx.get_edge_attributes(sg_real, 'diameter')
+    
+    if len(sg_syn.nodes) == 0:
+        return np.inf
+    
     return stats.ks_2samp(list(syn_diameters.values()),
                          list(real_diameters.values())).statistic
