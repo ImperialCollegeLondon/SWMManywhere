@@ -162,7 +162,7 @@ def process_parameters(jobid: int,
                                                              name=None):
             
             # Experimenter overrides take precedence over the config file
-            if grp in config['parameter_overrides']:
+            if grp in config.get('parameter_overrides',{}):
                 overrides[grp] = config['parameter_overrides'][grp]
             elif grp not in overrides:
                 overrides[grp] = {}
