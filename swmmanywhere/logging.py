@@ -23,8 +23,9 @@ def tqdm(*args, **kwargs):
     """Custom tqdm function.
     
     A custom tqdm function that checks for the verbosity. If verbose, it
-    returns the actual tqdm progress bar. Otherwise, it returns a simple 
-    iterator without the progress bar.
+    returns the actual tqdm progress bar. Otherwise, in the case of a provided
+    argument, it returns that argument (i.e., iterator), or, in the case of no
+    arguments an empty object that mocks the functions of a progress bar.
     """
     verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
 
