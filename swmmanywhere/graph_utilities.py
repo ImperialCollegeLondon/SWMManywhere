@@ -21,11 +21,10 @@ import numpy as np
 import osmnx as ox
 import pandas as pd
 import shapely
-from tqdm import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
-from swmmanywhere.logging import logger
+from swmmanywhere.logging import logger, tqdm
 
 
 def load_graph(fid: Path) -> nx.Graph:

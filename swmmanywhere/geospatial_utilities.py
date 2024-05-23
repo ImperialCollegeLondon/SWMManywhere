@@ -29,7 +29,8 @@ from shapely import geometry as sgeom
 from shapely import ops as sops
 from shapely.errors import GEOSException
 from shapely.strtree import STRtree
-from tqdm import tqdm
+
+from swmmanywhere.logging import tqdm
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
