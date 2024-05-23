@@ -13,7 +13,7 @@ import yaml
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger
+from swmmanywhere.logging import logger, tqdm
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
 
@@ -357,8 +357,14 @@ def run(model: Path,
         t_ = sim.current_time
         ind = 0
         logger.info(f"Starting simulation for: {model}")
-        while ((sim.current_time - t_).total_seconds() <= duration) & \
+    
+        progress_bar = tqdm(total=duration)
+        offset = 0
+        while (offset <= duration) & \
             (sim.current_time < sim.end_time) & (not sim._terminate_request):
+            
+            progress_bar.update((sim.current_time - t_).total_seconds() - offset)
+            offset = (sim.current_time - t_).total_seconds()
             
             ind+=1
 

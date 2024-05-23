@@ -29,8 +29,19 @@ def tqdm(*args, **kwargs):
     verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
 
     if verbose:
-        return tqdm_original(*args, **kwargs)
+        return tqdm_original(*args, 
+                             **kwargs)
     else:
+        if not args:
+            # i.e., a progress bar rather than an iterator
+            # This is just an empty object that can have 'update' called, as a
+            # progress bar would be
+            return type('Obj', 
+                        (object,), 
+                        {'update': lambda self, _: None,
+                         'close': lambda self, _: None},
+                        )()
+        
         iterator = args[0]
         return iterator
     
