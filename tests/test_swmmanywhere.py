@@ -179,7 +179,24 @@ def test_check_parameters_to_sample():
         # Test parameter validation
         with pytest.raises(ValueError) as exc_info:
             swmmanywhere.load_config(base_dir / 'test_config.yml')
-            assert "not_a_parameter" in str(exc_info.value)
+        assert "not_a_parameter" in str(exc_info.value)
+
+        # Test parameter_overrides invalid category
+        config['parameter_overrides'] = {'fake_category' : {'fake_parameter' : 0}}
+        with pytest.raises(ValueError) as exc_info:
+            swmmanywhere.check_parameter_overrides(config)
+        assert "fake_category not a category" in str(exc_info.value)
+
+        # Test parameter_overrides invalid parameter
+        config['parameter_overrides'] = {'hydraulic_design' : {'fake_parameter' : 0}}
+        with pytest.raises(ValueError) as exc_info:
+            swmmanywhere.check_parameter_overrides(config)
+        assert "fake_parameter not found" in str(exc_info.value)
+        
+        # Test parameter_overrides valid
+        config['parameter_overrides'] = {'hydraulic_design' : {'min_v' : 1.0}}
+        _ = swmmanywhere.check_parameter_overrides(config)
+            
 
 def test_save_config():
     """Test the save_config function."""
@@ -187,7 +204,7 @@ def test_save_config():
         temp_dir = Path(temp_dir)
         test_data_dir = Path(__file__).parent / 'test_data'
         defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
-        
+
         with (test_data_dir / 'demo_config.yml').open('r') as f:
             config = yaml.safe_load(f)
         
