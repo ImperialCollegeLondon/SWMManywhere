@@ -416,7 +416,7 @@ def nodes_to_subs(G: nx.Graph,
     return nodes_joined
 
 def best_outlet_match(synthetic_G: nx.Graph,
-                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int]:
+                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int | None]:
     """Best outlet match.
     
     Identify the outlet with the most nodes within the real_subs and return the
