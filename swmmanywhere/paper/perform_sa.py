@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from SALib.analyze import sobol
 from tqdm import tqdm
@@ -18,19 +17,29 @@ from swmmanywhere.swmmanywhere import load_config
 # ## Initialise directories and load results
 # %%
 # Load the configuration file and extract relevant data
-if __name__ == 'main':
-    project = 'bellinge_formatted'
+for project_ in ['G70F130_G70F120_l1',
+                    'G60U01F_G60K200_l1',
+                    'G80F380_G80F370_l1',
+                    'G70F320_G70F300_l1',
+                    'G71R062_G71R050_l1',
+                    'G71F06R_G71F060_l1',
+                    'G72R220_G72R210_l1']:
+    project = f'bellinge_{project_}'
     base_dir = Path.home() / "Documents" / "data" / "swmmanywhere"
-    config_path = base_dir / project / 'bf_hpc.yml'
+    config_path = base_dir / project / 'config.yml'
     config = load_config(config_path, validation = False)
     config['base_dir'] = base_dir / project
     objectives = config['metric_list']
     parameters = config['parameters_to_sample']
+    if 'subcatchment_membership' in parameters:
+        parameters.remove('subcatchment_membership')
 
     # Load the results
     bbox = check_bboxes(config['bbox'], config['base_dir'])
     results_dir = config['base_dir'] / f'bbox_{bbox}' / 'results'
     fids = list(results_dir.glob('*_metrics.csv'))
+    if not fids:
+        continue
     dfs = [pd.read_csv(fid) for fid in tqdm(fids, total = len(fids))]
 
     # Calculate how many processors were used
@@ -40,8 +49,14 @@ if __name__ == 'main':
     df = pd.concat(dfs)
 
     # Log deltacon0 because it can be extremely large
-    df['nc_deltacon0'] = np.log(df['nc_deltacon0'])
-    df = df.sort_values(by = 'iter')
+    # df['nc_deltacon0'] = np.log(df['nc_deltacon0'])
+    # df = df.sort_values(by = 'iter')
+
+    # Omit subcatchments since they skew everything by being so rubbish
+    objectives = [x for x in objectives 
+                  if ('subcatchment' not in x)
+                  or ('flood_bias_depth') not in x]
+    df = df[objectives + parameters + ['iter']]
 
     # Make a directory to store plots in
     plot_fid = results_dir.parent / 'plots'
@@ -76,6 +91,7 @@ if __name__ == 'main':
     missing_iters = set(range(n_ideal)).difference(df.iter)
     if missing_iters:
         logger.warning(f"Missing {len(missing_iters)} iterations")
+        continue
 
     # Perform the sensitivity analysis for groups
     problem['outputs'] = objectives
