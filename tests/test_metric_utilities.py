@@ -200,13 +200,13 @@ def test_inf():
                          yhat = np.array([1,2,3,4,5]))
     assert val == np.inf
 
-    val = mu.pbias(y = np.array([-3,-3,0,3,3]),
+    val = mu.relerror(y = np.array([-3,-3,0,3,3]),
                          yhat = np.array([1,2,3,4,5]))
     assert val == np.inf
 
-def test_pbias_different_length():
-    """Test the pbias metric with different length arrays."""
-    val = mu.pbias(y = np.array([1,2,3,4,5,6]),
+def test_relerror_different_length():
+    """Test the relerror metric with different length arrays."""
+    val = mu.relerror(y = np.array([1,2,3,4,5,6]),
                          yhat = np.array([1]))
     assert_close(val, (1 - 3.5)/3.5)
 
@@ -400,10 +400,10 @@ def test_design_params():
     
     # Target results
     design_results = {'outlet_kstest_diameters' : 0.0625,
-                'outlet_pbias_diameter': 0.0625,
-               'outlet_pbias_length' : -0.15088965,
-               'outlet_pbias_nmanholes' : -0.05,
-               'outlet_pbias_npipes' : -0.15789473}
+                'outlet_relerror_diameter': 0.0625,
+               'outlet_relerror_length' : -0.15088965,
+               'outlet_relerror_nmanholes' : -0.05,
+               'outlet_relerror_npipes' : -0.15789473}
     
     # Iterate for G = G, i.e., perfect results
     metrics = mu.iterate_metrics(synthetic_G = G,
@@ -533,7 +533,7 @@ def test_restirctions():
     """Test the restriction register by generating an invalid metric."""
     # Invalid because length can't be calculated at grid scale
     with pytest.raises(ValueError):
-        mu.metric_factory('grid_pbias_length')
+        mu.metric_factory('grid_relerror_length')
 
     # Invalid because nmanholes can't be evaluated with nse
     with pytest.raises(ValueError):

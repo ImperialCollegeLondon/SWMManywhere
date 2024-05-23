@@ -153,7 +153,7 @@ def restriction_on_scale(scale: str,
                          variable: str):
     """Restriction on scale.
     
-    Restrict the design variables to the outlet scale if the metric is 'pbias'.
+    Restrict the design variables to the outlet scale if the metric is 'relerror'.
 
     Args:
         scale (str): The scale of the metric.
@@ -169,15 +169,15 @@ def restriction_on_metric(scale: str,
                           variable: str):
     """Restriction on metric.
 
-    Restrict the variable to 'flow' if the metric is 'pbias'.
+    Restrict the variable to 'flow' if the metric is 'relerror'.
 
     Args:
         scale (str): The scale of the metric.
         metric (str): The metric.
         variable (str): The variable.
     """
-    if variable in ('length', 'nmanholes', 'npipes') and metric != 'pbias':
-        raise ValueError(f"Variable {variable} only valid with pbias metric")
+    if variable in ('length', 'nmanholes', 'npipes') and metric != 'relerror':
+        raise ValueError(f"Variable {variable} only valid with relerror metric")
 
 
 # Coefficient Registry
@@ -209,15 +209,15 @@ def register_coef(coef_func: Callable):
     return coef_func
 
 @register_coef
-def pbias(y: np.ndarray,
+def relerror(y: np.ndarray,
           yhat: np.ndarray) -> float:
-    r"""Percentage bias, PBIAS.
+    r"""Relative error, relerror.
 
-    Calculate the percent bias:
+    Calculate the relative error:
 
     .. math::
 
-        pbias = \\frac{{\mean(synthetic) - \mean(real)}}{{\mean(real)}}
+        relerror = \\frac{{\mean(synthetic) - \mean(real)}}{{\mean(real)}}
 
     where:
     - :math:`synthetic` is the synthetic data,
@@ -228,7 +228,7 @@ def pbias(y: np.ndarray,
         yhat (np.ndarray): The synthetic data.
 
     Returns:
-        float: The PBIAS value.
+        float: The relerror value.
     """
     total_observed = y.mean()
     if total_observed == 0:
@@ -870,24 +870,24 @@ def metric_factory(name: str):
 
 metrics.register(metric_factory('outlet_nse_flow'))
 metrics.register(metric_factory('outlet_kge_flow'))
-metrics.register(metric_factory('outlet_pbias_flow'))
+metrics.register(metric_factory('outlet_relerror_flow'))
 
-metrics.register(metric_factory('outlet_pbias_length'))
-metrics.register(metric_factory('outlet_pbias_npipes'))
-metrics.register(metric_factory('outlet_pbias_nmanholes'))
-metrics.register(metric_factory('outlet_pbias_diameter'))
+metrics.register(metric_factory('outlet_relerror_length'))
+metrics.register(metric_factory('outlet_relerror_npipes'))
+metrics.register(metric_factory('outlet_relerror_nmanholes'))
+metrics.register(metric_factory('outlet_relerror_diameter'))
 
 metrics.register(metric_factory('outlet_nse_flooding'))
 metrics.register(metric_factory('outlet_kge_flooding'))
-metrics.register(metric_factory('outlet_pbias_flooding'))
+metrics.register(metric_factory('outlet_relerror_flooding'))
 
 metrics.register(metric_factory('grid_nse_flooding'))
 metrics.register(metric_factory('grid_kge_flooding'))
-metrics.register(metric_factory('grid_pbias_flooding'))
+metrics.register(metric_factory('grid_relerror_flooding'))
 
 metrics.register(metric_factory('subcatchment_nse_flooding'))
 metrics.register(metric_factory('subcatchment_kge_flooding'))
-metrics.register(metric_factory('subcatchment_pbias_flooding'))
+metrics.register(metric_factory('subcatchment_relerror_flooding'))
 
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,
