@@ -249,6 +249,29 @@ def check_starting_graph(config: dict):
 
     return config
 
+def check_parameter_overrides(config: dict):
+    """Check the parameter overrides in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a parameter override is not in the parameters
+            dictionary.
+    """
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides',{}).items():
+        if category not in params:
+            raise ValueError(f"""{category} not a category of parameter. Must
+                             be one of {params.keys()}.""")
+        
+        for key, val in overrides.items():
+            # Check that the parameter is available
+            if key not in params[category].model_json_schema()['properties']:
+                raise ValueError(f"{key} not found in {category}.")            
+            
+    return config
+    
 # Define a custom Dumper class to write Path
 class _CustomDumper(yaml.SafeDumper):
     def represent_data(self, data):
@@ -305,6 +328,9 @@ def load_config(config_path: Path, validation: bool = True):
 
     # Check starting graph
     config = check_starting_graph(config)
+
+    # Check parameter overrides
+    config = check_parameter_overrides(config)
 
     return config
 
