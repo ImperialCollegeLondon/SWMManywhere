@@ -13,7 +13,7 @@ from swmmanywhere.graph_utilities import load_graph, save_graph
 from swmmanywhere.post_processing import synthetic_write
 
 
-def subselect_cut(base_dir, project, cut):
+def subselect_cut(base_dir, project, cut, buffer = 1/1000):
     """Subselect a SWMM model based on a query arc."""
     # Define addresses
     graph = nx.MultiDiGraph(
@@ -118,8 +118,13 @@ def subselect_cut(base_dir, project, cut):
     save_graph(new_graph, new_dir / 'graph.json')
 
     # Provide info
-    print(f'{cut} bbox: {subcatchments.to_crs(4326).total_bounds}')
-    bounding_box_info = {"bbox": tuple(subcatchments.to_crs(4326).total_bounds),
+    bbox = subcatchments.to_crs(4326).total_bounds
+    bbox = (bbox[0] - buffer,
+            bbox[1] - buffer,
+            bbox[2] + buffer,
+            bbox[3] + buffer)
+    print(f'{cut} bbox: {bbox}')
+    bounding_box_info = {"bbox": bbox,
                          "project": project}
     with open(new_dir / 'real_bbox.json', 'w') as info_file:
         json.dump(bounding_box_info, info_file, indent=2)
