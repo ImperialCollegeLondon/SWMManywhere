@@ -629,8 +629,15 @@ class clip_to_catchments(BaseGraphFunction,
         G = G.copy()
 
         # Derive subbasins
-        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
-                                subcatchment_derivation.subbasin_streamorder)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_fid = Path(temp_dir) / "carved.tif"
+            go.burn_shape_in_raster([d['geometry'] for u,v,d in G.edges(data=True)],
+                    subcatchment_derivation.carve_depth,
+                    addresses.elevation,
+                    temp_fid)
+            
+            subbasins = go.derive_subbasins_streamorder(temp_fid,
+                                    subcatchment_derivation.subbasin_streamorder)
         
         if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
             subbasins.to_file(
