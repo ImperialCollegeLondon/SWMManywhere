@@ -16,7 +16,7 @@ import os
 import sys
 
 import loguru
-from tqdm import tqdm as tqdm_original
+from tqdm.auto import tqdm as tqdm_original
 
 
 def tqdm(*args, **kwargs):
