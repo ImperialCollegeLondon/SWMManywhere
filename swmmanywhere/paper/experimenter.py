@@ -118,7 +118,12 @@ def process_parameters(jobid: int,
     """Generate and run parameter samples for the sensitivity analysis.
 
     This function generates parameter samples and runs the swmmanywhere model
-    for each sample. It is designed to be run in parallel as a jobarray.
+    for each sample. It is designed to be run in parallel as a jobarray. It 
+    selects parameters values from the generated ones based on the jobid and 
+    the number of processors. It copies the config file and passes these 
+    parameters into swmmanywhere via the `parameter_overrides` property. Existing
+    overrides that are not being sampled are retained, existing overrides that 
+    are being sampled are overwritten by the sampled value.
 
     Args:
         jobid (int): The job id.
