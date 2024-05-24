@@ -252,7 +252,6 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
 
     # Write the inp file
     for key, data in data_dict.items():
-        # print(key)
         start_section = '[{0}]'.format(key)
      
         overwrite_section(data, start_section, new_input_file)
