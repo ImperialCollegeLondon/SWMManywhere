@@ -1,21 +1,21 @@
 """The main SWMManywhere module to generate and run a synthetic network."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import geopandas as gpd
 import jsonschema
 import pandas as pd
 import pyswmm
-import yaml
+from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger, tqdm
+from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
+from swmmanywhere.utilities import yaml_dump, yaml_load
 
 
 def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
@@ -52,12 +52,12 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         setattr(addresses, key, val)
 
     # Save config file
-    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+    if verbose():
         save_config(config, addresses.model / 'config.yml')
 
     # Run downloads
     logger.info("Running downloads.")
-    api_keys = yaml.safe_load(config['api_keys'].open('r'))
+    api_keys = yaml_load(config['api_keys'].open('r'))
     preprocessing.run_downloads(config['bbox'],
                                 addresses,
                                 api_keys
@@ -101,7 +101,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
     logger.info("Writing synthetic results.")
-    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+    if verbose():
         synthetic_results.to_parquet(addresses.model /\
                                       f'results.{addresses.extension}')
 
@@ -114,7 +114,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
-        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        if verbose():
             real_results.to_parquet(config['real']['inp'].parent /\
                                      f'real_results.{addresses.extension}')
     else:
@@ -274,13 +274,6 @@ def check_parameter_overrides(config: dict):
                 raise ValueError(f"{key} not found in {category}.")            
             
     return config
-    
-# Define a custom Dumper class to write Path
-class _CustomDumper(yaml.SafeDumper):
-    def represent_data(self, data):
-        if isinstance(data, Path):
-            return self.represent_scalar('tag:yaml.org,2002:str', str(data))
-        return super().represent_data(data)
 
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
@@ -289,8 +282,7 @@ def save_config(config: dict, config_path: Path):
         config (dict): The configuration.
         config_path (Path): The path to save the configuration.
     """
-    with config_path.open('w') as f:
-        yaml.dump(config, f, Dumper=_CustomDumper, default_flow_style=False)
+    yaml_dump(config, config_path.open('w'))
 
 def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
@@ -304,12 +296,10 @@ def load_config(config_path: Path, validation: bool = True):
     """
     # Load the schema
     schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
-    with schema_fid.open('r') as file:
-        schema = yaml.safe_load(file)
+    schema = yaml_load(schema_fid.open('r'))
 
-    with config_path.open('r') as f:
-        # Load the config
-        config = yaml.safe_load(f)
+    # Load the config
+    config = yaml_load(config_path.open('r'))
 
     if not validation:
         return config
@@ -386,8 +376,9 @@ def run(model: Path,
         t_ = sim.current_time
         ind = 0
         logger.info(f"Starting simulation for: {model}")
-    
-        progress_bar = tqdm(total=duration)
+
+        progress_bar = tqdm(total=duration, disable = not verbose())
+
         offset = 0
         while (offset <= duration) & \
             (sim.current_time < sim.end_time) & (not sim._terminate_request):

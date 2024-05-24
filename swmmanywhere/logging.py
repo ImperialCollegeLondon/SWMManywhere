@@ -16,39 +16,15 @@ import os
 import sys
 
 import loguru
-from tqdm.auto import tqdm as tqdm_original
 
 
-def tqdm(*args, **kwargs):
-    """Custom tqdm function.
-    
-    A custom tqdm function that checks for the verbosity. If verbose, it
-    returns the actual tqdm progress bar. Otherwise, in the case of a provided
-    argument, it returns that argument (i.e., iterator), or, in the case of no
-    arguments an empty object that mocks the functions of a progress bar.
-    """
-    verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
+def verbose() -> bool:
+    """Get the verbosity."""
+    return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
 
-    if verbose:
-        return tqdm_original(*args, 
-                             **kwargs)
-    else:
-        if not args:
-            # i.e., a progress bar rather than an iterator
-            # This is just an empty object that can have 'update' called, as a
-            # progress bar would be
-            return type('Obj', 
-                        (object,), 
-                        {'update': lambda self, _: None,
-                         'close': lambda self, _: None},
-                        )()
-        
-        iterator = args[0]
-        return iterator
-    
 def dynamic_filter(record):
     """A dynamic filter."""
-    return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
+    return verbose()
 
 def get_logger() -> loguru.logger:
     """Get a logger."""
