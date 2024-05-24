@@ -265,9 +265,12 @@ def check_parameter_overrides(config: dict):
             raise ValueError(f"""{category} not a category of parameter. Must
                              be one of {params.keys()}.""")
         
+        # Get the available properties for a category
+        cat_properties = params[category].model_json_schema()['properties']
+
         for key, val in overrides.items():
             # Check that the parameter is available
-            if key not in params[category].model_json_schema()['properties']:
+            if key not in cat_properties:
                 raise ValueError(f"{key} not found in {category}.")            
             
     return config
