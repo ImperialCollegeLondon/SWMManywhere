@@ -88,7 +88,8 @@ def download_buildings(file_address: Path,
         logger.error(f"Error downloading data. Status code: {response.status_code}")
     return response.status_code
 
-def download_street(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
+def download_street(bbox: tuple[float, float, float, float],
+                    network_type = 'drive') -> nx.MultiDiGraph:
     """Get street network within a bounding box using OSMNX.
     
     [CREDIT: Taher Cheghini busn_estimator package]
@@ -96,6 +97,7 @@ def download_street(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     Args:
         bbox (tuple[float, float, float, float]): Bounding box as tuple in form 
             of (west, south, east, north) at EPSG:4326.
+        network_type (str, optional): Type of street network. Defaults to 'drive'.
 
     Returns:
         nx.MultiDiGraph: Street network with type drive and 
@@ -104,8 +106,8 @@ def download_street(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     west, south, east, north = bbox
     bbox = (north, south, east, west) # not sure why osmnx uses this order
     graph = ox.graph_from_bbox(
-        bbox = bbox, network_type="drive", truncate_by_edge=True
-    )
+            bbox = bbox, network_type=network_type, truncate_by_edge=True
+        )
     return cast("nx.MultiDiGraph", graph)
 
 def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
@@ -120,13 +122,18 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             ``truncate_by_edge set`` to True.
     """
     west, south, east, north = bbox
-    graph = ox.graph_from_bbox(
-        north, 
-        south, 
-        east, 
-        west,
-        truncate_by_edge=True, 
-        custom_filter='["waterway"]')
+    try: 
+        graph = ox.graph_from_bbox(
+            bbox = (north, south, east, west),
+            truncate_by_edge=True, 
+            custom_filter='["waterway"]',
+            retain_all=True)
+    except ValueError as e:
+        if str(e) == "Found no graph nodes within the requested polygon":
+            logger.warning('No water network found within the bounding box.')
+            return nx.MultiDiGraph()
+        else:
+            raise  # Re-raise the exception 
     
     return cast("nx.MultiDiGraph", graph)
 

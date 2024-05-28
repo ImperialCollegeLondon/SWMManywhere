@@ -20,16 +20,16 @@ def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     Returns:
         tuple[pd.Series, pd.Series]: A tuple of two series, the first is the
             behavioural indices for 'strict' objectives (KGE/NSE), the second 
-            is the behavioural indices for less strict objectives (PBIAS).
+            is the behavioural indices for less strict objectives (relerror).
     """
     behavioural_ind_nse = ((df.loc[:, df.columns.str.contains('nse')] > 0) & \
                            (df.loc[:, df.columns.str.contains('nse')] < 1)).any(axis=1)
     behavioural_ind_kge = ((df.loc[:, df.columns.str.contains('kge')] > -0.41) &\
                             (df.loc[:, df.columns.str.contains('kge')] < 1)).any(axis=1)
-    behavioural_ind_bias = (df.loc[:, 
-                                   df.columns.str.contains('bias')].abs() < 0.1
+    behavioural_ind_relerror = (df.loc[:, 
+                                   df.columns.str.contains('relerror')].abs() < 0.1
                             ).any(axis=1)
-    return behavioural_ind_nse | behavioural_ind_kge, behavioural_ind_bias
+    return behavioural_ind_nse | behavioural_ind_kge, behavioural_ind_relerror
 
 def plot_objectives(df: pd.DataFrame, 
                     parameters: list[str], 
@@ -99,7 +99,7 @@ def add_threshold_lines(ax, objective, xmin, xmax):
         xmax (float): The maximum x value.
     """
     thresholds = {
-        'bias': [-0.1, 0.1],
+        'relerror': [-0.1, 0.1],
         'nse': [0],
         'kge': [-0.41]
     }

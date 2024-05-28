@@ -33,6 +33,18 @@ def get_full_parameters_flat():
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
+    subbasin_streamorder: int = Field(default = 7,
+            ge = 1,
+            le = 20,
+            unit = "-",
+            description = "Stream order for subbasin derivation.")
+    
+    subbasin_membership: float = Field(default = 0.5,
+            ge = 0,
+            le = 1,
+            unit = "-",
+            description = "Membership threshold for subbasin derivation.")
+
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
             le = 5.0,
@@ -51,14 +63,14 @@ class SubcatchmentDerivation(BaseModel):
             unit = "m", 
             description = "Distance to split streets into segments.")
 
+    node_merge_distance: float = Field(default = 10,
+                ge = 1,
+                le = 40,
+                unit = 'm',
+                description = "Distance within which to merge street nodes.")
+    
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
-	max_river_length: float = Field(default = 30.0,
-		ge = 5.0,
-		le = 100.0,
-		unit = "m",
-		description = "Distance to split rivers into segments.")   
-
 	river_buffer_distance: float = Field(default = 150.0,
 		ge = 50.0,
 		le = 300.0,
@@ -73,6 +85,11 @@ class OutletDerivation(BaseModel):
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
+    allowable_networks: list = Field(default = ['walk', 'drive'],
+                                     min_items = 1,
+                        unit = "-",
+                        description = "OSM networks to consider")
+    
     weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
@@ -84,7 +101,8 @@ class TopologyDerivation(BaseModel):
     omit_edges: list = Field(default = ['motorway', 
                                         'motorway_link',
                                         'bridge', 
-                                        'tunnel'],
+                                        'tunnel',
+                                        'corridor'],
                         min_items = 1,
                         unit = "-",
                         description = "OSM paths pipes are not allowed under")
@@ -195,8 +213,8 @@ class HydraulicDesign(BaseModel):
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
     grid_scale: float = Field(default = 100,
-                        le = 10,
-                        ge = 5000,
+                        le = 5000,
+                        ge = 10,
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
 
@@ -292,6 +310,9 @@ class FilePaths:
     def _generate_building(self):
         return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
+    def _generate_streetcover(self):
+        return self._generate_property(f'streetcover.geo{self.extension}', 
+                                        'model')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 
                                         'download')

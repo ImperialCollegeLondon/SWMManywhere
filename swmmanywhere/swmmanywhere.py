@@ -54,14 +54,21 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     # Save config file
     if verbose():
         save_config(config, addresses.model / 'config.yml')
+    # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides', {}).items():
+        for key, val in overrides.items():
+            setattr(params[category], key, val)
 
     # Run downloads
     logger.info("Running downloads.")
     api_keys = yaml_load(config['api_keys'].open('r'))
     preprocessing.run_downloads(config['bbox'],
-                                addresses,
-                                api_keys
-                                )
+                addresses,
+                api_keys,
+                network_types = params['topology_derivation'].allowable_networks
+                )
 
     # Identify the starting graph
     logger.info("Iterating graphs.")

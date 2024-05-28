@@ -10,6 +10,7 @@ aenum==3.1.11
     #   swmm-toolkit
 affine==2.4.0
     # via
+    #   pyflwdir
     #   pysheds
     #   rasterio
 annotated-types==0.6.0
@@ -100,7 +101,7 @@ julian==0.14
     # via pyswmm
 kiwisolver==1.4.5
     # via matplotlib
-lazy-loader==0.3
+lazy-loader==0.4
     # via scikit-image
 llvmlite==0.41.1
     # via numba
@@ -123,7 +124,9 @@ networkx==3.2.1
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
 numba==0.58.1
-    # via pysheds
+    # via
+    #   pyflwdir
+    #   pysheds
 numpy==1.26.4
     # via
     #   cftime
@@ -137,6 +140,7 @@ numpy==1.26.4
     #   osmnx
     #   pandas
     #   pyarrow
+    #   pyflwdir
     #   pysheds
     #   rasterio
     #   rioxarray
@@ -179,6 +183,8 @@ pydantic==2.5.3
     # via swmmanywhere (pyproject.toml)
 pydantic-core==2.14.6
     # via pydantic
+pyflwdir==0.5.8
+    # via swmmanywhere (pyproject.toml)
 pyparsing==3.1.1
     # via
     #   matplotlib
@@ -226,6 +232,7 @@ scikit-image==0.22.0
 scipy==1.12.0
     # via
     #   netcomp
+    #   pyflwdir
     #   pysheds
     #   salib
     #   scikit-image
@@ -243,7 +250,7 @@ smmap==5.0.1
     # via gitdb
 snuggs==1.4.7
     # via rasterio
-swmm-toolkit==0.15.3
+swmm-toolkit==0.15.5
     # via pyswmm
 tifffile==2024.1.30
     # via scikit-image
@@ -253,7 +260,7 @@ tqdm==4.66.2
     # via
     #   cdsapi
     #   swmmanywhere (pyproject.toml)
-typing-extensions==4.9.0
+typing-extensions==4.11.0
     # via
     #   pydantic
     #   pydantic-core

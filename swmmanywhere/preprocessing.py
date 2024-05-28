@@ -221,15 +221,47 @@ def prepare_building(bbox: tuple[float, float, float, float],
 def prepare_street(bbox: tuple[float, float, float, float],
                      addresses: parameters.FilePaths,
                      target_crs: str,
-                     source_crs: str = 'EPSG:4326'):
-    """Download and reproject street graph."""
+                     source_crs: str = 'EPSG:4326',
+                     network_types = ['drive']):
+    """Download and reproject street graph.
+    
+    Download the street graph within the bbox and reproject it to the UTM zone.
+    The street graph is downloaded for all network types in network_types. The
+    street graph is saved to the addresses.street directory.
+
+    Args:
+        bbox (tuple[float, float, float, float]): Bounding box coordinates in 
+            the format (minx, miny, maxx, maxy) in EPSG:4326.
+        addresses (FilePaths): Class containing the addresses of the directories.
+        target_crs (str): Target CRS to reproject the graph to.
+        source_crs (str): Source CRS of the graph.
+        network_types (list): List of network types to download. For duplicate 
+            edges, nx.compose_all selects the attributes in priority of last to
+            first. In likelihood, you want to ensure that the last network in 
+            the list is `drive`, so as to retain information about `lanes`, 
+            which is needed to calculate impervious area.
+    """
     if addresses.street.exists():
         return
-    logger.info(f'downloading street network to {addresses.street}')
-    street_network = prepare_data.download_street(bbox)
+    logger.info(f'downloading network to {addresses.street}')
+    if 'drive' in network_types and network_types[-1] != 'drive':
+        logger.warning("""The last network type should be `drive` to retain 
+                        `lanes` attribute, needed to calculate impervious area.
+                        Moving it to the last position.""")
+        network_types.pop("drive")
+        network_types.append("drive")
+    networks = []
+    for network_type in network_types:
+        network = prepare_data.download_street(bbox, network_type=network_type)
+        nx.set_edge_attributes(network, network_type, 'network_type')
+        networks.append(network)
+    street_network = nx.compose_all(networks)
+
+    # Reproject graph
     street_network = go.reproject_graph(street_network, 
                                         source_crs, 
                                         target_crs)
+    
     gu.save_graph(street_network, addresses.street)
 
 def prepare_river(bbox: tuple[float, float, float, float],
@@ -248,7 +280,8 @@ def prepare_river(bbox: tuple[float, float, float, float],
 
 def run_downloads(bbox: tuple[float, float, float, float],
                   addresses: parameters.FilePaths,
-                  api_keys: dict[str, str]):
+                  api_keys: dict[str, str],
+                  network_types = ['drive']):
     """Run the data downloads.
 
     Run the precipitation, elevation, building, street and river network
@@ -260,6 +293,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
             the format (minx, miny, maxx, maxy) in EPSG:4326.
         addresses (FilePaths): Class containing the addresses of the directories.
         api_keys (dict): Dictionary containing the API keys.
+        network_types (list): List of network types to download.
     """
     target_crs = go.get_utm_epsg(bbox[0], bbox[1])
 
@@ -273,7 +307,7 @@ def run_downloads(bbox: tuple[float, float, float, float],
     prepare_building(bbox, addresses, target_crs)
     
     # Download street network data
-    prepare_street(bbox, addresses, target_crs)
+    prepare_street(bbox, addresses, target_crs, network_types=network_types)
 
     # Download river network data
     prepare_river(bbox, addresses, target_crs)

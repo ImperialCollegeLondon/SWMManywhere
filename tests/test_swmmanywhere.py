@@ -54,12 +54,13 @@ def test_swmmanywhere():
         # Set some test values
         base_dir = Path(temp_dir)
         config['base_dir'] = str(base_dir)
-        config['bbox'] = [0.05428,51.55847,0.07193,51.56726]
+        config['bbox'] = [0.05677,51.55656,0.07193,51.56726]
         config['address_overrides'] = {
             'building': str(test_data_dir / 'building.geoparquet'),
             'precipitation': str(defs_dir / 'storm.dat')
             }
-        
+        config['parameter_overrides'] = {'subcatchment_derivation' : 
+                                         {'subbasin_streamorder' : 5}}
         config['run_settings']['duration'] = 1000
         api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
         with open(base_dir / 'api_keys.yml', 'w') as f:

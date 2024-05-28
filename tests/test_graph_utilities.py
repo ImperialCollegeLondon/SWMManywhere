@@ -6,11 +6,13 @@
 from __future__ import annotations
 
 import math
+import os
 import tempfile
 from pathlib import Path
 
 import geopandas as gpd
 import networkx as nx
+import pytest
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
@@ -52,14 +54,23 @@ def test_double_directed():
     for u, v in G.edges():
         assert (v,u) in G.edges
 
-def test_format_osmnx_lanes():
-    """Test the format_osmnx_lanes function."""
+def test_calculate_streetcover():
+    """Test the calculate_streetcover function."""
     G, _ = load_street_network()
     params = parameters.SubcatchmentDerivation()
-    G = gu.format_osmnx_lanes(G, params)
-    for u, v, data in G.edges(data=True):
-        assert 'width' in data.keys()
-        assert isinstance(data['width'], float)
+    addresses = parameters.FilePaths(base_dir = None,
+                                        project_name = None,
+                                        bbox_number = None,
+                                        model_number = None,
+                                        extension = 'json')
+    with tempfile.TemporaryDirectory() as temp_dir:
+        addresses.streetcover = Path(temp_dir) / 'streetcover.geojson'
+        _ = gu.calculate_streetcover(G, params, addresses)
+        # TODO test that G hasn't changed? or is that a waste of time?
+        assert addresses.streetcover.exists()
+        gdf = gpd.read_file(addresses.streetcover)
+        assert len(gdf) == len(G.edges)
+        assert gdf.geometry.area.sum() > 0
 
 def test_split_long_edges():
     """Test the split_long_edges function."""
@@ -82,6 +93,7 @@ def test_derive_subcatchments():
                             model_number = 1)
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         addresses.building = temp_path / 'building.geojson'
+        addresses.streetcover = temp_path / 'building.geojson'
         addresses.subcatchments = temp_path / 'subcatchments.geojson'
         params = parameters.SubcatchmentDerivation()
         G, bbox = load_street_network()
@@ -167,6 +179,26 @@ def test_calculate_weights():
     for u, v, data in G.edges(data=True):
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
+        
+def test_identify_outlets_no_river():
+    """Test the identify_outlets in the no river case."""
+    G, _ = load_street_network()
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    addresses.elevation = elev_fid
+    G = gu.set_elevation(G, addresses)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+    params = parameters.OutletDerivation()
+    G = gu.identify_outlets(G, params)
+    outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 1
 
 def test_identify_outlets_and_derive_topology():
     """Test the identify_outlets and derive_topology functions."""
@@ -275,6 +307,7 @@ def test_iterate_graphfcns():
     """Test the iterate_graphfcns function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     params = parameters.get_full_parameters()
+    params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         addresses = parameters.FilePaths(base_dir = None,
@@ -286,12 +319,13 @@ def test_iterate_graphfcns():
         addresses.model = temp_path
         G = iterate_graphfcns(G, 
                                 ['assign_id',
-                                'format_osmnx_lanes'],
+                                'remove_non_pipe_allowable_links'],
                                 params, 
                                 addresses)
         for u, v, d in G.edges(data=True):
             assert 'id' in d.keys()
-            assert 'width' in d.keys()
+        assert 'primary' not in get_edge_types(G)
+        assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) == 1
 
 def test_fix_geometries():
     """Test the fix_geometries function."""
@@ -308,3 +342,81 @@ def test_fix_geometries():
     # Check that the edge geometry now matches the node coordinates
     assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
         (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
+
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    return abs(a-b) < tol
+
+def test_merge_street_nodes():
+    """Test the merge_street_nodes function."""
+    G, _ = load_street_network()
+    subcatchment_derivation = parameters.SubcatchmentDerivation(
+        node_merge_distance = 20)
+    G_ = gu.merge_street_nodes(G, subcatchment_derivation)
+    assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
+    assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
+
+def test_clip_to_catchments():
+    """Test the clip_to_catchments function."""
+    G, _ = load_street_network()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+        temp_path = Path(temp_dir)
+        addresses = parameters.FilePaths(base_dir = temp_path,
+                                        project_name = 'test',
+                                        bbox_number = 0,
+                                        model_number = 0)
+        addresses.nodes = addresses.base_dir / 'nodes.geojson'
+        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+
+        # Test clipping
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 3,
+            subbasin_membership = 0.9
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 30
+
+        # Test clipping with different params
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0.3
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 38
+
+        # Test no cuts
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 39
+
+        # Cut between every community not entirely within the same basin
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 1
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 28
+
+        # Check streamorder adjustment
+        with pytest.raises(ValueError):
+            subcatchment_derivation = parameters.SubcatchmentDerivation(
+                subbasin_streamorder = 5,
+                subbasin_membership = 0.9
+            )
+            G_ = gu.clip_to_catchments(G, 
+                                    addresses=addresses,
+                                    subcatchment_derivation=subcatchment_derivation)
