@@ -4,7 +4,7 @@ Example:
 >>> import os
 >>> os.environ["SWMMANYWHERE_VERBOSE"] = "true" 
 >>> # logging is now enabled in any swmmanywhere module
->>> from swmmanywhere.custom_logging import logger # You can now log yourself
+>>> from swmmanywhere.logging import logger # You can now log yourself
 >>> logger.info("This is an info message.") # Write to stdout # doctest: +SKIP
 This is an info message.
 >>> logger.add("file.log") # Add a log file # doctest: +SKIP
