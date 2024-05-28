@@ -19,7 +19,7 @@ import pandas as pd
 import shapely
 from scipy import stats
 
-from swmmanywhere.custom_logging import logger
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import MetricEvaluation
 
 
