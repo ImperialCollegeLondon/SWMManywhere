@@ -51,15 +51,16 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         logger.info(f"Setting {key} to {val}")
         setattr(addresses, key, val)
 
-    # Save config file
-    if verbose():
-        save_config(config, addresses.model / 'config.yml')
     # Load the parameters and perform any manual overrides
     logger.info("Loading and setting parameters.")
     params = parameters.get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
             setattr(params[category], key, val)
+            
+    # Save config file
+    if verbose():
+        save_config(config, addresses.model / 'config.yml')
 
     # Run downloads
     logger.info("Running downloads.")
