@@ -14,10 +14,10 @@ import osmnx as ox
 import pandas as pd
 import requests
 import xarray as xr
-import yaml
 from geopy.geocoders import Nominatim
 
 from swmmanywhere.logging import logger
+from swmmanywhere.utilities import yaml_load
 
 
 def get_country(x: float, 
@@ -46,8 +46,7 @@ def get_country(x: float,
     geolocator = Nominatim(user_agent="get_iso")
 
     # Load ISO code mapping from YAML file
-    with iso_path.open("r") as file:
-        data = yaml.safe_load(file)
+    data = yaml_load(iso_path.read_text())
 
     # Get country ISO code from coordinates
     location = geolocator.reverse(f"{y}, {x}", exactly_one=True)

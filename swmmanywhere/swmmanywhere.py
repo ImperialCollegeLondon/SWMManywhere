@@ -1,21 +1,21 @@
 """The main SWMManywhere module to generate and run a synthetic network."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import geopandas as gpd
 import jsonschema
 import pandas as pd
 import pyswmm
-import yaml
+from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger
+from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
+from swmmanywhere.utilities import yaml_dump, yaml_load
 
 
 def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
@@ -42,7 +42,13 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                 config.get('model_number',None)
                                 )
     
+    logger.info(f"Project structure created at {addresses.base_dir}")
+    logger.info(f"Project name: {config['project']}")
+    logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_number}")
+    logger.info(f"Model number: {addresses.model_number}")
+
     for key, val in config.get('address_overrides', {}).items():
+        logger.info(f"Setting {key} to {val}")
         setattr(addresses, key, val)
 
     # Load the parameters and perform any manual overrides
@@ -51,10 +57,14 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
             setattr(params[category], key, val)
+            
+    # Save config file
+    if verbose():
+        save_config(config, addresses.model / 'config.yml')
 
     # Run downloads
     logger.info("Running downloads.")
-    api_keys = yaml.safe_load(config['api_keys'].open('r'))
+    api_keys = yaml_load(config['api_keys'].read_text())
     preprocessing.run_downloads(config['bbox'],
                 addresses,
                 api_keys,
@@ -67,6 +77,14 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
+
+    # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides', {}).items():
+        for key, val in overrides.items():
+            logger.info(f"Setting {category} {key} to {val}")
+            setattr(params[category], key, val)
 
     # Iterate the graph functions
     logger.info("Iterating graph functions.")
@@ -90,8 +108,8 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.inp, 
                             **config['run_settings'])
-    if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
-        logger.info("Writing synthetic results.")
+    logger.info("Writing synthetic results.")
+    if verbose():
         synthetic_results.to_parquet(addresses.model /\
                                       f'results.{addresses.extension}')
 
@@ -104,7 +122,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
-        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        if verbose():
             real_results.to_parquet(config['real']['inp'].parent /\
                                      f'real_results.{addresses.extension}')
     else:
@@ -239,6 +257,41 @@ def check_starting_graph(config: dict):
 
     return config
 
+def check_parameter_overrides(config: dict):
+    """Check the parameter overrides in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a parameter override is not in the parameters
+            dictionary.
+    """
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides',{}).items():
+        if category not in params:
+            raise ValueError(f"""{category} not a category of parameter. Must
+                             be one of {params.keys()}.""")
+        
+        # Get the available properties for a category
+        cat_properties = params[category].model_json_schema()['properties']
+
+        for key, val in overrides.items():
+            # Check that the parameter is available
+            if key not in cat_properties:
+                raise ValueError(f"{key} not found in {category}.")            
+            
+    return config
+
+def save_config(config: dict, config_path: Path):
+    """Save the configuration to a file.
+
+    Args:
+        config (dict): The configuration.
+        config_path (Path): The path to save the configuration.
+    """
+    yaml_dump(config, config_path.open('w'))
+
 def load_config(config_path: Path, validation: bool = True):
     """Load, validate, and convert Paths in a configuration file.
 
@@ -251,12 +304,10 @@ def load_config(config_path: Path, validation: bool = True):
     """
     # Load the schema
     schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
-    with schema_fid.open('r') as file:
-        schema = yaml.safe_load(file)
+    schema = yaml_load(schema_fid.read_text())
 
-    with config_path.open('r') as f:
-        # Load the config
-        config = yaml.safe_load(f)
+    # Load the config
+    config = yaml_load(config_path.read_text())
 
     if not validation:
         return config
@@ -278,6 +329,9 @@ def load_config(config_path: Path, validation: bool = True):
 
     # Check starting graph
     config = check_starting_graph(config)
+
+    # Check parameter overrides
+    config = check_parameter_overrides(config)
 
     return config
 
@@ -329,8 +383,16 @@ def run(model: Path,
         results = []
         t_ = sim.current_time
         ind = 0
-        while ((sim.current_time - t_).total_seconds() <= duration) & \
+        logger.info(f"Starting simulation for: {model}")
+
+        progress_bar = tqdm(total=duration, disable = not verbose())
+
+        offset = 0
+        while (offset <= duration) & \
             (sim.current_time < sim.end_time) & (not sim._terminate_request):
+            
+            progress_bar.update((sim.current_time - t_).total_seconds() - offset)
+            offset = (sim.current_time - t_).total_seconds()
             
             ind+=1
 

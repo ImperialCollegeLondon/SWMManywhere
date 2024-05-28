@@ -29,7 +29,9 @@ from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely import ops as sops
 from shapely.strtree import STRtree
-from tqdm import tqdm
+from tqdm.auto import tqdm
+
+from swmmanywhere.logging import verbose
 
 os.environ['NUMBA_NUM_THREADS'] = '1'
 import pyflwdir  # noqa: E402
@@ -421,7 +423,9 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
     """
     polys = []
     # Iterate over the nodes in the graph
-    for id, data in tqdm(G.nodes(data=True), total=len(G.nodes)):
+    for id, data in tqdm(G.nodes(data=True), 
+                         total=len(G.nodes),
+                         disable = not verbose()):
         # Snap the node to the nearest grid cell
         x, y = data['x'], data['y']
         grid_ = deepcopy(grid)
@@ -480,7 +484,8 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     # with the smallest area polygon
     minimal_geom = result_polygons.iloc[0]['geometry']
     for idx, row in tqdm(result_polygons.iloc[1:].iterrows(), 
-                         total=result_polygons.shape[0] - 1):
+                         total=result_polygons.shape[0] - 1,
+                         disable = not verbose()):
         
         # Trim the polygon by the combined geometry
         result_polygons.at[idx, 'geometry'] = row['geometry'].difference(
