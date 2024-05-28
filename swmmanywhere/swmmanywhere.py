@@ -64,7 +64,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Run downloads
     logger.info("Running downloads.")
-    api_keys = yaml_load(config['api_keys'].open('r'))
+    api_keys = yaml_load(config['api_keys'].read_text())
     preprocessing.run_downloads(config['bbox'],
                 addresses,
                 api_keys,
@@ -304,10 +304,10 @@ def load_config(config_path: Path, validation: bool = True):
     """
     # Load the schema
     schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
-    schema = yaml_load(schema_fid.open('r'))
+    schema = yaml_load(schema_fid.read_text())
 
     # Load the config
-    config = yaml_load(config_path.open('r'))
+    config = yaml_load(config_path.read_text())
 
     if not validation:
         return config

@@ -46,7 +46,7 @@ def get_country(x: float,
     geolocator = Nominatim(user_agent="get_iso")
 
     # Load ISO code mapping from YAML file
-    data = yaml_load(iso_path.open("r"))
+    data = yaml_load(iso_path.read_text())
 
     # Get country ISO code from coordinates
     location = geolocator.reverse(f"{y}, {x}", exactly_one=True)
