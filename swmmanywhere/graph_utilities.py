@@ -6,7 +6,6 @@ utilities (such as save/load functions).
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 from abc import ABC, abstractmethod
@@ -21,11 +20,11 @@ import numpy as np
 import osmnx as ox
 import pandas as pd
 import shapely
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters, shortest_path_utils
-from swmmanywhere.custom_logging import logger
+from swmmanywhere.logging import logger, verbose
 
 
 def load_graph(fid: Path) -> nx.Graph:
@@ -179,11 +178,10 @@ def iterate_graphfcns(G: nx.Graph,
     not_exists = [g for g in graphfcn_list if g not in graphfcns]
     if not_exists:
         raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
-    verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
-        if verbose:
+        if verbose():
             save_graph(G, addresses.model / f"{function}_graph.json")
             go.graph_to_geojson(graphfcns.fix_geometries(G),
                                 addresses.model / f"{function}_nodes.geojson",
@@ -632,7 +630,7 @@ class clip_to_catchments(BaseGraphFunction,
         subbasins = go.derive_subbasins_streamorder(addresses.elevation,
                                 subcatchment_derivation.subbasin_streamorder)
         
-        if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+        if verbose():
             subbasins.to_file(
                 str(addresses.nodes).replace('nodes','subbasins'), 
                 driver='GeoJSON')
@@ -799,7 +797,7 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
-            if os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true":
+            if verbose():
                 subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
@@ -1503,7 +1501,8 @@ class pipe_by_pipe(BaseGraphFunction,
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
         # Iterate over nodes in topological order
-        for node in tqdm(topological_order):
+        for node in tqdm(topological_order,
+                         disable = not verbose()):
             # Check if there's any nodes upstream, if not set the depth to min_depth
             if len(nx.ancestors(G,node)) == 0:
                 chamber_floor[node] = surface_elevations[node] - \

@@ -186,11 +186,21 @@ def test_river_downloader():
     bbox = (0.0402, 51.55759, 0.09825591114207548, 51.6205)
 
     mock_graph = nx.MultiDiGraph()
+    mock_graph.add_node(1)
     # Mock ox.graph_from_bbox
-    with mock.patch.object(ox, 'graph_from_bbox', return_value=mock_graph):
+    with mock.patch.object(ox, 
+                           'graph_from_bbox', 
+                           return_value=mock_graph) as mock_from_bbox:
         # Call download_street
         G = downloaders.download_river(bbox)
         assert G == mock_graph
+
+        mock_from_bbox.side_effect = ValueError(
+            "Found no graph nodes within the requested polygon"
+            )
+        G = downloaders.download_river(bbox)
+        assert G.size() == 0
+
 
 def test_elevation_downloader():
     """Check elevation downloads, writes, contains data, and a known elevation."""

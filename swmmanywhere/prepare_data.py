@@ -14,10 +14,10 @@ import osmnx as ox
 import pandas as pd
 import requests
 import xarray as xr
-import yaml
 from geopy.geocoders import Nominatim
 
-from swmmanywhere.custom_logging import logger
+from swmmanywhere.logging import logger
+from swmmanywhere.utilities import yaml_load
 
 
 def get_country(x: float, 
@@ -46,8 +46,7 @@ def get_country(x: float,
     geolocator = Nominatim(user_agent="get_iso")
 
     # Load ISO code mapping from YAML file
-    with iso_path.open("r") as file:
-        data = yaml.safe_load(file)
+    data = yaml_load(iso_path.read_text())
 
     # Get country ISO code from coordinates
     location = geolocator.reverse(f"{y}, {x}", exactly_one=True)
@@ -123,10 +122,18 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             ``truncate_by_edge set`` to True.
     """
     west, south, east, north = bbox
-    graph = ox.graph_from_bbox(
-        bbox = (north, south, east, west),
-        truncate_by_edge=True, 
-        custom_filter='["waterway"]')
+    try: 
+        graph = ox.graph_from_bbox(
+            bbox = (north, south, east, west),
+            truncate_by_edge=True, 
+            custom_filter='["waterway"]',
+            retain_all=True)
+    except ValueError as e:
+        if str(e) == "Found no graph nodes within the requested polygon":
+            logger.warning('No water network found within the bounding box.')
+            return nx.MultiDiGraph()
+        else:
+            raise  # Re-raise the exception 
     
     return cast("nx.MultiDiGraph", graph)
 
