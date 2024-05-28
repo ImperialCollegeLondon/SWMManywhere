@@ -123,10 +123,18 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             ``truncate_by_edge set`` to True.
     """
     west, south, east, north = bbox
-    graph = ox.graph_from_bbox(
-        bbox = (north, south, east, west),
-        truncate_by_edge=True, 
-        custom_filter='["waterway"]')
+    try: 
+        graph = ox.graph_from_bbox(
+            bbox = (north, south, east, west),
+            truncate_by_edge=True, 
+            custom_filter='["waterway"]',
+            retain_all=True)
+    except ValueError as e:
+        if str(e) == "Found no graph nodes within the requested polygon":
+            logger.warning('No water network found within the bounding box.')
+            return nx.MultiDiGraph()
+        else:
+            raise  # Re-raise the exception 
     
     return cast("nx.MultiDiGraph", graph)
 
