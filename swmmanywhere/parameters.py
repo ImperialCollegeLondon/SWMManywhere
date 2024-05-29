@@ -78,10 +78,10 @@ class OutletDerivation(BaseModel):
 		description = "Buffer distance to link rivers to streets.")
 
 	outlet_length: float = Field(default = 40.0,
-		ge = 10.0,
+		ge = 0.0,
 		le = 600.0,
-		unit = "m",
-		description = "Length to discourage street drainage into river buffers.")
+		unit = "-",
+		description = "Weight to discourage street drainage into river buffers.")
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
