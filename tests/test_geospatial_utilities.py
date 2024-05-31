@@ -437,3 +437,11 @@ def test_merge_points():
     assert mapping[15]['maps_to'] == 15
     assert mapping[18]['maps_to'] == 15
     assert almost_equal(mapping[18]['coordinate'][0], 700445.0112082)
+
+def test_derive_subbasins():
+    """Test the derive_subbasins_streamorder function."""
+    elevation_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    basins, streams = go.derive_subbasins_streamorder(elevation_fid,3)
+    assert basins.shape[0] == 5
+    assert streams.shape[0] == 6
+    assert (streams.strord >= 3).all()

@@ -56,6 +56,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     params = parameters.get_full_parameters()
     for category, overrides in config.get('parameter_overrides', {}).items():
         for key, val in overrides.items():
+            logger.info(f"Setting {category} {key} to {val}")
             setattr(params[category], key, val)
             
     # Save config file
@@ -73,7 +74,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Identify the starting graph
     logger.info("Iterating graphs.")
-    if config['starting_graph']:
+    if config.get('starting_graph', None):
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
@@ -114,7 +115,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
-    if config['real']['results']:
+    if config['real'].get('results',None):
         logger.info("Loading real results.")
         # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])

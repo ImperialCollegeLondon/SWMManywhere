@@ -6,10 +6,10 @@ utilities (such as save/load functions).
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Optional, cast
@@ -23,7 +23,7 @@ import shapely
 from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere import parameters
+from swmmanywhere import parameters, shortest_path_utils
 from swmmanywhere.logging import logger, verbose
 
 
@@ -302,7 +302,7 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
 
 @register_graphfcn
 class calculate_streetcover(BaseGraphFunction,
-                         required_edge_attributes = ['lanes']
+                         required_edge_attributes = ['lanes','geometry']
                          ):
     """calculate_streetcover class."""
     # i.e., in osmnx format, i.e., empty for single lane, an int for a
@@ -382,7 +382,6 @@ class double_directed(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         # Convert to directed
-        G_new = G.copy()
         G_new = nx.MultiDiGraph(G.copy())
         
         # MultiDiGraph adds edges in both directions, but rivers (and geometries)
@@ -591,7 +590,8 @@ class fix_geometries(BaseGraphFunction,
 @register_graphfcn
 class clip_to_catchments(BaseGraphFunction,
                          required_node_attributes = ['x','y'],
-                         required_edge_attributes = ['length'],):
+                         required_edge_attributes = ['length'],
+                         adds_node_attributes = ['community','basin']):
     """clip_to_catchments class."""
     def __call__(self, 
                  G: nx.Graph,
@@ -612,6 +612,8 @@ class clip_to_catchments(BaseGraphFunction,
         in that subbasin removed. Nodes not in any subbasin are assigned to a 
         subbasin to cover all unassigned nodes.
 
+        Community and basin ids are added to nodes mainly to help with debugging.
+
         Args:
             G (nx.Graph): A graph
             addresses (parameters.FilePaths): A FilePaths parameter object
@@ -625,9 +627,36 @@ class clip_to_catchments(BaseGraphFunction,
         G = G.copy()
 
         # Derive subbasins
-        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+        subbasins, streams = go.derive_subbasins_streamorder(addresses.elevation,
                                 subcatchment_derivation.subbasin_streamorder)
         
+        # Insert rivers
+        streams['edge_type'] = 'river'
+        streams['id'] = [f'river-edge-{ix}' for ix in range(len(streams))]
+        streams['length'] = streams['geometry'].length
+        streams = streams[['geometry','edge_type','id','length']]
+        streamsG = G.__class__()
+        for idx, row in streams.iterrows():
+            geom = row.geometry
+            if geom.length == 0:
+                continue
+            streamsG.add_node(geom.coords[0], 
+                       x = geom.coords[0][0], 
+                       y = geom.coords[0][1])
+            streamsG.add_node(geom.coords[-1], 
+                       x = geom.coords[-1][0], 
+                       y = geom.coords[-1][1])
+            
+            streamsG.add_edge(geom.coords[0],geom.coords[-1],**row)
+        
+        streamsG = nx.relabel_nodes(streamsG,
+                                    {ix : f'river-node-{i}' 
+                                     for i, ix in enumerate(streamsG.nodes)}
+                                    )
+        
+        G = nx.compose(G, streamsG)
+        
+
         if verbose():
             subbasins.to_file(
                 str(addresses.nodes).replace('nodes','subbasins'), 
@@ -638,20 +667,34 @@ class clip_to_catchments(BaseGraphFunction,
         street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
                                   if d.get('edge_type', 'street') != 'street'])
 
+        # Create gdf of street points
+        street_points = gpd.GeoDataFrame(street.nodes,
+            columns = ['id'],
+            geometry = gpd.points_from_xy(
+                [street.nodes[u]['x'] for u in street.nodes],
+                [street.nodes[u]['y'] for u in street.nodes]
+                ),
+            crs = G.graph['crs']
+            ).set_index('id')
+        
+        # Classify street points by subbasin
+        street_points = gpd.sjoin(street_points,
+                                subbasins.set_index('basin'),
+                                how='left',
+                        ).rename(columns = {'index_right': 'basin'})
+
+        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
+            edges_to_remove = [
+                (u,v) for u, v in street.edges()
+                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
+                ]
+            G.remove_edges_from(edges_to_remove)
+            return G
+        
         # Derive road network clusters
         louv_membership = nx.community.louvain_communities(street,
                                                            weight = 'length',
                                                            seed = 1)
-        
-        # Create gdf of street points
-        street_points = gpd.GeoDataFrame(G.nodes,
-            columns = ['id'],
-            geometry = gpd.points_from_xy(
-                [G.nodes[u]['x'] for u in G.nodes],
-                [G.nodes[u]['y'] for u in G.nodes]
-                ),
-            crs = G.graph['crs']
-            ).set_index('id')
         
         street_points['community'] = 0 
         # Assign louvain membership to street points
@@ -663,12 +706,39 @@ class clip_to_catchments(BaseGraphFunction,
                                 subbasins.set_index('basin'),
                                 how='left',
                         ).rename(columns = {'index_right': 'basin'})
+
+        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
+            edges_to_remove = [
+                (u,v) for u, v in G.edges()
+                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
+                ]
+            G.remove_edges_from(edges_to_remove)
+            return G
+        
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length',
+                                                           seed = 1)
+        
+        street_points['community'] = 0 
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
+        
+        
         
         # Introduce a non catchment basin for nan
         street_points['basin'] = street_points['basin'].fillna(-1)
         # TODO possibly it makes sense to just remove these nodes, or at least
         # any communities that are all nan
-
+        
+        nx.set_node_attributes(G,
+                               street_points['community'].to_dict(),
+                               'community')
+        nx.set_node_attributes(G,
+                               street_points['basin'].to_dict(),
+                               'basin')
+        
 
         # Calculate most percentage of each subbasin in each community
         community_basin = (
@@ -721,7 +791,14 @@ class clip_to_catchments(BaseGraphFunction,
                 [(v, u, 0) for u, v in product(community_nodes, basin_nodes)]
                 )
         G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
-
+        if G.is_directed():
+            logger.info(f"""clip_to_catchments has created 
+                    {len([sg for sg in nx.weakly_connected_components(G)])} 
+                    subgraphs.""")
+        else:
+            logger.info(f"""clip_to_catchments has created 
+                    {len([sg for sg in nx.connected_components(G)])} 
+                    subgraphs.""")
         return G
         
 
@@ -1014,7 +1091,26 @@ class identify_outlets(BaseGraphFunction,
         """Identify outlets in a combined river-street graph.
 
         This function identifies outlets in a combined river-street graph. An
-        outlet is a node that is connected to a river and a street. 
+        outlet is a node that is connected to a river and a street. Each street
+        node is paired with the nearest river node provided that it is within
+        a distance of outlet_derivation.river_buffer_distance - this provides a
+        large set of plausible outlets. If there are no plausible outlets for an
+        entire subgraph, then a dummy river node is created and the lowest
+        elevation node is paired with it. Any street->river/outlet link is given
+        a `weight` and `length` of outlet_derivation.outlet_length, this is to
+        ensure some penalty on the total number of outlets selected.
+
+        Two methods are available for determining which plausible outlets to 
+        retain:
+
+        - `withtopo`: all plausible outlets are retained, connected to a single
+        'waste' node and assumed to be later identified as part of the 
+        `derive_topology` graphfcn.
+        
+        - `separate`: the retained outlets are those that are selected as part 
+        of the minimum spanning tree (MST) of the combined street-river graph. 
+        This method can be temporamental because the MST is undirected, because
+        rivers are inherently directed unusual outlet locations may be retained.
 
         Args:
             G (nx.Graph): A graph
@@ -1040,53 +1136,92 @@ class identify_outlets(BaseGraphFunction,
                 street_points[u] = upoint
                 street_points[v] = vpoint
         
-        # Pair up the river and street nodes
-        matched_outlets = go.nearest_node_buffer(river_points,
-                                                street_points,
-                                                outlet_derivation.river_buffer_distance)
-        
-        # Copy graph to run shortest path on
-        G_ = G.copy()
+        matched_outlets = {}
 
-        if not matched_outlets:
+        # Insert a dummy river node and use lowest elevation node as outlet
+        # for each subgraph with no matched outlets
+        subgraphs = []
+        for sg in nx.weakly_connected_components(G):      
+            sg = G.subgraph(sg).copy()
+            subgraphs.append(sg)
+
+            # Ignore the rivers, they are drained later
+            if set(
+                [d['edge_type'] for u,v,d in sg.edges(data=True)]
+                ).issubset(['river']):
+                continue
+            
+            # Pair up the river and street nodes for each subgraph
+            street_points_ = {k: v for k, v in street_points.items() 
+                              if k in sg.nodes}
+            matched_outlets.update(
+                go.nearest_node_buffer(street_points_,
+                                       river_points,
+                                       outlet_derivation.river_buffer_distance))
+
+            # Check if there are any matched outlets
+            if set(matched_outlets).intersection(sg.nodes):
+                continue
+
             # In cases of e.g., an area with no rivers to discharge into or too
             # small a buffer
 
             # Identify the lowest elevation node
-            lowest_elevation_node = min(G.nodes, 
-                                    key = lambda x: G.nodes[x]['surface_elevation'])
+            lowest_elevation_node = min(sg.nodes, 
+                        key = lambda x: sg.nodes[x]['surface_elevation'])
             
             # Create a dummy river to discharge into
-            dummy_river = {'id' : 'dummy_river',
-                           'x' : G.nodes[lowest_elevation_node]['x'] + 1,
-                           'y' : G.nodes[lowest_elevation_node]['y'] + 1}
-            G_.add_node('dummy_river')
-            nx.set_node_attributes(G_, {'dummy_river' : dummy_river})
+            name = f'{lowest_elevation_node}-dummy_river'
+            dummy_river = {'id' : name,
+                        'x' : G.nodes[lowest_elevation_node]['x'] +\
+                              outlet_derivation.dummy_outlet_offset,
+                        'y' : G.nodes[lowest_elevation_node]['y'] +\
+                              outlet_derivation.dummy_outlet_offset
+                        }
+            sg.add_node(name)
+            nx.set_node_attributes(sg, {name : dummy_river})
 
             # Update function's dicts
-            matched_outlets = {'dummy_river' : lowest_elevation_node}
-            river_points['dummy_river'] = shapely.Point(dummy_river['x'],
-                                                        dummy_river['y'])
+            matched_outlets[lowest_elevation_node] = name
+            river_points[name] = shapely.Point(dummy_river['x'],
+                                                dummy_river['y'])
             
-            logger.warning('No outlets found, using lowest elevation node as outlet')
+            logger.warning(f"""No outlets found for subgraph containing 
+                           {lowest_elevation_node}, using this node as outlet.""")
+
+        G = nx.compose_all(subgraphs)
+        G_ = G.copy()
 
         # Add edges between the paired river and street nodes
-        for river_id, street_id in matched_outlets.items():
+        for street_id, river_id in matched_outlets.items():
             # TODO instead use a weight based on the distance between the two nodes
             G_.add_edge(street_id, river_id,
                         **{'length' : outlet_derivation.outlet_length,
+                           'weight' : outlet_derivation.outlet_length,
                         'edge_type' : 'outlet',
                         'geometry' : shapely.LineString([street_points[street_id],
                                                     river_points[river_id]]),
                         'id' : f'{street_id}-{river_id}-outlet'})
         
         # Add edges from the river nodes to a waste node
+        if outlet_derivation.method == 'withtopo':
+            G_.add_node('waste')
+            waste_outlet_type = 'waste-outlet'
+        else:
+            waste_outlet_type = 'outlet'
+
         for river_node in river_points.keys():
             if G.out_degree(river_node) == 0:
+                if outlet_derivation.method == 'withtopo':
+                    # Location of the waste node doesn't matter - so if there
+                    # are multiple river nodes with out_degree 0 - that's fine.
+                    G_.nodes['waste']['x'] = G.nodes[river_node]['x'] + 1
+                    G_.nodes['waste']['y'] = G.nodes[river_node]['y'] + 1
                 G_.add_edge(river_node,
                             'waste',
                             **{'length' : 0,
-                            'edge_type' : 'outlet',
+                               'weight' : 0,
+                            'edge_type' : waste_outlet_type,
                             'id' : f'{river_node}-waste-outlet'})
         
         # Set the length of the river edges to 0 - from a design perspective 
@@ -1095,11 +1230,18 @@ class identify_outlets(BaseGraphFunction,
         for u,v,d in G_.edges(data=True):
             if d['edge_type'] == 'river':
                 d['length'] = 0
+                d['weight'] = 0
+        
+        # The outlets can also be derived as part of the shortest path 
+        # calculations
+        if outlet_derivation.method == 'withtopo':
+            return G_
         
         # Find shortest path to identify only 'efficient' outlets. The MST
         # makes sense here over shortest path as each node is only allowed to
         # be visited once - thus encouraging fewer outlets. In shortest path
         # nodes near rivers will always just pick their nearest river node.
+        
         T = nx.minimum_spanning_tree(G_.to_undirected(),
                                         weight = 'length')
         
@@ -1113,29 +1255,63 @@ class identify_outlets(BaseGraphFunction,
                     G.add_edge(v,u,**d)
 
         return G
+    
+def _iterate_upstream(G, node, visited):
+    visited.add(node)
+    for u,v in G.in_edges(node):
+        if u in visited:
+            continue
+        _iterate_upstream(G, u, visited)
+
+def _filter_streets(G):
+    # Remove non-street edges/nodes and unconnected nodes
+    nodes_to_remove = []
+    for u, v, d in G.edges(data=True):
+        if d['edge_type'] != 'street':
+            if d['edge_type'] == 'outlet':
+                nodes_to_remove.append(v)
+            else:
+                nodes_to_remove.extend((u,v))
+    G.remove_nodes_from(nodes_to_remove)
+    return G
 
 @register_graphfcn
 class derive_topology(BaseGraphFunction,
                       required_edge_attributes = ['edge_type', # 'rivers' and 'streets'
                                                   'weight'],
-                      adds_node_attributes = ['outlet', 'shortest_path']):
+                      adds_node_attributes = ['outlet', 
+                                              'shortest_path']):
     """derive_topology class."""
     
 
-    def __call__(self, G: nx.Graph,
-                    **kwargs) -> nx.Graph:
+    def __call__(self, 
+                 G: nx.Graph,
+                 outlet_derivation: parameters.OutletDerivation,
+                 **kwargs) -> nx.Graph:
         """Derive the topology of a graph.
 
-        Runs a djiikstra-based algorithm to identify the shortest path from each
-        node to its nearest outlet (weighted by the 'weight' edge value). The 
+        Derives the network topology based on the weighted graph of potential
+        pipe carrying edges in the graph.
+
+        Two methods are available:
+        - `separate`: The original and that assumes outlets have already been
+        narrowed down from the original plausible set. Runs a djiikstra-based 
+        algorithm to identify the shortest path from each node to its nearest 
+        outlet (weighted by the 'weight' edge value). The 
         returned graph is one that only contains the edges that feature  on the 
-        shortest paths. Street nodes that cannot be connected to any outlet (i.e., 
-        they are a distance greater than `outlet_derivation.river_buffer_distance` 
-        from any river node or any street node that is connected to an outlet) 
-        are removed from the graph.
+        shortest paths. 
+        - `withtopo`: The alternative method that assumes no narrowing of plausible
+        outlets has been performed. This method runs a Tarjan's algorithm to
+        identify the spanning forest starting from a `waste` node that all 
+        plausible outlets are connected to (whether via a river or directly).
+        
+        In both methods, street nodes that have no plausible route to any outlet
+        are removed.
 
         Args:
             G (nx.Graph): A graph
+            outlet_derivation (parameters.OutletDerivation): An OutletDerivation
+                parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -1143,82 +1319,49 @@ class derive_topology(BaseGraphFunction,
         """
         G = G.copy()
         
-        # Identify outlets
-        outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
-
-        # Remove non-street edges/nodes and unconnected nodes
-        nodes_to_remove = []
-        for u, v, d in G.edges(data=True):
-            if d['edge_type'] != 'street':
-                if d['edge_type'] == 'outlet':
-                    nodes_to_remove.append(v)
-                else:
-                    nodes_to_remove.extend((u,v))
-
-        isolated_nodes = list(nx.isolates(G))
-
-        for u in set(nodes_to_remove).union(isolated_nodes):
-            G.remove_node(u)
-
-        # Check for negative cycles
-        if nx.negative_edge_cycle(G, weight = 'weight'):
-            logger.warning('Graph contains negative cycle')
-
-        # Initialize the dictionary with infinity for all nodes
-        shortest_paths = {node: float('inf') for node in G.nodes}
-
-        # Initialize the dictionary to store the paths
-        paths: dict[Hashable,list] = {node: [] for node in G.nodes}
-
-        # Set the shortest path length to 0 for outlets
-        for outlet in outlets:
-            shortest_paths[outlet] = 0
-            paths[outlet] = [outlet]
-
-        # Initialize a min-heap with (distance, node) tuples
-        heap = [(0, outlet) for outlet in outlets]
-        while heap:
-            # Pop the node with the smallest distance
-            dist, node = heappop(heap)
-
-            # For each neighbor of the current node
-            for neighbor, _, edge_data in G.in_edges(node, data=True):
-                # Calculate the distance through the current node
-                alt_dist = dist + edge_data['weight']
-                # If the alternative distance is shorter
-
-                if alt_dist >= shortest_paths[neighbor]:
-                    continue
-                
-                # Update the shortest path length
-                shortest_paths[neighbor] = alt_dist
-                # Update the path
-                paths[neighbor] = paths[node] + [neighbor]
-                # Push the neighbor to the heap
-                heappush(heap, (alt_dist, neighbor))
+        visited: set = set()
         
-        # Remove nodes with no path to an outlet
-        for node in [node for node, path in paths.items() if not path]:
-            G.remove_node(node)
-            del paths[node], shortest_paths[node]
+        # Increase recursion limit to allow to iterate over the entire graph
+        # Seems to be the quickest way to identify which nodes have a path to
+        # the outlet
+        original_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(max(original_limit, len(G.nodes)))
 
-        edges_to_keep: set = set()
-        for path in paths.values():
-            # Assign outlet
-            outlet = path[0]
-            for node in path:
-                G.nodes[node]['outlet'] = outlet
-                G.nodes[node]['shortest_path'] = shortest_paths[node]
+        # Identify outlets
+        if outlet_derivation.method == 'withtopo':
+            _iterate_upstream(G, 'waste', visited)
 
-            # Store path
-            edges_to_keep.update(zip(path[1:], path[:-1]))
+            # Remove nodes not reachable from waste
+            G.remove_nodes_from(set(G.nodes) - visited)
+
+            # Run shorted path
+            G = shortest_path_utils.tarjans_pq(G,'waste')
             
-        # Remove edges not on paths
-        new_graph = G.copy()
-        for u,v in G.edges():
-            if (u,v) not in edges_to_keep:
-                new_graph.remove_edge(u,v)
-        return new_graph
+            # G = _filter_streets(G)
+            G.remove_node('waste')
+        else:
+            outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+
+            for outlet in outlets:
+                _iterate_upstream(G, outlet, visited)
+
+            G.remove_nodes_from(set(G.nodes) - visited)
+            # G = _filter_streets(G)
+
+            # Check for negative cycles
+            if nx.negative_edge_cycle(G, weight = 'weight'):
+                logger.warning('Graph contains negative cycle')
+
+            G = shortest_path_utils.dijkstra_pq(G, outlets)
+
+        # Reset recursion limit
+        sys.setrecursionlimit(original_limit)
+
+        # Log total weight
+        total_weight = sum([d['weight'] for u,v,d in G.edges(data=True)])
+        logger.info(f"Total graph weight {total_weight}.")
+
+        return G
 
 def design_pipe(ds_elevation: float,
                        chamber_floor: float, 
@@ -1407,8 +1550,12 @@ class pipe_by_pipe(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
+        G_ = G.copy()
+        surface_elevations = nx.get_node_attributes(G_, 'surface_elevation')
+
+        # Only design pipes along streets
         G = G.copy()
-        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
+        G = _filter_streets(G)
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
@@ -1427,7 +1574,16 @@ class pipe_by_pipe(BaseGraphFunction,
                        edge_diams,
                        hydraulic_design
                        )
-            
-        nx.function.set_edge_attributes(G, edge_diams, "diameter")
-        nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
-        return G
+        
+        # Set default values for the edges
+        nx.function.set_edge_attributes(G_, 
+                                        hydraulic_design.non_pipe_diameter, 
+                                        "diameter")
+        nx.function.set_node_attributes(G_, 
+                                        surface_elevations, 
+                                        "chamber_floor_elevation")
+        
+        # Set pipe design values
+        nx.function.set_edge_attributes(G_, edge_diams, "diameter")
+        nx.function.set_node_attributes(G_, chamber_floor, "chamber_floor_elevation")
+        return G_
