@@ -1174,9 +1174,11 @@ class identify_outlets(BaseGraphFunction,
             name = f'{lowest_elevation_node}-dummy_river'
             dummy_river = {'id' : name,
                         'x' : G.nodes[lowest_elevation_node]['x'] +\
-                              outlet_derivation.dummy_outlet_offset,
+                            outlet_derivation.dummy_outlet_offset,
                         'y' : G.nodes[lowest_elevation_node]['y'] +\
-                              outlet_derivation.dummy_outlet_offset
+                            outlet_derivation.dummy_outlet_offset,
+                        'surface_elevation' : 
+                            sg.nodes[lowest_elevation_node]['surface_elevation']
                         }
             sg.add_node(name)
             nx.set_node_attributes(sg, {name : dummy_river})
