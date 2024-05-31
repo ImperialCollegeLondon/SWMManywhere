@@ -741,13 +741,10 @@ class clip_to_catchments(BaseGraphFunction,
                 )
         G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
         if G.is_directed():
-            logger.info(f"""clip_to_catchments has created 
-                    {len([sg for sg in nx.weakly_connected_components(G)])} 
-                    subgraphs.""")
+            subgraphs = len(list(nx.weakly_connected_components(G)))
         else:
-            logger.info(f"""clip_to_catchments has created 
-                    {len([sg for sg in nx.connected_components(G)])} 
-                    subgraphs.""")
+            subgraphs = len(list(nx.connected_components(G)))
+        logger.info(f"clip_to_catchments has created {subgraphs} subgraphs.")
         return G
         
 
