@@ -1098,13 +1098,15 @@ class identify_outlets(BaseGraphFunction,
             # Pair up the river and street nodes for each subgraph
             street_points_ = {k: v for k, v in street_points.items() 
                               if k in sg.nodes}
-            matched_outlets.update(
-                go.nearest_node_buffer(street_points_,
+            
+            subgraph_outlets = go.nearest_node_buffer(street_points_,
                                        river_points,
-                                       outlet_derivation.river_buffer_distance))
+                                       outlet_derivation.river_buffer_distance)
 
             # Check if there are any matched outlets
-            if set(matched_outlets).intersection(sg.nodes):
+            if subgraph_outlets:
+                # Update all matched outlets
+                matched_outlets.update(subgraph_outlets)
                 continue
 
             # In cases of e.g., an area with no rivers to discharge into or too
