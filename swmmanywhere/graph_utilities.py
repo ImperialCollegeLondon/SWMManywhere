@@ -664,8 +664,7 @@ class clip_to_catchments(BaseGraphFunction,
 
         # Extract street network
         street = G.copy()
-        street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
-                                  if d.get('edge_type', 'street') != 'street'])
+        street = _filter_streets(street)
 
         # Create gdf of street points
         street_points = gpd.GeoDataFrame(street.nodes,
@@ -697,35 +696,10 @@ class clip_to_catchments(BaseGraphFunction,
                                                            seed = 1)
         
         street_points['community'] = 0 
+        
         # Assign louvain membership to street points
         for ix, community in enumerate(louv_membership):
-            street_points.loc[list(community), 'community'] = ix
-        
-        # Classify street points by subbasin
-        street_points = gpd.sjoin(street_points,
-                                subbasins.set_index('basin'),
-                                how='left',
-                        ).rename(columns = {'index_right': 'basin'})
-
-        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
-            edges_to_remove = [
-                (u,v) for u, v in G.edges()
-                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
-                ]
-            G.remove_edges_from(edges_to_remove)
-            return G
-        
-        # Derive road network clusters
-        louv_membership = nx.community.louvain_communities(street,
-                                                           weight = 'length',
-                                                           seed = 1)
-        
-        street_points['community'] = 0 
-        # Assign louvain membership to street points
-        for ix, community in enumerate(louv_membership):
-            street_points.loc[list(community), 'community'] = ix
-        
-        
+            street_points.loc[list(community), 'community'] = ix        
         
         # Introduce a non catchment basin for nan
         street_points['basin'] = street_points['basin'].fillna(-1)
