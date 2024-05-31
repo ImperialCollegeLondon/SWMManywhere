@@ -1092,7 +1092,9 @@ class identify_outlets(BaseGraphFunction,
             subgraphs.append(sg)
 
             # Ignore the rivers, they are drained later
-            if any([d['edge_type'] == "river" for _,_,d in sg.edges(data=True)]):
+            if set(
+                [d['edge_type'] for u,v,d in sg.edges(data=True)]
+                ).issubset(['river']):
                 continue
             
             # Pair up the river and street nodes for each subgraph
