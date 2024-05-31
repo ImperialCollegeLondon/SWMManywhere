@@ -603,6 +603,11 @@ class clip_to_catchments(BaseGraphFunction,
         Derive the subbasins with `subcatchment_derivation.subbasin_streamorder`.
         If no subbasins exist for that stream order, the value is iterated 
         downwards and a warning it flagged. 
+
+        If `subcatchment_derivation.subbasin_clip_method` is 'subbasin', then
+        links between subbasins are removed. If it is 'community', then links
+        between communities in different subbasins may be removed based on the
+        following method.
         
         Run Louvain community detection on the street network to create street 
         node communities. 
