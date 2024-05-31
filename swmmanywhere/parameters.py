@@ -91,6 +91,10 @@ class OutletDerivation(BaseModel):
 		le = 600.0,
 		unit = "m",
 		description = "Length to discourage street drainage into river buffers.") 
+    
+	dummy_outlet_offset: float = Field(default = 100,
+        description = "Distance offset of pipe for dummy nodes",
+        unit = "m")
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
@@ -219,6 +223,9 @@ class HydraulicDesign(BaseModel):
 		ge = 0.001,
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
+    non_pipe_diameter: float = Field(default = 10,
+        description = "Diameter of non-pipe elements",
+        unit = "m")
 
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""

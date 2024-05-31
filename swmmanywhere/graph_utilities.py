@@ -627,9 +627,36 @@ class clip_to_catchments(BaseGraphFunction,
         G = G.copy()
 
         # Derive subbasins
-        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+        subbasins, streams = go.derive_subbasins_streamorder(addresses.elevation,
                                 subcatchment_derivation.subbasin_streamorder)
         
+        # Insert rivers
+        streams['edge_type'] = 'river'
+        streams['id'] = [f'river-edge-{ix}' for ix in range(len(streams))]
+        streams['length'] = streams['geometry'].length
+        streams = streams[['geometry','edge_type','id','length']]
+        streamsG = G.__class__()
+        for idx, row in streams.iterrows():
+            geom = row.geometry
+            if geom.length == 0:
+                continue
+            streamsG.add_node(geom.coords[0], 
+                       x = geom.coords[0][0], 
+                       y = geom.coords[0][1])
+            streamsG.add_node(geom.coords[-1], 
+                       x = geom.coords[-1][0], 
+                       y = geom.coords[-1][1])
+            
+            streamsG.add_edge(geom.coords[0],geom.coords[-1],**row)
+        
+        streamsG = nx.relabel_nodes(streamsG,
+                                    {ix : f'river-node-{i}' 
+                                     for i, ix in enumerate(streamsG.nodes)}
+                                    )
+        
+        G = nx.compose(G, streamsG)
+        
+
         if verbose():
             subbasins.to_file(
                 str(addresses.nodes).replace('nodes','subbasins'), 
@@ -641,14 +668,38 @@ class clip_to_catchments(BaseGraphFunction,
                                   if d.get('edge_type', 'street') != 'street'])
 
         # Create gdf of street points
-        street_points = gpd.GeoDataFrame(G.nodes,
+        street_points = gpd.GeoDataFrame(street.nodes,
             columns = ['id'],
             geometry = gpd.points_from_xy(
-                [G.nodes[u]['x'] for u in G.nodes],
-                [G.nodes[u]['y'] for u in G.nodes]
+                [street.nodes[u]['x'] for u in street.nodes],
+                [street.nodes[u]['y'] for u in street.nodes]
                 ),
             crs = G.graph['crs']
             ).set_index('id')
+        
+        # Classify street points by subbasin
+        street_points = gpd.sjoin(street_points,
+                                subbasins.set_index('basin'),
+                                how='left',
+                        ).rename(columns = {'index_right': 'basin'})
+
+        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
+            edges_to_remove = [
+                (u,v) for u, v in street.edges()
+                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
+                ]
+            G.remove_edges_from(edges_to_remove)
+            return G
+        
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length',
+                                                           seed = 1)
+        
+        street_points['community'] = 0 
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
         
         # Classify street points by subbasin
         street_points = gpd.sjoin(street_points,
@@ -1122,8 +1173,11 @@ class identify_outlets(BaseGraphFunction,
             # Create a dummy river to discharge into
             name = f'{lowest_elevation_node}-dummy_river'
             dummy_river = {'id' : name,
-                        'x' : G.nodes[lowest_elevation_node]['x'] + 1,
-                        'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+                        'x' : G.nodes[lowest_elevation_node]['x'] +\
+                              outlet_derivation.dummy_outlet_offset,
+                        'y' : G.nodes[lowest_elevation_node]['y'] +\
+                              outlet_derivation.dummy_outlet_offset
+                        }
             sg.add_node(name)
             nx.set_node_attributes(sg, {name : dummy_river})
 
@@ -1283,7 +1337,8 @@ class derive_topology(BaseGraphFunction,
             # Run shorted path
             G = shortest_path_utils.tarjans_pq(G,'waste')
             
-            G = _filter_streets(G)
+            # G = _filter_streets(G)
+            G.remove_node('waste')
         else:
             outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
 
@@ -1291,7 +1346,7 @@ class derive_topology(BaseGraphFunction,
                 _iterate_upstream(G, outlet, visited)
 
             G.remove_nodes_from(set(G.nodes) - visited)
-            G = _filter_streets(G)
+            # G = _filter_streets(G)
 
             # Check for negative cycles
             if nx.negative_edge_cycle(G, weight = 'weight'):
@@ -1495,8 +1550,12 @@ class pipe_by_pipe(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
+        G_ = G.copy()
+        surface_elevations = nx.get_node_attributes(G_, 'surface_elevation')
+
+        # Only design pipes along streets
         G = G.copy()
-        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
+        G = _filter_streets(G)
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
@@ -1515,7 +1574,16 @@ class pipe_by_pipe(BaseGraphFunction,
                        edge_diams,
                        hydraulic_design
                        )
-            
-        nx.function.set_edge_attributes(G, edge_diams, "diameter")
-        nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
-        return G
+        
+        # Set default values for the edges
+        nx.function.set_edge_attributes(G_, 
+                                        hydraulic_design.non_pipe_diameter, 
+                                        "diameter")
+        nx.function.set_node_attributes(G_, 
+                                        surface_elevations, 
+                                        "chamber_floor_elevation")
+        
+        # Set pipe design values
+        nx.function.set_edge_attributes(G_, edge_diams, "diameter")
+        nx.function.set_node_attributes(G_, chamber_floor, "chamber_floor_elevation")
+        return G_
