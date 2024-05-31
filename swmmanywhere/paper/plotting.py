@@ -59,7 +59,7 @@ class ResultsPlotter():
         self._synthetic_G = nx.relabel_nodes(self._synthetic_G,
                          {x : str(x) for x in self._synthetic_G.nodes})
         nx.set_node_attributes(self._synthetic_G,
-            {u : str(d['outlet']) for u,d 
+            {u : str(d.get('outlet',None)) for u,d 
              in self._synthetic_G.nodes(data=True)},
             'outlet')
         calculate_slope(self._synthetic_G)
