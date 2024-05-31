@@ -16,8 +16,14 @@ import pytest
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
+from swmmanywhere.graph_utilities import (
+    _filter_streets,
+    _iterate_upstream,
+    iterate_graphfcns,
+    load_graph,
+    save_graph,
+)
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
 
 def load_street_network():
@@ -571,3 +577,61 @@ def test_clip_to_catchments():
             G_ = gu.clip_to_catchments(G, 
                                     addresses=addresses,
                                     subcatchment_derivation=subcatchment_derivation)
+
+def test_iterate_upstream():
+    """Test the _iterate_upstream function."""
+    # Create a sample graph
+    G = nx.DiGraph()
+    G.add_edges_from([(1, 2), (2, 3), (3, 4), (1, 5), (5, 6)])
+
+    # Test case 1: Simple upstream iteration
+    visited = set()
+    _iterate_upstream(G, 4, visited)
+    assert visited == {1, 2, 3, 4}
+
+    # Test case 2: Upstream iteration from alternate nodes
+    visited = set()
+    _iterate_upstream(G, 6, visited)
+    assert visited ==  {1, 5, 6}
+
+    # Test case 3: Upstream iteration with connections
+    visited = set()
+    G.add_edge(4, 5)
+    _iterate_upstream(G, 4, visited)
+    assert visited == {1, 2, 3, 4}
+
+    # Test case 4: Upstream iteration with cycle
+    visited = set()
+    G.add_edge(1, 4)
+    _iterate_upstream(G, 4, visited)
+    assert visited == {1, 2, 3, 4}
+
+    
+
+def test_filter_streets():
+    """Test the _filter_streets function."""
+    # Create a sample graph
+    G = nx.Graph()
+    G.add_edges_from([(1, 2, {'edge_type': 'street'}),
+                        (2, 3, {'edge_type': 'street'}),
+                        (3, 4, {'edge_type': 'outlet'}),
+                        (4, 5, {'edge_type': 'river'})])
+
+    # Test case 1: Filter streets
+    G_streets = _filter_streets(G)
+    assert set(G_streets.nodes) == {1, 2, 3}
+    assert set(G_streets.edges) == {(1, 2),(2, 3)}
+
+    # Test case 2: Empty graph
+    G_empty = nx.Graph()
+    G_empty_streets = _filter_streets(G_empty)
+    assert len(G_empty_streets.nodes) == 0
+    assert len(G_empty_streets.edges) == 0
+
+    # Test case 3: All non-street edges
+    G_non_streets = nx.Graph()
+    G_non_streets.add_edges_from([(1, 2, {'edge_type': 'non-street'}),
+                                    (2, 3, {'edge_type': 'non-street'})])
+    G_non_streets_filtered = _filter_streets(G_non_streets)
+    assert len(G_non_streets_filtered.nodes) == 0
+    assert len(G_non_streets_filtered.edges) == 0

@@ -1284,7 +1284,18 @@ class identify_outlets(BaseGraphFunction,
         else:
             raise ValueError(f"Unknown method {outlet_derivation.method}")
     
-def _iterate_upstream(G, node, visited):
+def _iterate_upstream(G: nx.Graph, 
+                      node: Hashable, 
+                      visited: set[Hashable]):
+    """Iterate upstream from a node.
+
+    This function recursively iterates upstream from a node in a graph.
+
+    Args:
+        G (nx.Graph): A graph
+        node (Hashable): A node
+        visited (set): A set of visited nodes
+    """
     visited.add(node)
     for u,v in G.in_edges(node):
         if u in visited:
@@ -1292,6 +1303,17 @@ def _iterate_upstream(G, node, visited):
         _iterate_upstream(G, u, visited)
 
 def _filter_streets(G):
+    """Filter streets.
+
+    This function removes non streets from a graph.
+
+    Args:
+        G (nx.Graph): A graph
+
+    Returns:
+       (nx.Graph): A graph of only street edges
+    """
+    G = G.copy()
     # Remove non-street edges/nodes and unconnected nodes
     nodes_to_remove = []
     for u, v, d in G.edges(data=True):
