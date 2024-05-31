@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from swmmanywhere import swmmanywhere
-from swmmanywhere.custom_logging import logger
+from swmmanywhere.logging import logger
 
 
 def parse_arguments():
