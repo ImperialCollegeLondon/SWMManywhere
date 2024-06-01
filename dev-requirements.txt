@@ -281,7 +281,7 @@ rpds-py==0.18.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.1.11
+ruff==0.4.7
     # via swmmanywhere (pyproject.toml)
 salib==1.4.7
     # via swmmanywhere (pyproject.toml)
