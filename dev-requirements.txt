@@ -310,7 +310,7 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5
     # via pyswmm
-tifffile==2024.1.30
+tifffile==2024.5.22
     # via scikit-image
 toolz==0.12.1
     # via cytoolz
