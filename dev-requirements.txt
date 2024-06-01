@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=dev --output-file=dev-requirements.txt
 #
-aenum==3.1.11
+aenum==3.1.15
     # via
     #   pyswmm
     #   swmm-toolkit
