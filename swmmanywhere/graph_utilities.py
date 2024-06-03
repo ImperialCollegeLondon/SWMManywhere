@@ -1044,19 +1044,24 @@ def _get_points(G: nx.Graph) -> tuple[Dict[str, shapely.Point],
         river_points (dict): A dictionary of river points
         street_points (dict): A dictionary of street points
     """
-    river_points = {}
-    street_points = {}
+    # Get edge types, convert to nx.Graph to remove keys
+    etypes = nx.get_edge_attributes(nx.Graph(G), "edge_type")
 
-    # Get the points for each river and street node
-    for u, v, d in G.edges(data=True):
-        upoint = shapely.Point(G.nodes[u]['x'], G.nodes[u]['y'])
-        vpoint = shapely.Point(G.nodes[v]['x'], G.nodes[v]['y'])
-        if d['edge_type'] == 'river':
-            river_points[u] = upoint
-            river_points[v] = vpoint
-        else:
-            street_points[u] = upoint
-            street_points[v] = vpoint
+    # Get river and street points as a dict
+    n_types = (
+        pd.DataFrame(etypes.items(), 
+                    columns=['key', 'type'])
+        .explode('key')
+        .reset_index(drop=True)
+        .groupby("type")["key"]
+        .apply(list)
+        .to_dict()
+    )
+    river_points = {n: shapely.Point(G.nodes[n]['x'], G.nodes[n]['y']) 
+                    for n in n_types.get('river',{})}
+    street_points = {n: shapely.Point(G.nodes[n]['x'], G.nodes[n]['y']) 
+                     for n in n_types['street']}
+
     return river_points, street_points
 
 def _pair_rivers(G: nx.Graph, 
