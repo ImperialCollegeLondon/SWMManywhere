@@ -1303,7 +1303,7 @@ def _iterate_upstream(G: nx.Graph,
 
     Args:
         G (nx.Graph): A graph
-        node (Hashable): A node
+        node (Hashable): A key for a node in the graph that should be checked.
         visited (set): A set of visited nodes
     """
     visited.add(node)
