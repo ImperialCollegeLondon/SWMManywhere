@@ -1293,24 +1293,6 @@ class identify_outlets(BaseGraphFunction,
             return _connect_mst_outlets(G_, G)
         else:
             raise ValueError(f"Unknown method {outlet_derivation.method}")
-    
-def _iterate_upstream(G: nx.Graph, 
-                      node: Hashable, 
-                      visited: set[Hashable]):
-    """Iterate upstream from a node.
-
-    This function recursively iterates upstream from a node in a graph.
-
-    Args:
-        G (nx.Graph): A graph
-        node (Hashable): A key for a node in the graph that should be checked.
-        visited (set): A set of visited nodes
-    """
-    visited.add(node)
-    for u,v in G.in_edges(node):
-        if u in visited:
-            continue
-        _iterate_upstream(G, u, visited)
 
 def _filter_streets(G):
     """Filter streets.
@@ -1389,7 +1371,7 @@ class derive_topology(BaseGraphFunction,
 
         # Identify outlets
         if outlet_derivation.method == 'withtopo':
-            _iterate_upstream(G, 'waste', visited)
+            visited = set(nx.ancestors(G,'waste')) | {'waste'}
 
             # Remove nodes not reachable from waste
             G.remove_nodes_from(set(G.nodes) - visited)
@@ -1400,9 +1382,9 @@ class derive_topology(BaseGraphFunction,
             G = _filter_streets(G)
         else:
             outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
-
+            visited = set(outlets)
             for outlet in outlets:
-                _iterate_upstream(G, outlet, visited)
+                visited = visited | set(nx.ancestors(G,outlet))
 
             G.remove_nodes_from(set(G.nodes) - visited)
             G = _filter_streets(G)
