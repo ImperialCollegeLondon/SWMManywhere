@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-aenum==3.1.11
+aenum==3.1.15
     # via
     #   pyswmm
     #   swmm-toolkit
@@ -202,7 +202,7 @@ python-dateutil==2.8.2
     # via
     #   matplotlib
     #   pandas
-pytz==2023.3.post1
+pytz==2024.1
     # via pandas
 pyyaml==6.0.1
     # via swmmanywhere (pyproject.toml)
@@ -252,7 +252,7 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5
     # via pyswmm
-tifffile==2024.1.30
+tifffile==2024.5.22
     # via scikit-image
 toolz==0.12.1
     # via cytoolz
