@@ -160,7 +160,7 @@ def process_parameters(jobid: int,
         params_ = gb.get_group(ix)
 
         # Update the parameters
-        overrides: dict = defaultdict(dict)
+        overrides: defaultdict = defaultdict(dict)
         for grp, param, val in params_[["group", 
                                         "param", 
                                         "value"]].itertuples(index=False, 
@@ -173,7 +173,7 @@ def process_parameters(jobid: int,
                 overrides[grp] = {}
 
             overrides[grp][param] = val       
-        config['parameter_overrides'] = overrides
+        config['parameter_overrides'] = dict(overrides)
         
         # Run the model
         config['model_number'] = ix
