@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-aenum==3.1.15
+aenum==3.1.11
     # via
     #   pyswmm
     #   swmm-toolkit

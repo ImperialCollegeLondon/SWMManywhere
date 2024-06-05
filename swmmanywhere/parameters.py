@@ -26,7 +26,7 @@ def get_full_parameters_flat():
     #                     for k, y in v.model_json_schema()['properties'].items()}
     parameters_flat = {}
     for cat, v in parameters.items():
-        for k, y in v.schema()['properties'].items():
+        for k, y in v.model_json_schema()['properties'].items():
             parameters_flat[k] = {**y, **{'category' : cat}}
 
     return parameters_flat
@@ -44,7 +44,11 @@ class SubcatchmentDerivation(BaseModel):
             le = 1,
             unit = "-",
             description = "Membership threshold for subbasin derivation.")
-
+    
+    subbasin_clip_method: str = Field(default = 'subbasin',
+        unit = '-',
+        description = "Method to clip subbasins, can be `subbasin` or `community`.")
+    
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
             le = 5.0,
@@ -58,22 +62,27 @@ class SubcatchmentDerivation(BaseModel):
             description = "Depth of road/river carve for flow accumulation.")
 
     max_street_length: float = Field(default = 60.0,
-            ge = 20.0,
+            ge = 40.0,
             le = 100.0,
             unit = "m", 
             description = "Distance to split streets into segments.")
 
     node_merge_distance: float = Field(default = 10,
                 ge = 1,
-                le = 40,
+                le = 39.9, # should be less than max_street_length
                 unit = 'm',
                 description = "Distance within which to merge street nodes.")
     
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
+	method: str = Field(default = 'separate',
+        unit = '-',
+        description = """Method to derive outlet locations, 
+            can be 'separate' or 'withtopo'.""")
+
 	river_buffer_distance: float = Field(default = 150.0,
-		ge = 50.0,
-		le = 300.0,
+		ge = 10.0,
+		le = 500.0,
 		unit = "m",
 		description = "Buffer distance to link rivers to streets.")
 
@@ -169,7 +178,8 @@ class TopologyDerivation(BaseModel):
 
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
-    diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
+    diameters: list = Field(default = 
+                            np.linspace(0.15,3,int((3-0.15)/0.075) + 1).tolist(),
                             min_items = 1,
                             unit = "m",
                             description = """Diameters to consider in 

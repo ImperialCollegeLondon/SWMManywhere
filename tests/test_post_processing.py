@@ -116,7 +116,7 @@ def generate_data_dict():
     rain_fid = 'storm.dat'
     event = {'name' : '1',
                     'unit' : 'mm',
-                    'interval' : '05:00',
+                    'interval' : '00:05',
                     'fid' : rain_fid}
     symbol = {'x' : 0,
                 'y' : 0,

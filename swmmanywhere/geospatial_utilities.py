@@ -288,6 +288,9 @@ def nearest_node_buffer(points1: dict[str, sgeom.Point],
         dict: A dictionary where keys are labels from points1 and values are 
             labels from points2 of the nearest nodes within the threshold.
     """
+    if not points1 or not points2:
+        return {}
+    
     # Convert the keys of points2 to a list
     labels2 = list(points2.keys())
     
@@ -758,7 +761,6 @@ def derive_subcatchments(G: nx.Graph,
     # Calculate width
     polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
     return polys_gdf
-
 
 def derive_rc(subcatchments: gpd.GeoDataFrame,
               building_footprints: gpd.GeoDataFrame,
