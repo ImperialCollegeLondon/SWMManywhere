@@ -79,14 +79,17 @@ class ResultsPlotter():
 
     def make_all_plots(self):
         """make_all_plots."""
-        self.outlet_plot('flow')
-        self.outlet_plot('flooding')
+        f,axs = plt.subplots(2,3,figsize = (10,7.5))
+        self.outlet_plot('flow', ax_ = axs[0,0])
+        self.outlet_plot('flooding', ax_ = axs[0,1])
         self.shape_relerror_plot('grid')
         self.shape_relerror_plot('subcatchment')
-        self.design_distribution(value='diameter')
-        self.design_distribution(value='chamber_floor_elevation')
-        self.design_distribution(value='slope')
+        self.design_distribution(value='diameter', ax_ = axs[0,2])
+        self.design_distribution(value='chamber_floor_elevation', ax_ = axs[1,0])
+        self.design_distribution(value='slope', ax_ = axs[1,1])
         self.annotate_flows_and_depths()
+        f.tight_layout()
+        f.savefig(self.plotdir / 'all_plots.png')
 
     def annotate_flows_and_depths(self):
         """annotate_flows_and_depths."""
@@ -119,7 +122,8 @@ class ResultsPlotter():
 
     def outlet_plot(self, 
                     var: str = 'flow',
-                    fid: Path | None = None,):
+                    fid: Path | None = None,
+                    ax_ = None):
         """Plot flow at outlet."""
         if not fid:
             fid = self.plotdir / f'outlet-{var}.png'
@@ -143,11 +147,22 @@ class ResultsPlotter():
                                            syn_arc,
                                            real_arc
                                            )
-        f, ax = plt.subplots()
-        df.value_syn.plot(ax=ax, color = 'k', linestyle = '--')
+        if not ax_:
+            f, ax = plt.subplots()
+        else:
+            ax = ax_
+
         df.value_real.plot(ax=ax, color = 'b', linestyle = '-')
+        df.value_syn.plot(ax=ax, color = 'r', linestyle = '--')
         plt.legend(['synthetic','real'])
-        f.savefig(fid)
+        ax.set_xlabel('time')
+        if var == 'flow':
+            unit = 'l/s'
+        elif var == 'flooding':
+            unit = 'l'
+        ax.set_ylabel(f'{var.title()} ({unit})')
+        if not ax_:
+            f.savefig(fid)
 
     def shape_relerror_plot(self, 
                         shape: str = 'grid',
@@ -220,24 +235,35 @@ class ResultsPlotter():
     def design_distribution(self, 
                             fid: Path | None = None,
                             value: str = 'diameter',
-                            weight: str='length'):
+                            weight: str='length',
+                            ax_ = None):
         """design_distribution."""
         if not fid:
             fid = self.plotdir / f'{value}_{weight}_distribution.png'
         syn_v, syn_cdf = weighted_cdf(self.synthetic_G,value,weight)
         real_v, real_cdf = weighted_cdf(self.real_G,value,weight)
-        f, ax = plt.subplots()
+        if not ax_:
+            f, ax = plt.subplots()
+        else:
+            ax = ax_
         ax.plot(real_v,
                  real_cdf, 
                  'b')
         ax.plot(syn_v,
                  syn_cdf, 
-                 '--k')
-        ax.set_xlabel(f'{value.title()} (m)')
+                 '--r')
+        if value == 'slope':
+            unit = 'm/m'
+        elif value == 'chamber_floor_elevation':
+            unit = 'mASL'
+        else:
+            unit = 'm'
+        ax.set_xlabel(f'{value.title()} ({unit})')
         ax.set_ylabel('P(X <= x)')
         plt.legend(['real','synthetic'])
-
-        f.savefig(fid)  
+        
+        if not ax_:
+            f.savefig(fid)  
     
 def calculate_slope(G):
     """calculate_slope."""
