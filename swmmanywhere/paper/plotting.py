@@ -10,6 +10,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import seaborn as sns
 from SALib.plotting.bar import plot as barplot
 
 from swmmanywhere import metric_utilities
@@ -143,7 +144,9 @@ class ResultsPlotter():
                                            real_arc
                                            )
         f, ax = plt.subplots()
-        df.plot(ax=ax)
+        df.value_syn.plot(ax=ax, color = 'k', linestyle = '--')
+        df.value_real.plot(ax=ax, color = 'b', linestyle = '-')
+        plt.legend(['synthetic','real'])
         f.savefig(fid)
 
     def shape_relerror_plot(self, 
@@ -278,9 +281,9 @@ def create_behavioral_indices(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
             behavioural indices for 'strict' objectives (KGE/NSE), the second 
             is the behavioural indices for less strict objectives (relerror).
     """
-    behavioural_ind_nse = ((df.loc[:, df.columns.str.contains('nse')] > 0) & \
+    behavioural_ind_nse = ((df.loc[:, df.columns.str.contains('nse')] > 0.7) & \
                            (df.loc[:, df.columns.str.contains('nse')] < 1)).any(axis=1)
-    behavioural_ind_kge = ((df.loc[:, df.columns.str.contains('kge')] > -0.41) &\
+    behavioural_ind_kge = ((df.loc[:, df.columns.str.contains('kge')] > 0.7) &\
                             (df.loc[:, df.columns.str.contains('kge')] < 1)).any(axis=1)
     behavioural_ind_relerror = (df.loc[:, 
                                    df.columns.str.contains('relerror')].abs() < 0.1
@@ -356,8 +359,8 @@ def add_threshold_lines(ax, objective, xmin, xmax):
     """
     thresholds = {
         'relerror': [-0.1, 0.1],
-        'nse': [0],
-        'kge': [-0.41]
+        'nse': [0.7],
+        'kge': [0.7]
     }
     for key, values in thresholds.items():
         if key in objective:
@@ -392,4 +395,42 @@ def plot_sensitivity_indices(r_: dict[str, pd.DataFrame],
         ax.get_legend().remove()
     f.tight_layout()
     f.savefig(plot_fid)  
+    plt.close(f)
+
+def heatmaps(r_: dict[str, pd.DataFrame],
+                             plot_fid: Path):
+    """Plot heatmap of sensitivity indices.
+
+    Args:
+        r_ (dict[str, pd.DataFrame]): A dictionary containing the sensitivity 
+            indices as produced by SALib.analyze.
+        plot_fid (Path): The directory to save the plots to.
+    """
+    totals = []
+    interactions = []
+    for (objective,r) in r_.items():
+        total, first, second = r.to_df()
+        interaction = total['ST'] - first['S1']
+        
+        total = total['ST'].to_dict()
+        total['objective'] = objective
+        totals.append(total)
+
+        interaction = interaction.to_dict()
+        interaction['objective'] = objective
+        interactions.append(interaction)
+
+    totals = pd.DataFrame(totals).set_index('objective')
+    interactions = pd.DataFrame(interactions).set_index('objective')
+
+    f,axs = plt.subplots(2,1,figsize=(10,10))
+
+    cmap = sns.color_palette("YlOrRd", as_cmap=True)
+    cmap.set_bad(color='grey')  # Color for NaN values
+    cmap.set_under(color='#d5f5eb')  # Color for 0.0 values
+
+    sns.heatmap(totals, vmin = 1e-6, linewidth=0.5,ax=axs[0],cmap=cmap)
+    sns.heatmap(interactions, vmin = 1e-6, linewidth=0.5,ax=axs[1],cmap=cmap)
+    f.tight_layout()
+    f.savefig(plot_fid)
     plt.close(f)
