@@ -305,18 +305,24 @@ def plot_objectives(df: pd.DataFrame,
             see create_behavioral_indices.
         plot_fid (Path): The directory to save the plots to.
     """
-    n_rows_cols = int(len(objectives)**0.5 + 1)
+    n_panels = len(objectives)
+    n_cols = int(n_panels**0.5)
+    if n_cols * (n_cols + 1) >= n_panels:
+        n_rows = n_cols + 1
+    else:
+        n_rows = n_cols
+        
     for parameter in parameters:
-        fig, axs = plt.subplots(n_rows_cols, n_rows_cols, figsize=(10, 10))
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(10, 10))
         for ax, objective in zip(axs.flat, objectives):
             setup_axes(ax, df, parameter, objective, behavioral_indices)
             add_threshold_lines(ax, 
                                 objective, 
                                 df[parameter].min(), 
                                 df[parameter].max())
-        fig.tight_layout()
+        
         fig.suptitle(parameter)
-
+        fig.tight_layout()
         fig.savefig(plot_fid / f"{parameter.replace('_', '-')}.png", dpi=500)
         plt.close(fig)
     return fig
@@ -342,11 +348,13 @@ def setup_axes(ax: plt.Axes,
                df.loc[behavioral_indices[1], objective], s=2, c='c')
     ax.scatter(df.loc[behavioral_indices[0], parameter], 
                df.loc[behavioral_indices[0], objective], s=2, c='r')
-    ax.set_yscale('symlog')
-    ax.set_title(objective)
+    #ax.set_yscale('symlog')
+    ax.set_title(objective.replace('_','\n'))
     ax.grid(True)
     if 'nse' in objective:
-        ax.set_ylim([-10, 1])
+        ax.set_ylim([0, 1])
+    if 'kge' in objective:
+        ax.set_ylim([-0.41,1])
 
 def add_threshold_lines(ax, objective, xmin, xmax):
     """Add threshold lines to the axes.
