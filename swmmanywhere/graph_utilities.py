@@ -671,7 +671,7 @@ class clip_to_catchments(BaseGraphFunction,
         street = G.copy()
         street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
                                   if d.get('edge_type', 'street') != 'street'])
-
+        
         # Create gdf of street points
         street_points = gpd.GeoDataFrame(street.nodes,
             columns = ['id'],
@@ -681,30 +681,6 @@ class clip_to_catchments(BaseGraphFunction,
                 ),
             crs = G.graph['crs']
             ).set_index('id')
-        
-        # Classify street points by subbasin
-        street_points = gpd.sjoin(street_points,
-                                subbasins.set_index('basin'),
-                                how='left',
-                        ).rename(columns = {'index_right': 'basin'})
-
-        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
-            edges_to_remove = [
-                (u,v) for u, v in street.edges()
-                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
-                ]
-            G.remove_edges_from(edges_to_remove)
-            return G
-        
-        # Derive road network clusters
-        louv_membership = nx.community.louvain_communities(street,
-                                                           weight = 'length',
-                                                           seed = 1)
-        
-        street_points['community'] = 0 
-        # Assign louvain membership to street points
-        for ix, community in enumerate(louv_membership):
-            street_points.loc[list(community), 'community'] = ix
         
         # Classify street points by subbasin
         street_points = gpd.sjoin(street_points,
@@ -1119,7 +1095,8 @@ def _pair_rivers(G: nx.Graph,
                  river_points: Dict[str, shapely.Point], 
                  street_points: Dict[str, shapely.Point], 
                  river_buffer_distance: float,
-                 outlet_length: float) -> nx.Graph:
+                 outlet_length: float,
+                 dummy_outlet_offset: float) -> nx.Graph:
     """Pair river and street nodes.
 
     Pair river and street nodes within a certain distance of each other. If
@@ -1133,6 +1110,7 @@ def _pair_rivers(G: nx.Graph,
         river_buffer_distance (float): The distance within which a river and
             street node can be paired
         outlet_length (float): The length of the outlet
+        dummy_outlet_offset (float): The offset of the dummy outlet
 
     Returns:
         G (nx.Graph): A graph
@@ -1174,8 +1152,13 @@ def _pair_rivers(G: nx.Graph,
         # Create a dummy river to discharge into
         name = f'{lowest_elevation_node}-dummy_river'
         dummy_river = {'id' : name,
-                    'x' : G.nodes[lowest_elevation_node]['x'] + 1,
-                    'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+                        'x' : G.nodes[lowest_elevation_node]['x'] +\
+                            dummy_outlet_offset,
+                        'y' : G.nodes[lowest_elevation_node]['y'] +\
+                            dummy_outlet_offset,
+                        'surface_elevation' : 
+                            sg.nodes[lowest_elevation_node]['surface_elevation']
+                        }
         sg.add_node(name)
         nx.set_node_attributes(sg, {name : dummy_river})
 
@@ -1324,7 +1307,9 @@ class identify_outlets(BaseGraphFunction,
             river_points, 
             street_points, 
             outlet_derivation.river_buffer_distance,
-            outlet_derivation.outlet_length)
+            outlet_derivation.outlet_length,
+            outlet_derivation.dummy_outlet_offset
+            )
         
         # Set the length of the river edges to 0 - from a design perspective 
         # once water is in the river we don't care about the length - since it 
