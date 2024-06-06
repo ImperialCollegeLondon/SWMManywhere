@@ -633,7 +633,7 @@ class clip_to_catchments(BaseGraphFunction,
 
         # Derive subbasins
         subbasins = go.derive_subbasins_streamorder(addresses.elevation,
-                                subcatchment_derivation.subbasin_streamorder)        
+                                subcatchment_derivation.subbasin_streamorder)
 
         if verbose():
             subbasins.to_file(
@@ -644,13 +644,13 @@ class clip_to_catchments(BaseGraphFunction,
         street = G.copy()
         street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
                                   if d.get('edge_type', 'street') != 'street'])
-        
+
         # Create gdf of street points
-        street_points = gpd.GeoDataFrame(street.nodes,
+        street_points = gpd.GeoDataFrame(G.nodes,
             columns = ['id'],
             geometry = gpd.points_from_xy(
-                [street.nodes[u]['x'] for u in street.nodes],
-                [street.nodes[u]['y'] for u in street.nodes]
+                [G.nodes[u]['x'] for u in G.nodes],
+                [G.nodes[u]['y'] for u in G.nodes]
                 ),
             crs = G.graph['crs']
             ).set_index('id')
@@ -1273,8 +1273,7 @@ class identify_outlets(BaseGraphFunction,
             river_points, 
             street_points, 
             outlet_derivation.river_buffer_distance,
-            outlet_derivation.outlet_length,
-            )
+            outlet_derivation.outlet_length)
         
         # Set the length of the river edges to 0 - from a design perspective 
         # once water is in the river we don't care about the length - since it 
@@ -1614,10 +1613,6 @@ class pipe_by_pipe(BaseGraphFunction,
                        )
         
         # Set default values for the edges
-        nx.function.set_edge_attributes(G, 
-                                        hydraulic_design.non_pipe_diameter, 
-                                        "diameter")
-        nx.function.set_node_attributes(G, 
-                                        surface_elevations, 
-                                        "chamber_floor_elevation")
+        nx.function.set_edge_attributes(G, edge_diams, "diameter")
+        nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
         return G
