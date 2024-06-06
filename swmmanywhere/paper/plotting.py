@@ -15,46 +15,41 @@ from SALib.plotting.bar import plot as barplot
 from swmmanywhere import metric_utilities
 from swmmanywhere.geospatial_utilities import graph_to_geojson
 from swmmanywhere.graph_utilities import load_graph
-from swmmanywhere.parameters import MetricEvaluation
-from swmmanywhere.preprocessing import create_project_structure
-from swmmanywhere.swmmanywhere import load_config
+from swmmanywhere.parameters import MetricEvaluation, filepaths_from_yaml
 
 
 class ResultsPlotter():
     """Plotter object."""
     def __init__(self, 
-                 config_path: Path,
-                 bbox_number: int | None = None,
-                 model_number: int | None = None
+                 address_path: Path,
+                 real_dir: Path,
                  ):
-        """Initialise results plotter."""
-        self.config = load_config(config_path)
-        if model_number is not None:
-            self.config['model_number'] = model_number
-        if bbox_number is not None:
-            self.config['bbox_number'] = bbox_number
-        self.addresses = create_project_structure(self.config['bbox'],
-                                self.config['project'],
-                                self.config['base_dir'],
-                                self.config['model_number']
-                                )
+        """Initialise results plotter.
+        
+        This plotter loads the results, graphs and subcatchments from the two
+        yaml files. It provides a central point for plotting the results without
+        needing to reload data.
+
+        Args:
+            address_path (Path): The path to the address yaml file.
+            real_dir (Path): The path to the directory containing the real data.
+        """
+        # Load the addresses
+        self.addresses = filepaths_from_yaml(address_path)
+
+        # Create the plot directory
         self.plotdir = self.addresses.model / 'plots'
         self.plotdir.mkdir(exist_ok = True)
-        for key, val in self.config.get('address_overrides', {}).items():
-            setattr(self.addresses, key, val)
 
+        # Load synthetic and real results
         self._synthetic_results = pd.read_parquet(
             self.addresses.model / 'results.parquet')
         self._synthetic_results.id = self._synthetic_results.id.astype(str)
 
-        if not self.config['real'].get('results',None):
-            results_fid = self.config['real']['inp'].parent /\
-                f'real_results.{self.addresses.extension}'
-        else:
-            results_fid = self.config['real']['results']
-        self._real_results = pd.read_parquet(results_fid)
+        self._real_results = pd.read_parquet(real_dir / 'real_results.parquet')
         self._real_results.id = self._real_results.id.astype(str)
 
+        # Load the synthetic and real graphs
         self._synthetic_G = load_graph(self.addresses.graph)
         self._synthetic_G = nx.relabel_nodes(self._synthetic_G,
                          {x : str(x) for x in self._synthetic_G.nodes})
@@ -62,18 +57,21 @@ class ResultsPlotter():
             {u : str(d.get('outlet',None)) for u,d 
              in self._synthetic_G.nodes(data=True)},
             'outlet')
-        calculate_slope(self._synthetic_G)
 
-        self._real_G = load_graph(self.config['real']['graph'])
+        self._real_G = load_graph(real_dir / 'graph.json')
         self._real_G = nx.relabel_nodes(self._real_G,
                          {x : str(x) for x in self._real_G.nodes})
+        
+        # Calculate the slope
+        calculate_slope(self._synthetic_G)
         calculate_slope(self._real_G)
 
+        # Load the subcatchments
         self._synthetic_subcatchments = gpd.read_file(self.addresses.subcatchments)
-        self._real_subcatchments = gpd.read_file(self.config['real']['subcatchments'])
+        self._real_subcatchments = gpd.read_file(real_dir / 'subcatchments.geojson')
 
     def __getattr__(self, name):
-        """For the large datasets, return a copy."""
+        """Because these are large datasets, return a copy."""
         return getattr(self, f'_{name}').copy()
 
     def make_all_plots(self):
@@ -91,7 +89,11 @@ class ResultsPlotter():
         f.savefig(self.plotdir / 'all_plots.png')
 
     def annotate_flows_and_depths(self):
-        """annotate_flows_and_depths."""
+        """annotate_flows_and_depths.
+        
+        Annotate maximum flow and flood values on the edges/nodes of the graph.
+        Save these as geojsons
+        """
         synthetic_max = self.synthetic_results.groupby(['id','variable']).max()
         real_max = self.real_results.groupby(['id','variable']).max()
 
@@ -123,7 +125,17 @@ class ResultsPlotter():
                     var: str = 'flow',
                     fid: Path | None = None,
                     ax_ = None):
-        """Plot flow at outlet."""
+        """Plot flow/flooding at outlet.
+
+        If an ax is provided, plot on that ax, otherwise create a new figure and
+        save it to the provided fid (or plot directory if not provided).
+        
+        Args:
+            var (str, optional): The variable to plot (flow or flooding). 
+                Defaults to 'flow'.
+            fid (Path, optional): The file to save the plot to. Defaults to None.
+            ax_ ([type], optional): The axes to plot on. Defaults to None.
+        """
         if not fid:
             fid = self.plotdir / f'outlet-{var}.png'
         sg_syn, syn_outlet = metric_utilities.best_outlet_match(self.synthetic_G, 
@@ -166,7 +178,16 @@ class ResultsPlotter():
     def shape_relerror_plot(self, 
                         shape: str = 'grid',
                         fid: Path | None = None):
-        """shape_relerror_plot."""
+        """shape_relerror_plot.
+        
+        Plot the relative error of the shape. Either at 'grid' or 'subcatchment' 
+        scale. Saves results as a geojson to the provided file (if provided),
+        otherwise saves to the plotdir.
+        
+        Args:
+            shape (str, optional): The shape to plot. Defaults to 'grid'.
+            fid (Path, optional): The file to save the plot to. Defaults to None.
+        """
         if not fid:
             fid = self.plotdir / f'{shape}-relerror.geojson'
         variable = 'flooding'
