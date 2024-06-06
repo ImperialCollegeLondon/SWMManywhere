@@ -676,11 +676,8 @@ def derive_subbasins_streamorder(fid: Path,
                             flw.transform,
                             grid.crs,
                             name="basin")
-    
-    streams_feat = flw.streams(min_sto=streamorder)
-    gdf_streams = gpd.GeoDataFrame.from_features(streams_feat, crs=grid.crs)
-    
-    return gdf_bas, gdf_streams
+
+    return gdf_bas
     
 
 def load_and_process_dem(fid: Path) -> tuple[pysheds.sgrid.sGrid,

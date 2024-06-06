@@ -632,35 +632,8 @@ class clip_to_catchments(BaseGraphFunction,
         G = G.copy()
 
         # Derive subbasins
-        subbasins, streams = go.derive_subbasins_streamorder(addresses.elevation,
-                                subcatchment_derivation.subbasin_streamorder)
-        
-        # Insert rivers
-        streams['edge_type'] = 'river'
-        streams['id'] = [f'river-edge-{ix}' for ix in range(len(streams))]
-        streams['length'] = streams['geometry'].length
-        streams = streams[['geometry','edge_type','id','length']]
-        streamsG = G.__class__()
-        for idx, row in streams.iterrows():
-            geom = row.geometry
-            if geom.length == 0:
-                continue
-            streamsG.add_node(geom.coords[0], 
-                       x = geom.coords[0][0], 
-                       y = geom.coords[0][1])
-            streamsG.add_node(geom.coords[-1], 
-                       x = geom.coords[-1][0], 
-                       y = geom.coords[-1][1])
-            
-            streamsG.add_edge(geom.coords[0],geom.coords[-1],**row)
-        
-        streamsG = nx.relabel_nodes(streamsG,
-                                    {ix : f'river-node-{i}' 
-                                     for i, ix in enumerate(streamsG.nodes)}
-                                    )
-        
-        G = nx.compose(G, streamsG)
-        
+        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+                                subcatchment_derivation.subbasin_streamorder)        
 
         if verbose():
             subbasins.to_file(
@@ -1095,8 +1068,7 @@ def _pair_rivers(G: nx.Graph,
                  river_points: Dict[str, shapely.Point], 
                  street_points: Dict[str, shapely.Point], 
                  river_buffer_distance: float,
-                 outlet_length: float,
-                 dummy_outlet_offset: float) -> nx.Graph:
+                 outlet_length: float) -> nx.Graph:
     """Pair river and street nodes.
 
     Pair river and street nodes within a certain distance of each other. If
@@ -1110,7 +1082,6 @@ def _pair_rivers(G: nx.Graph,
         river_buffer_distance (float): The distance within which a river and
             street node can be paired
         outlet_length (float): The length of the outlet
-        dummy_outlet_offset (float): The offset of the dummy outlet
 
     Returns:
         G (nx.Graph): A graph
@@ -1152,13 +1123,8 @@ def _pair_rivers(G: nx.Graph,
         # Create a dummy river to discharge into
         name = f'{lowest_elevation_node}-dummy_river'
         dummy_river = {'id' : name,
-                        'x' : G.nodes[lowest_elevation_node]['x'] +\
-                            dummy_outlet_offset,
-                        'y' : G.nodes[lowest_elevation_node]['y'] +\
-                            dummy_outlet_offset,
-                        'surface_elevation' : 
-                            sg.nodes[lowest_elevation_node]['surface_elevation']
-                        }
+                    'x' : G.nodes[lowest_elevation_node]['x'] + 1,
+                    'y' : G.nodes[lowest_elevation_node]['y'] + 1}
         sg.add_node(name)
         nx.set_node_attributes(sg, {name : dummy_river})
 
@@ -1308,7 +1274,6 @@ class identify_outlets(BaseGraphFunction,
             street_points, 
             outlet_derivation.river_buffer_distance,
             outlet_derivation.outlet_length,
-            outlet_derivation.dummy_outlet_offset
             )
         
         # Set the length of the river edges to 0 - from a design perspective 
@@ -1415,8 +1380,7 @@ class derive_topology(BaseGraphFunction,
             # Run shorted path
             G = shortest_path_utils.tarjans_pq(G,'waste')
             
-            # G = _filter_streets(G)
-            G.remove_node('waste')
+            G = _filter_streets(G)
         else:
             outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
             visited = set(outlets)
@@ -1424,7 +1388,7 @@ class derive_topology(BaseGraphFunction,
                 visited = visited | set(nx.ancestors(G,outlet))
 
             G.remove_nodes_from(set(G.nodes) - visited)
-            # G = _filter_streets(G)
+            G = _filter_streets(G)
 
             # Check for negative cycles
             if nx.negative_edge_cycle(G, weight = 'weight'):
@@ -1628,12 +1592,8 @@ class pipe_by_pipe(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        G_ = G.copy()
-        surface_elevations = nx.get_node_attributes(G_, 'surface_elevation')
-
-        # Only design pipes along streets
         G = G.copy()
-        G = _filter_streets(G)
+        surface_elevations = nx.get_node_attributes(G, 'surface_elevation')
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
@@ -1654,14 +1614,10 @@ class pipe_by_pipe(BaseGraphFunction,
                        )
         
         # Set default values for the edges
-        nx.function.set_edge_attributes(G_, 
+        nx.function.set_edge_attributes(G, 
                                         hydraulic_design.non_pipe_diameter, 
                                         "diameter")
-        nx.function.set_node_attributes(G_, 
+        nx.function.set_node_attributes(G, 
                                         surface_elevations, 
                                         "chamber_floor_elevation")
-        
-        # Set pipe design values
-        nx.function.set_edge_attributes(G_, edge_diams, "diameter")
-        nx.function.set_node_attributes(G_, chamber_floor, "chamber_floor_elevation")
-        return G_
+        return G

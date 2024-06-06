@@ -532,9 +532,7 @@ def test_clip_to_catchments():
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
                                 subcatchment_derivation=subcatchment_derivation)
-        assert len(G_.edges) == 31
-        assert set(['river','street']) == set([d.get('edge_type','street') 
-                                               for u,v,d in G_.edges(data=True)])
+        assert len(G_.edges) == 30
 
         # Test clipping with different params
         subcatchment_derivation = parameters.SubcatchmentDerivation(
@@ -545,7 +543,7 @@ def test_clip_to_catchments():
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
                                 subcatchment_derivation=subcatchment_derivation)
-        assert len(G_.edges) == 40
+        assert len(G_.edges) == 38
 
         # Test no cuts
         subcatchment_derivation = parameters.SubcatchmentDerivation(
@@ -556,7 +554,7 @@ def test_clip_to_catchments():
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
                                 subcatchment_derivation=subcatchment_derivation)
-        assert len(G_.edges) == 41
+        assert len(G_.edges) == 39
 
         # Cut between every community not entirely within the same basin
         subcatchment_derivation = parameters.SubcatchmentDerivation(
@@ -567,7 +565,7 @@ def test_clip_to_catchments():
         G_ = gu.clip_to_catchments(G, 
                                 addresses=addresses,
                                 subcatchment_derivation=subcatchment_derivation)
-        assert len(G_.edges) == 26
+        assert len(G_.edges) == 28
 
         # Check streamorder adjustment
         with pytest.raises(ValueError):
