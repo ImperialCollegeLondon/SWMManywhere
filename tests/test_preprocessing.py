@@ -1,8 +1,10 @@
+"""Test the parameters module."""
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
-from swmmanywhere.parameters import FilePaths
+from swmmanywhere.parameters import FilePaths, filepaths_from_yaml
 
 
 def test_getattr():
@@ -32,3 +34,23 @@ def test_getattr():
     assert addresses.bbox == filepath
     assert addresses.elevation == filepath
     assert addresses.precipitation == filepath / 'download/precipitation.parquet'
+
+
+def test_to_yaml():
+    """Test the to_yaml and from_yaml methods."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        base_dir = Path(temp_dir)
+        addresses = FilePaths(base_dir,
+                                'test',
+                                1,
+                                1,
+                                'parquet')
+        addresses.to_yaml(base_dir / 'test.yaml')
+
+        addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
+        paths_ = ["base_dir","project","national","bbox","download","building",
+                "model","subcatchments","precipitation","elevation","streetcover",
+                "river","street","edges","nodes","graph","inp","national_building"]
+        for key in paths_:
+            assert getattr(addresses, key) == getattr(addresses_, key)
+
