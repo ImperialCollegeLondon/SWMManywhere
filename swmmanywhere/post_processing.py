@@ -52,8 +52,12 @@ def synthetic_write(addresses: FilePaths):
                 'area',
                 'slope',
                 'width',
-                'rc']]
+                'rc',
+                'TSS_kg_perm2_perday']]
     
+    subs['rate'] = subs['TSS_kg_perm2_perday'] * 10000 # convert to kg/ha/d
+    subs['pollutant'] = 'tss'
+
     # Nodes
     nodes['id'] = nodes['id'].astype(str)
     nodes['max_depth'] = nodes.surface_elevation - nodes.chamber_floor_elevation
@@ -110,7 +114,7 @@ def synthetic_write(addresses: FilePaths):
 
     # Template SWMM input file
     existing_input_file = Path(__file__).parent / 'defs' /\
-          'basic_drainage_all_bits.inp'
+          'basic_drainage_wq.inp'
     
     # Format to dict
     data_dict = format_to_swmm_dict(nodes,
@@ -417,7 +421,11 @@ def format_to_swmm_dict(nodes: pd.DataFrame,
             'OUTLETS' : None,
             'JUNCTIONS' : None,
             'RAINGAGES' : event,
-            'SYMBOLS' : symbol
+            'SYMBOLS' : symbol,
+            'WASHOFF' : subs,
+            'BUILDUP' : subs,
+            'LANDUSES' : subs,
+            'COVERAGES' : subs
             }
     
     # Fill backslash columns and store data in data_dict in the correct order

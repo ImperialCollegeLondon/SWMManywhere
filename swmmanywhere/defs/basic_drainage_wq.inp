@@ -11,12 +11,12 @@ MIN_SLOPE            0
 ALLOW_PONDING        NO
 SKIP_STEADY_STATE    NO
 
-START_DATE           01/01/2000
+START_DATE           01/01/2017
 START_TIME           00:00:00
-REPORT_START_DATE    01/01/2000
+REPORT_START_DATE    01/01/2017
 REPORT_START_TIME    00:00:00
-END_DATE             01/01/2000
-END_TIME             23:59:00
+END_DATE             01/31/2017
+END_TIME             00:00:00
 SWEEP_START          1/1
 SWEEP_END            12/31
 DRY_DAYS             0
@@ -48,7 +48,7 @@ DRY_ONLY         NO
 [RAINGAGES]
 ;;Name           Format    Interval SCF      Source    
 ;;-------------- --------- ------ ------ ----------
-1                INTENSITY 00:05    1.0      FILE       "storm.dat"    1          MM   
+1                INTENSITY 00:05    1.0      FILE       "C:\Users\bdobson\Documents\GitHub\swsimming\data\swmm_models\january.dat" 1          MM   
 
 [SUBCATCHMENTS]
 ;;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        
@@ -125,6 +125,36 @@ empty            REMOVAL    1.0        0.0        0.0        0.0        0.0     
 9                CIRCULAR     1                0          0          0          1                    
 3                CIRCULAR     1                0          0          0
 2                RECT_OPEN    1                2          0          0         
+
+[POLLUTANTS]
+;;Name           Units  Crain      Cgw        Crdii      Kdecay     SnowOnly   Co-Pollutant     Co-Frac    Cdwf       Cinit     
+;;-------------- ------ ---------- ---------- ---------- ---------- ---------- ---------------- ---------- ---------- ----------
+tss              MG/L   0.0        0.0        0.0        0.0        NO         *                0.0        0.0        0.0       
+
+[LANDUSES]
+;;               Sweeping   Fraction   Last      
+;;Name           Interval   Available  Swept     
+;;-------------- ---------- ---------- ----------
+tss              0          0          0         
+
+[COVERAGES]
+;;Subcatchment   Land Use         Percent   
+;;-------------- ---------------- ----------
+1                tss              1         
+
+[LOADINGS]
+;;Subcatchment   Pollutant        Buildup   
+;;-------------- ---------------- ----------
+
+[BUILDUP]
+;;Land Use       Pollutant        Function   Coeff1     Coeff2     Coeff3     Per Unit  
+;;-------------- ---------------- ---------- ---------- ---------- ---------- ----------
+tss              tss              POW        1          1          0.0        AREA      
+
+[WASHOFF]
+;;Land Use       Pollutant        Function   Coeff1     Coeff2     SweepRmvl  BmpRmvl   
+;;-------------- ---------------- ---------- ---------- ---------- ---------- ----------
+tss              tss              EMC        0.0        0.0        0.0        0.0       
 
 [CURVES]
 ;;Name           Type       X-Value    Y-Value   

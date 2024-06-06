@@ -3,9 +3,21 @@
 # 'iwcolumns' gives that names of columns in our dataframes that match with the
 #   corresponding values in 'columns'
 # /<value> in 'iwcolumns' sets a default value for that column
+BUILDUP:
+  columns: [Land Use,Pollutant,Function,Coeff1,Coeff2,Coeff3,Per Unit]
+  iwcolumns: [subcatchment, pollutant, /POW, /1000, rate, /0, /AREA]
+WASHOFF: 
+  columns: [Land Use,Pollutant,Function,Coeff1,Coeff2,SweepRmvl,BmpRmvl]
+  iwcolumns: [subcatchment, pollutant, /EXP, /1, /0, /0, /0]
 CONDUITS: 
   columns: [Name, InletNode, OutletNode, Length, Roughness, InOffset, OutOffset, InitFlow, MaxFlow]
   iwcolumns: [id, u, v, length, roughness, /0.0001, /0.0001, /0, capacity]
+COVERAGES: 
+  columns: [Subcatchment,Land Use,Percent]
+  iwcolumns: [subcatchment, subcatchment, /100]
+LANDUSES:
+  columns: [Name, Sweeping_Interval, Fraction_Available,Last_Swept]
+  iwcolumns: [subcatchment, /0, /0, /0]
 INFILTRATION: 
   columns: [Subcatchment, Suction, HydCon, IMDmax, ]
   iwcolumns: [subcatchment, /0, /0, /0, /0, /0]

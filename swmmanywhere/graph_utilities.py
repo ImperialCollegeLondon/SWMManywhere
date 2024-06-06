@@ -1615,3 +1615,93 @@ class pipe_by_pipe(BaseGraphFunction,
         nx.function.set_edge_attributes(G, edge_diams, "diameter")
         nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
         return G
+
+def calculate_edge_lengths_in_polygons(G, gdf, weight_name = None):
+    # Initialize an empty list to store results
+    results = []
+    
+    # Iterate over each edge in the graph
+    for u, v, data in G.edges(data=True):
+        edge_geom = data.get('geometry')
+
+        if edge_geom is not None and isinstance(edge_geom, shapely.LineString):
+            # Iterate over each polygon in the GeoDataFrame
+            for idx, poly in gdf.set_index('id').iterrows():
+                polygon_geom = poly.geometry
+                
+                if edge_geom.intersects(polygon_geom):
+                    intersection = edge_geom.intersection(polygon_geom)
+                    
+                    # Calculate the length of the intersection
+                    if intersection.is_empty:
+                        length = 0.0
+                    elif isinstance(intersection, shapely.LineString):
+                        length = intersection.length
+                    elif isinstance(intersection, shapely.MultiLineString):
+                        length = sum([line.length for line in intersection.geoms])
+                    else:
+                        raise ValueError(f"Unexpected intersection type: {type(intersection)}")
+                    
+                    if weight_name is not None:
+                        weight = data.get(weight_name)
+                        if length is None:
+                            raise ValueError(f"Edge {u}-{v} does not have a '{weight_name}' attribute")
+
+                        weight = weight * length / edge_geom.length
+                    else:
+                        weight = length
+
+                    results.append({
+                        'edge': (u, v),
+                        'id': idx,
+                        weight_name: weight
+                    })
+    results = pd.DataFrame(results)
+    gdf = pd.merge(gdf, 
+                   results.groupby('id')[weight_name].sum().reset_index(), 
+                   on ='id',
+                   how='left')
+    return gdf
+
+
+@register_graphfcn
+class inggrit_calcs(BaseGraphFunction):
+    """pipe_by_pipe class."""
+    # If doing required_graph_attributes - it would be something like 'dendritic'
+
+    def __call__(self, 
+                 G: nx.Graph, 
+                 addresses: parameters.FilePaths,
+                 **kwargs
+                 )->nx.Graph:
+        """
+        """
+        G_ = G.copy()
+        gdf = gpd.read_file(addresses.subcatchments)
+        gdf = calculate_edge_lengths_in_polygons(G, gdf, weight_name = 'length')
+
+        # Convert to mg/l to kg/d
+        name = 'TSS_kg_perday'
+        weight = 'TSS_mg/l'
+        mg_to_kg = 1 / 1000 / 1000
+        pmonth_to_pday = 1 / 30
+        roads = gpd.read_file(addresses.road_data)
+        roads[name] = roads[weight] * roads['runoff_l']
+        roads[name] *= (mg_to_kg * pmonth_to_pday)
+        roads = roads.to_crs(gdf.crs)
+        # clip roads to gdf bbox
+        roads = gpd.clip(roads, gdf.total_bounds)
+        roadsG = nx.Graph()
+        # Add edges with geometry
+        for _, row in roads.iterrows():
+            geom = row['geometry']
+            u = geom.coords[0]
+            v = geom.coords[-1]
+            roadsG.add_edge(u, v, **row.to_dict())
+        
+        gdf = calculate_edge_lengths_in_polygons(roadsG, gdf, weight_name = name)
+        
+        # Convert to kg/m2/d
+        gdf['TSS_kg_perm2_perday'] = gdf[name] / gdf['area']
+        gdf.to_file(addresses.subcatchments, driver='GeoJSON')
+        return G_
