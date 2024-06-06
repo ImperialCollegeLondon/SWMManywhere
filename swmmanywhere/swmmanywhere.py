@@ -41,7 +41,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                 config['base_dir'],
                                 config.get('model_number',None)
                                 )
-    
+    addresses.extension='json'
     logger.info(f"Project structure created at {addresses.base_dir}")
     logger.info(f"Project name: {config['project']}")
     logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_number}")
