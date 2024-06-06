@@ -676,7 +676,7 @@ def derive_subbasins_streamorder(fid: Path,
                             flw.transform,
                             grid.crs,
                             name="basin")
-
+    
     return gdf_bas
     
 

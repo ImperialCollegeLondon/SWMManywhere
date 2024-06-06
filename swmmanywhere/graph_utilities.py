@@ -1612,7 +1612,6 @@ class pipe_by_pipe(BaseGraphFunction,
                        hydraulic_design
                        )
         
-        # Set default values for the edges
         nx.function.set_edge_attributes(G, edge_diams, "diameter")
         nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
         return G
