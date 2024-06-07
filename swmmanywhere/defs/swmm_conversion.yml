@@ -5,7 +5,7 @@
 # /<value> in 'iwcolumns' sets a default value for that column
 BUILDUP:
   columns: [Land Use,Pollutant,Function,Coeff1,Coeff2,Coeff3,Per Unit]
-  iwcolumns: [subcatchment, pollutant, /POW, /1000, rate, /0, /AREA]
+  iwcolumns: [subcatchment, pollutant, /POW, /1000, rate, /1, /AREA]
 WASHOFF: 
   columns: [Land Use,Pollutant,Function,Coeff1,Coeff2,SweepRmvl,BmpRmvl]
   iwcolumns: [subcatchment, pollutant, /EXP, /1, /0, /0, /0]
