@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from swmmanywhere.logging import logger
+from swmmanywhere.custom_logging import logger
 from swmmanywhere.parameters import FilePaths
 
 

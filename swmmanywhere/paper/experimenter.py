@@ -20,7 +20,7 @@ os.environ['NUMBA_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
 
 from swmmanywhere import swmmanywhere  # noqa: E402
-from swmmanywhere.logging import logger  # noqa: E402
+from swmmanywhere.custom_logging import logger  # noqa: E402
 from swmmanywhere.parameters import get_full_parameters_flat  # noqa: E402
 
 os.environ['SWMMANYWHERE_VERBOSE'] = "true"

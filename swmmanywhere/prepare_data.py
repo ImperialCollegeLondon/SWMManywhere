@@ -16,7 +16,7 @@ import requests
 import xarray as xr
 from geopy.geocoders import Nominatim
 
-from swmmanywhere.logging import logger
+from swmmanywhere.custom_logging import logger
 from swmmanywhere.utilities import yaml_load
 
 

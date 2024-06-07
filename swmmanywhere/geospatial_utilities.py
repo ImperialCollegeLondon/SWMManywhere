@@ -31,7 +31,7 @@ from shapely import ops as sops
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
 
-from swmmanywhere.logging import verbose
+from swmmanywhere.custom_logging import verbose
 
 os.environ['NUMBA_NUM_THREADS'] = '1'
 import pyflwdir  # noqa: E402

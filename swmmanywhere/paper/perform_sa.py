@@ -8,7 +8,7 @@ import pandas as pd
 from SALib.analyze import sobol
 from tqdm import tqdm
 
-from swmmanywhere.logging import logger
+from swmmanywhere.custom_logging import logger
 from swmmanywhere.paper import experimenter
 from swmmanywhere.paper import plotting as swplt
 from swmmanywhere.preprocessing import check_bboxes

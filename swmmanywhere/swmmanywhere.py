@@ -12,7 +12,7 @@ from tqdm.auto import tqdm
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
-from swmmanywhere.logging import logger, verbose
+from swmmanywhere.custom_logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
 from swmmanywhere.utilities import yaml_dump, yaml_load

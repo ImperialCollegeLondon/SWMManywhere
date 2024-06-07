@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from swmmanywhere.logging import logger, verbose
+from swmmanywhere.custom_logging import logger, verbose
 
 
 def test_logger():

@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters, shortest_path_utils
-from swmmanywhere.logging import logger, verbose
+from swmmanywhere.custom_logging import logger, verbose
 
 
 def load_graph(fid: Path) -> nx.Graph:
