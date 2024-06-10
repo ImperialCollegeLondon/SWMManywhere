@@ -92,7 +92,7 @@ class ResultsPlotter():
         """annotate_flows_and_depths.
         
         Annotate maximum flow and flood values on the edges/nodes of the graph.
-        Save these as geojsons
+        Save these in the plotdir.
         """
         synthetic_max = self.synthetic_results.groupby(['id','variable']).max()
         real_max = self.real_results.groupby(['id','variable']).max()
@@ -135,9 +135,7 @@ class ResultsPlotter():
                 Defaults to 'flow'.
             fid (Path, optional): The file to save the plot to. Defaults to None.
             ax_ ([type], optional): The axes to plot on. Defaults to None.
-        """
-        if not fid:
-            fid = self.plotdir / f'outlet-{var}.png'
+        """            
         sg_syn, syn_outlet = metric_utilities.best_outlet_match(self.synthetic_G, 
                                                                 self.real_subcatchments)
         sg_real, real_outlet = metric_utilities.dominant_outlet(self.real_G, 
@@ -149,7 +147,7 @@ class ResultsPlotter():
             real_arc = [d['id'] for u,v,d in self.real_G.edges(data=True)
                     if v == real_outlet]
         elif var == 'flooding':
-            # Use all nodes in the subgraphs
+            # Use all nodes in the outlet match subgraphs
             syn_arc = list(sg_syn.nodes)
             real_arc = list(sg_real.nodes)
         df = metric_utilities.align_by_id(self.synthetic_results,
@@ -162,7 +160,6 @@ class ResultsPlotter():
             f, ax = plt.subplots()
         else:
             ax = ax_
-
         df.value_real.plot(ax=ax, color = 'b', linestyle = '-')
         df.value_syn.plot(ax=ax, color = 'r', linestyle = '--')
         plt.legend(['synthetic','real'])
@@ -173,23 +170,17 @@ class ResultsPlotter():
             unit = 'l'
         ax.set_ylabel(f'{var.title()} ({unit})')
         if not ax_:
-            f.savefig(fid)
+            f.savefig(self.plotdir / f'outlet-{var}.png')
 
-    def shape_relerror_plot(self, 
-                        shape: str = 'grid',
-                        fid: Path | None = None):
+    def shape_relerror_plot(self, shape: str = 'grid'):
         """shape_relerror_plot.
         
         Plot the relative error of the shape. Either at 'grid' or 'subcatchment' 
-        scale. Saves results as a geojson to the provided file (if provided),
-        otherwise saves to the plotdir.
+        scale. Saves results to the plotdir.
         
         Args:
             shape (str, optional): The shape to plot. Defaults to 'grid'.
-            fid (Path, optional): The file to save the plot to. Defaults to None.
-        """
-        if not fid:
-            fid = self.plotdir / f'{shape}-relerror.geojson'
+        """            
         variable = 'flooding'
         if shape == 'grid':
             scale = self.config.get('metric_evaluation', {}).get('grid_scale',1000)
@@ -201,13 +192,14 @@ class ResultsPlotter():
             shapes = shapes.rename(columns={'id':'sub_id'})
         else:
             raise ValueError("shape must be 'grid' or 'subcatchment'")
-
+        # Align the results
         results = metric_utilities.align_by_shape(variable,
                                 synthetic_results = self.synthetic_results,
                                 real_results = self.real_results,
                                 shapes = shapes,
                                 synthetic_G = self.synthetic_G,
                                 real_G = self.real_G)
+        # Calculate the relative error
         val = (
             results
             .groupby('sub_id')
@@ -221,17 +213,29 @@ class ResultsPlotter():
             [['value_real','value_syn']]
             .sum()
         )
-
+        # Merge with shapes
         shapes = pd.merge(shapes[['geometry','sub_id']],
                           val,
                           on ='sub_id')
         shapes = pd.merge(shapes, 
                           total,
                           on = 'sub_id')
-        shapes.to_file(fid,driver='GeoJSON')
+        shapes.to_file(self.plotdir / f'{shape}-relerror.geojson',
+                       driver='GeoJSON')
 
     def recalculate_metrics(self, metric_list: list[str] | None = None):
-        """recalculate_metrics."""
+        """recalculate_metrics.
+        
+        Recalculate the metrics for the synthetic and real results, if no
+        metric_list is provided, use the default metric_list from the config.
+
+        Args:
+            metric_list (list[str], optional): The metrics to recalculate. 
+                Defaults to None.
+
+        Returns:
+            dict: A dictionary of the recalculated metrics.
+        """
         if not metric_list:
             metric_list_ = self.config['metric_list']
         else:
@@ -253,13 +257,19 @@ class ResultsPlotter():
                                   )
 
     def design_distribution(self, 
-                            fid: Path | None = None,
                             value: str = 'diameter',
                             weight: str='length',
                             ax_ = None):
-        """design_distribution."""
-        if not fid:
-            fid = self.plotdir / f'{value}_{weight}_distribution.png'
+        """design_distribution.
+
+        Plot the distribution of a value in the graph. Saves the plot to the
+        provided axes, if not, saves to plotdir.
+
+        Args:
+            value (str, optional): The value to plot. Defaults to 'diameter'.
+            weight (str, optional): The weight to use. Defaults to 'length'.
+            ax_ ([type], optional): The axes to plot on. Defaults to None.
+        """
         syn_v, syn_cdf = weighted_cdf(self.synthetic_G,value,weight)
         real_v, real_cdf = weighted_cdf(self.real_G,value,weight)
         if not ax_:
@@ -279,16 +289,35 @@ class ResultsPlotter():
         plt.legend(['real','synthetic'])
 
         if not ax_:
-            f.savefig(fid)  
+            f.savefig(self.plotdir / f'{value}_{weight}_distribution.png')  
 
 def calculate_slope(G):
-    """calculate_slope."""
+    """calculate_slope.
+    
+    Calculate the slope of the edges in the graph in place.
+    
+    Args:
+        G ([type]): The graph to calculate the slope for.
+    """
     for u,v,d in G.edges(data=True):
         d['slope'] = (G.nodes[v]['chamber_floor_elevation'] - \
                       G.nodes[u]['chamber_floor_elevation'])/d['length']
 
-def weighted_cdf(G, value: str = 'diameter', weight: str = 'length'):
-    """weighted_cdf."""
+def weighted_cdf(G: nx.Graph, value: str = 'diameter', weight: str = 'length'):
+    """weighted_cdf.
+    
+    Calculate the weighted cumulative distribution function of a value in the
+    graph.
+    
+    Args:
+        G (nx.Graph): The graph to calculate the cdf for.
+        value (str, optional): The value to calculate the cdf for. Defaults to 
+            'diameter'.
+        weight (str, optional): The weight to use. Defaults to 'length'.
+
+    Returns:
+        tuple[list, list]: The values and the cdf.
+    """
     # Create a DataFrame from the provided lists
     if value in ['diameter','slope']:
         data = pd.DataFrame([
