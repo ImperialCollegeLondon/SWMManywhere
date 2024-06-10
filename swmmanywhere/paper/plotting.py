@@ -291,18 +291,23 @@ class ResultsPlotter():
         if not ax_:
             f.savefig(self.plotdir / f'{value}_{weight}_distribution.png')  
 
-def calculate_slope(G):
+def calculate_slope(G: nx.Graph):
     """calculate_slope.
     
     Calculate the slope of the edges in the graph in place.
     
     Args:
-        G ([type]): The graph to calculate the slope for.
+        G (nx.Graph): The graph to calculate the slope for.
     """
-    for u,v,d in G.edges(data=True):
-        d['slope'] = (G.nodes[v]['chamber_floor_elevation'] - \
-                      G.nodes[u]['chamber_floor_elevation'])/d['length']
-
+    nx.set_edge_attributes(
+        G,
+        {
+            (u, v, k): (G.nodes[v]['chamber_floor_elevation'] - \
+                        G.nodes[u]['chamber_floor_elevation']) / d['length']
+            for u, v, k, d in G.edges(data=True, keys=True)
+        }
+    )
+    
 def weighted_cdf(G: nx.Graph, value: str = 'diameter', weight: str = 'length'):
     """weighted_cdf.
     
