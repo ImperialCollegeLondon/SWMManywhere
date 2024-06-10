@@ -221,7 +221,7 @@ pyproject-hooks==1.1.0
     # via
     #   build
     #   pip-tools
-pysheds==0.4
+pysheds==0.3.5
     # via swmmanywhere (pyproject.toml)
 pyswmm==2.0.1
     # via swmmanywhere (pyproject.toml)
