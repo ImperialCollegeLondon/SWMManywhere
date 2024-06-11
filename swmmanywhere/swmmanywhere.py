@@ -201,42 +201,6 @@ def check_real_network_paths(config: dict):
 
     return config
 
-def check_parameters_to_sample(config: dict):
-    """Check the parameters to sample in the config.
-
-    Args:
-        config (dict): The configuration.
-
-    Raises:
-        ValueError: If a parameter to sample is not in the parameters
-            dictionary.
-    """
-    params = parameters.get_full_parameters_flat()
-    for param in config.get('parameters_to_sample',{}):
-        # If the parameter is a dictionary, the values are bounds, all we are 
-        # checking here is that the parameter exists, we only need the first 
-        # entry.
-        if isinstance(param, dict):
-            if len(param) > 1:
-                raise ValueError("""If providing new bounds in the config, a dict 
-                                 of len 1 is required, where the key is the 
-                                 parameter to change and the values are 
-                                 (new_lower_bound, new_upper_bound).""")
-            param = list(param.keys())[0]
-
-        # Check that the parameter is available
-        if param not in params:
-            raise ValueError(f"{param} not found in parameters dictionary.")
-        
-        # Check that the parameter is sample-able
-        required_attrs = set(['minimum', 'maximum', 'default', 'category'])
-        correct_attrs = required_attrs.intersection(params[param])
-        missing_attrs = required_attrs.difference(correct_attrs)
-        if any(missing_attrs):
-            raise ValueError(f"{param} missing {missing_attrs} so cannot be sampled.")
-        
-    return config
-
 def check_starting_graph(config: dict):
     """Check the starting graph in the config.
 
@@ -293,18 +257,24 @@ def save_config(config: dict, config_path: Path):
     """
     yaml_dump(config, config_path.open('w'))
 
-def load_config(config_path: Path, validation: bool = True):
+def load_config(config_path: Path, 
+                validation: bool = True, 
+                schema_fid: Path | None = None):
     """Load, validate, and convert Paths in a configuration file.
 
     Args:
         config_path (Path): The path to the configuration file.
         validation (bool, optional): Whether to validate the configuration.
+            Defaults to True.
+        schema_fid (Path, optional): The path to the schema file. Defaults to
+            None.
 
     Returns:
         dict: The configuration.
     """
     # Load the schema
-    schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
+    schema_fid = Path(__file__).parent / 'defs' / 'schema.yml' \
+        if schema_fid is None else Path(schema_fid)
     schema = yaml_load(schema_fid.read_text())
 
     # Load the config
@@ -324,9 +294,6 @@ def load_config(config_path: Path, validation: bool = True):
         
     # Check real network paths
     config = check_real_network_paths(config)
-    
-    # Check the parameters to sample
-    config = check_parameters_to_sample(config)
 
     # Check starting graph
     config = check_starting_graph(config)
