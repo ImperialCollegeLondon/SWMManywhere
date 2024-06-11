@@ -38,7 +38,7 @@ def synthetic_write(addresses: FilePaths):
     nodes = gpd.read_file(addresses.nodes)
     edges = gpd.read_file(addresses.edges)
     subs = gpd.read_file(addresses.subcatchments)
-    subs = subs.loc[subs.id.isin(nodes.id)]
+    subs = subs.loc[subs.id.astype(str).isin(nodes.id.astype(str))]
 
     # Extract SWMM relevant data
     edges = edges[['id','u','v','diameter','length']]

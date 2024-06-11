@@ -511,7 +511,7 @@ def test_merge_street_nodes():
 def test_clip_to_catchments():
     """Test the clip_to_catchments function."""
     G, _ = load_street_network()
-
+    nx.set_edge_attributes(G, 'street', 'edge_type')
     with tempfile.TemporaryDirectory() as temp_dir:
         
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'

@@ -389,7 +389,8 @@ class double_directed(BaseGraphFunction,
         # back in with the correct geometry.
         # This assumes that 'id' is of format 'start-end' (see assign_id)
         arcs_to_remove = [(u,v) for u,v,d in G_new.edges(data=True)
-                          if f'{u}-{v}' != d.get('id')]
+                          if (f'{u}-{v}' != d.get('id')) 
+                          and (d.get('edge_type','street') == 'street')]
         
         # Remove the reverse edges
         for u, v in arcs_to_remove:
