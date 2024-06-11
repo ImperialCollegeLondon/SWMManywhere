@@ -1092,8 +1092,8 @@ def _get_points(G: nx.Graph) -> tuple[Dict[str, shapely.Point],
 def _pair_rivers(G: nx.Graph, 
                  river_points: Dict[str, shapely.Point], 
                  street_points: Dict[str, shapely.Point], 
-                 river_buffer_distance: float,
-                 outlet_length: float) -> nx.Graph:
+                 outlet_derivation: parameters.OutletDerivation
+                 ) -> nx.Graph:
     """Pair river and street nodes.
 
     Pair river and street nodes within a certain distance of each other. If
@@ -1104,9 +1104,9 @@ def _pair_rivers(G: nx.Graph,
         G (nx.Graph): A graph
         river_points (dict): A dictionary of river points
         street_points (dict): A dictionary of street points
-        river_buffer_distance (float): The distance within which a river and
-            street node can be paired
-        outlet_length (float): The length of the outlet
+        outlet_derivation (parameters.OutletDerivation): A OutletDerivation
+            parameter object
+
 
     Returns:
         G (nx.Graph): A graph
@@ -1130,7 +1130,7 @@ def _pair_rivers(G: nx.Graph,
         
         subgraph_outlets = go.nearest_node_buffer(street_points_,
                                     river_points,
-                                    river_buffer_distance)
+                                    outlet_derivation.river_buffer_distance)
 
         # Check if there are any matched outlets
         if subgraph_outlets:
@@ -1148,8 +1148,13 @@ def _pair_rivers(G: nx.Graph,
         # Create a dummy river to discharge into
         name = f'{lowest_elevation_node}-dummy_river'
         dummy_river = {'id' : name,
-                    'x' : G.nodes[lowest_elevation_node]['x'] + 1,
-                    'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+                        'x' : G.nodes[lowest_elevation_node]['x'] +\
+                            outlet_derivation.dummy_outlet_offset,
+                        'y' : G.nodes[lowest_elevation_node]['y'] +\
+                            outlet_derivation.dummy_outlet_offset,
+                        'surface_elevation' : 
+                            sg.nodes[lowest_elevation_node]['surface_elevation']
+                        }
         sg.add_node(name)
         nx.set_node_attributes(sg, {name : dummy_river})
 
@@ -1167,8 +1172,8 @@ def _pair_rivers(G: nx.Graph,
     for street_id, river_id in matched_outlets.items():
         # TODO instead use a weight based on the distance between the two nodes
         G.add_edge(street_id, river_id,
-                    **{'length' : outlet_length,
-                        'weight' : outlet_length,
+                    **{'length' : outlet_derivation.outlet_length,
+                        'weight' : outlet_derivation.outlet_length,
                     'edge_type' : 'outlet',
                     'geometry' : shapely.LineString([street_points[street_id],
                                                 river_points[river_id]]),
@@ -1297,8 +1302,7 @@ class identify_outlets(BaseGraphFunction,
         G_ = _pair_rivers(G, 
             river_points, 
             street_points, 
-            outlet_derivation.river_buffer_distance,
-            outlet_derivation.outlet_length)
+            outlet_derivation)
         
         # Set the length of the river edges to 0 - from a design perspective 
         # once water is in the river we don't care about the length - since it 
