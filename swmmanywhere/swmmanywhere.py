@@ -273,8 +273,8 @@ def load_config(config_path: Path,
         dict: The configuration.
     """
     # Load the schema
-    if not schema_fid:
-        schema_fid = Path(__file__).parent / 'defs' / 'schema.yml'
+    schema_fid = Path(__file__).parent / 'defs' / 'schema.yml' \
+        if schema_fid is None else Path(schema_fid)
     schema = yaml_load(schema_fid.read_text())
 
     # Load the config
