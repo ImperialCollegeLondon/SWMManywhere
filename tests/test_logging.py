@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from swmmanywhere.custom_logging import logger
+from swmmanywhere.logging import logger, verbose
 
 
 def test_logger():
@@ -48,7 +48,7 @@ def test_logger_disable():
 
 def test_logger_reimport():
     """Reimport logger to check that changes from disable are persistent."""
-    from swmmanywhere.custom_logging import logger
+    from swmmanywhere.logging import logger
     with NamedTemporaryFile(suffix='.log',
                             mode = 'w+b',
                             delete=False) as temp_file:    
@@ -72,3 +72,14 @@ def test_logger_again():
         logger.remove()
     fid.unlink()
     os.environ["SWMMANYWHERE_VERBOSE"] = "false"
+
+def test_verbose():
+    """Test the verbose function."""
+    os.environ["SWMMANYWHERE_VERBOSE"] = "true"
+    assert verbose()
+
+    os.environ["SWMMANYWHERE_VERBOSE"] = "false"
+    assert not verbose()
+
+    del os.environ["SWMMANYWHERE_VERBOSE"]
+    assert not verbose()

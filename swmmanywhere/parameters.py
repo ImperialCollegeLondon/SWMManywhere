@@ -69,7 +69,7 @@ class SubcatchmentDerivation(BaseModel):
 
     node_merge_distance: float = Field(default = 10,
                 ge = 1,
-                le = 39.9,
+                le = 39.9, # should be less than max_street_length
                 unit = 'm',
                 description = "Distance within which to merge street nodes.")
     
@@ -87,10 +87,10 @@ class OutletDerivation(BaseModel):
 		description = "Buffer distance to link rivers to streets.")
 
 	outlet_length: float = Field(default = 40.0,
-		ge = 10.0,
+		ge = 0.0,
 		le = 600.0,
-		unit = "m",
-		description = "Length to discourage street drainage into river buffers.") 
+		unit = "-",
+		description = "Weight to discourage street drainage into river buffers.")
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
