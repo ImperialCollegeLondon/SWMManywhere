@@ -666,6 +666,9 @@ class clip_to_catchments(BaseGraphFunction,
             subbasins.to_file(
                 str(addresses.nodes).replace('nodes','subbasins'), 
                 driver='GeoJSON')
+            streams.to_file(
+                str(addresses.nodes).replace('nodes','streams'), 
+                driver='GeoJSON')
 
         # Extract street network
         street = G.copy()
