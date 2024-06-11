@@ -488,7 +488,7 @@ def edge_betweenness_centrality(G: nx.Graph,
                                 weight: Optional[str] = "weight", 
                                 njobs: int = -1):
     """Parallel betweenness centrality function."""
-    njobs = joblib.cpu_count(True) if njobs == -1 else njobs
+    njobs = 1 #joblib.cpu_count(True) if njobs == -1 else njobs #TODO hotfix
     node_chunks = tlz.partition_all(G.order() // njobs, G.nodes())
     bt_func = tlz.partial(nx.edge_betweenness_centrality_subset, 
                           G=G, 

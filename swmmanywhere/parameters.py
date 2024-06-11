@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
+from swmmanywhere.utilities import yaml_dump, yaml_load
+
 
 def get_full_parameters():
     """Get the full set of parameters."""
@@ -87,14 +89,10 @@ class OutletDerivation(BaseModel):
 		description = "Buffer distance to link rivers to streets.")
 
 	outlet_length: float = Field(default = 40.0,
-		ge = 10.0,
+		ge = 0.0,
 		le = 600.0,
-		unit = "m",
-		description = "Length to discourage street drainage into river buffers.") 
-    
-	dummy_outlet_offset: float = Field(default = 100,
-        description = "Distance offset of pipe for dummy nodes",
-        unit = "m")
+		unit = "-",
+		description = "Weight to discourage street drainage into river buffers.")
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
@@ -223,9 +221,6 @@ class HydraulicDesign(BaseModel):
 		ge = 0.001,
 		description = "Depth of design storm in pipe by pipe method",
 		unit = "m")
-    non_pipe_diameter: float = Field(default = 10,
-        description = "Diameter of non-pipe elements",
-        unit = "m")
 
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
@@ -236,6 +231,16 @@ class MetricEvaluation(BaseModel):
                         description = "Scale of the grid for metric evaluation")
 
 
+def filepaths_from_yaml(f: Path):
+    """Get file paths from a yaml file."""
+    address_dict = yaml_load(f.read_text())
+    address_dict['base_dir'] = Path(address_dict['base_dir'])
+    paths = address_dict.pop('paths')
+    addresses = FilePaths(**address_dict)
+    for key, value in paths.items():
+        setattr(addresses, key, Path(value))
+
+    return addresses
 
 class FilePaths:
     """Parameters for file path lookup."""
@@ -253,6 +258,17 @@ class FilePaths:
         self.model_number = model_number
         self.extension = extension
     
+    def to_yaml(self, f: Path):
+        """Convert a file to json."""
+        address_dict = self.__dict__
+        address_dict['paths'] = {}
+        not_properties = ['_generate_path', '_generate_property']
+        for property in dir(self):
+            if ('_generate' == property[:9]) & (property not in not_properties):
+                property_name = property[10:]
+                address_dict['paths'][property_name] = self.__getattr__(property_name)
+        yaml_dump(address_dict, f.open('w'))
+
     def __getattr__(self, name):
         """Fetch the address."""
         return self._fetch_address(name)

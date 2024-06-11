@@ -198,11 +198,11 @@ pysheds==0.3.5
     # via swmmanywhere (pyproject.toml)
 pyswmm==1.5.1
     # via swmmanywhere (pyproject.toml)
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
-pytz==2023.3.post1
+pytz==2024.1
     # via pandas
 pyyaml==6.0.1
     # via swmmanywhere (pyproject.toml)
@@ -252,7 +252,7 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5
     # via pyswmm
-tifffile==2024.1.30
+tifffile==2024.5.22
     # via scikit-image
 toolz==0.12.1
     # via cytoolz
