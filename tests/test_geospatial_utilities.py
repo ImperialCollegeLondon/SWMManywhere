@@ -233,11 +233,11 @@ def test_derive_subcatchments():
 
         # Pyflwdir and pysheds catchment derivation aren't absolutely identical
         assert almost_equal(polys.set_index('id').loc[2623975694, 'area'], 
-                            1499, tol = 1)
+                            1998, tol = 1)
         assert almost_equal(polys.set_index('id').loc[2623975694, 'slope'], 
-                            0.06145, tol = 0.001)
+                            0.1132, tol = 0.001)
         assert almost_equal(polys.set_index('id').loc[2623975694, 'width'], 
-                            21.845, tol = 0.001)
+                            25.225, tol = 0.001)
 
 def test_derive_rc():
     """Test the derive_rc function."""

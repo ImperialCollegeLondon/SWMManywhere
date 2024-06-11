@@ -194,7 +194,7 @@ pyproj==3.6.1
     #   geopandas
     #   pysheds
     #   rioxarray
-pysheds==0.3.5
+pysheds==0.4.0
     # via swmmanywhere (pyproject.toml)
 pyswmm==1.5.1
     # via swmmanywhere (pyproject.toml)
