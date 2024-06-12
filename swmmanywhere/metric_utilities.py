@@ -440,8 +440,8 @@ def best_outlet_match(synthetic_G: nx.Graph,
     outlet = nodes_joined.outlet.value_counts().idxmax()
 
     # Subselect the matching graph
-    outlet_nodes = [n for n, d in synthetic_G.nodes(data=True) 
-                    if d.get('outlet', None) == outlet]
+    outlet_nodes = [n for n, d in synthetic_G.nodes(data='outlet') 
+                    if d['outlet'] == outlet]
     sg = create_subgraph(synthetic_G,outlet_nodes)
     return sg, outlet
 
