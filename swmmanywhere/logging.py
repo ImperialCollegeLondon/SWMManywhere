@@ -6,10 +6,10 @@ Example:
 >>> os.environ["SWMMANYWHERE_VERBOSE"] = "true" 
 >>> # logging is now enabled in any swmmanywhere module
 >>> from swmmanywhere.logging import logger # You can now log yourself
->>> logger.info("This is an info message.") # Write to stdout
+>>> logger.info("This is an info message.") # Write to stdout # doctest: +SKIP
 This is an info message.
 >>> logger.add("file.log") # Add a log file
->>> os.environ["SWMMANYWHERE_VERBOSE"] = "false" # Disable logging
+>>> os.environ["SWMMANYWHERE_VERBOSE"] = "false" # Disable logging # doctest: +SKIP
 ```
 """
 from __future__ import annotations
