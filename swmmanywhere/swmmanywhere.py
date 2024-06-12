@@ -128,7 +128,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
         return addresses.inp, None
-        
+    
     # Iterate the metrics
     logger.info("Iterating metrics.")
     metrics = iterate_metrics(synthetic_results,
@@ -353,9 +353,7 @@ def run(model: Path,
         ind = 0
         logger.info(f"Starting simulation for: {model}")
 
-        progress_bar = tqdm(total=duration, 
-                            disable = not verbose()
-                            )
+        progress_bar = tqdm(total=duration, disable = not verbose())
 
         offset = 0
         while (offset <= duration) & \
