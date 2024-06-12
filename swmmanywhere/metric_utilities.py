@@ -331,7 +331,6 @@ def align_by_id(synthetic_results: pd.DataFrame,
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
-    # Calculate coef_func
     return df
 
 def create_subgraph(G: nx.Graph,
