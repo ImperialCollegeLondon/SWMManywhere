@@ -11,16 +11,9 @@ plugins:
   - mkdocs-jupyter: 
       execute: true
   - search
-  # - bibtex:
-      # bib_file: "./docs/paper/paper.bib"
-      # csl_file: "./docs/paper/apa.csl"
-      # cite_inline: false
   - coverage:
       page_name: coverage  # default
       html_report_dir: htmlcov  # default
-  # - gen-files:
-    #  scripts:
-        # - docs/create_class_page.py 
         
 markdown_extensions:
   - footnotes
