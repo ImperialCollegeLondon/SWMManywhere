@@ -36,7 +36,7 @@ def test_getattr():
     assert addresses.precipitation == filepath / 'download/precipitation.parquet'
 
 
-def test_to_yaml():
+def test_to_yaml_normal():
     """Test the to_yaml and from_yaml methods."""
     with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
@@ -48,6 +48,33 @@ def test_to_yaml():
         addresses.to_yaml(base_dir / 'test.yaml')
 
         addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
+
+        paths_ = ["base_dir","project","national","bbox","download","building",
+                "model","subcatchments","precipitation","elevation","streetcover",
+                "river","street","edges","nodes","graph","inp","national_building"]
+        for key in paths_:
+            assert getattr(addresses, key) == getattr(addresses_, key)
+
+def test_to_yaml_normal_with_overrides():
+    """Test the to_yaml and from_yaml methods."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        base_dir = Path(temp_dir)
+        addresses = FilePaths(base_dir,
+                                'test',
+                                1,
+                                1,
+                                'parquet')
+        
+        # Model number override
+        addresses.model_number = 2
+
+        # File override (to something that exists for validation)
+        addresses.elevation = base_dir / 'test.yaml' 
+
+        addresses.to_yaml(base_dir / 'test.yaml')
+
+        addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
+
         paths_ = ["base_dir","project","national","bbox","download","building",
                 "model","subcatchments","precipitation","elevation","streetcover",
                 "river","street","edges","nodes","graph","inp","national_building"]
