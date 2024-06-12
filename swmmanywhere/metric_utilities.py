@@ -216,8 +216,8 @@ def relerror(y: np.ndarray,
     Calculate the relative error:
 
     $$
-    relerror = \frac{\mean(synthetic) - \mean(real)}
-                 {\mean(real)} 
+    relerror = \frac{mean(synthetic) - mean(real)}
+                 {mean(real)} 
     $$
 
     where:
