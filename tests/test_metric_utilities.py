@@ -54,6 +54,58 @@ def get_subs():
                                     crs = 'EPSG:32630')
     return subs
 
+def get_results():
+    """Get a DataFrame of results."""
+    results = pd.DataFrame([{'id' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 10,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                             {'id' : 4253560,
+                             'variable' : 'flow',
+                             'value' : 5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                             {'id' : 1696030874,
+                             'variable' : 'flooding',
+                             'value' : 4.5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'id' : 770549936,
+                             'variable' : 'flooding',
+                             'value' : 5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'id' : 107736,
+                             'variable' : 'flooding',
+                             'value' : 10,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'id' : 107733,
+                             'variable' : 'flooding',
+                             'value' : 1,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'id' : 107737,
+                             'variable' : 'flooding',
+                             'value' : 2,
+                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
+                            {'id' : 1696030874,
+                             'variable' : 'flooding',
+                             'value' : 0,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'id' : 770549936,
+                             'variable' : 'flooding',
+                             'value' : 5,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'id' : 107736,
+                             'variable' : 'flooding',
+                             'value' : 15,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'id' : 107733,
+                             'variable' : 'flooding',
+                             'value' : 2,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
+                            {'id' : 107737,
+                             'variable' : 'flooding',
+                             'value' : 2,
+                             'date' : pd.to_datetime('2021-01-01 00:00:05')}])
+    return results
+
 def test_bias_flood_depth():
     """Test the bias_flood_depth metric."""
     # Create synthetic and real data
@@ -148,10 +200,15 @@ def test_inf():
                          yhat = np.array([1,2,3,4,5]))
     assert val == np.inf
 
-    val = mu.pbias(y = np.array([-3,-3,0,3,3]),
+    val = mu.relerror(y = np.array([-3,-3,0,3,3]),
                          yhat = np.array([1,2,3,4,5]))
     assert val == np.inf
-    
+
+def test_relerror_different_length():
+    """Test the relerror metric with different length arrays."""
+    val = mu.relerror(y = np.array([1,2,3,4,5,6]),
+                         yhat = np.array([1]))
+    assert_close(val, (1 - 3.5)/3.5)
 
 def test_outlet_nse_flow():
     """Test the outlet_nse_flow metric."""
@@ -343,9 +400,10 @@ def test_design_params():
     
     # Target results
     design_results = {'outlet_kstest_diameters' : 0.0625,
-               'outlet_pbias_length' : -0.15088965,
-               'outlet_pbias_nmanholes' : -0.05,
-               'outlet_pbias_npipes' : -0.15789473}
+                'outlet_relerror_diameter': 0.0625,
+               'outlet_relerror_length' : -0.15088965,
+               'outlet_relerror_nmanholes' : -0.05,
+               'outlet_relerror_npipes' : -0.15789473}
     
     # Iterate for G = G, i.e., perfect results
     metrics = mu.iterate_metrics(synthetic_G = G,
@@ -421,54 +479,7 @@ def test_subcatchment_nse_flooding():
     subs = get_subs()
 
     # Mock results
-    results = pd.DataFrame([{'id' : 4253560,
-                             'variable' : 'flow',
-                             'value' : 10,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                             {'id' : 4253560,
-                             'variable' : 'flow',
-                             'value' : 5,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                             {'id' : 1696030874,
-                             'variable' : 'flooding',
-                             'value' : 4.5,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'id' : 770549936,
-                             'variable' : 'flooding',
-                             'value' : 5,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'id' : 107736,
-                             'variable' : 'flooding',
-                             'value' : 10,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'id' : 107733,
-                             'variable' : 'flooding',
-                             'value' : 1,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'id' : 107737,
-                             'variable' : 'flooding',
-                             'value' : 2,
-                             'date' : pd.to_datetime('2021-01-01 00:00:00')},
-                            {'id' : 1696030874,
-                             'variable' : 'flooding',
-                             'value' : 0,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'id' : 770549936,
-                             'variable' : 'flooding',
-                             'value' : 5,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'id' : 107736,
-                             'variable' : 'flooding',
-                             'value' : 15,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'id' : 107733,
-                             'variable' : 'flooding',
-                             'value' : 2,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')},
-                            {'id' : 107737,
-                             'variable' : 'flooding',
-                             'value' : 2,
-                             'date' : pd.to_datetime('2021-01-01 00:00:05')}])
+    results = get_results()
     
     # Calculate NSE (perfect results)
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G,
@@ -522,8 +533,68 @@ def test_restirctions():
     """Test the restriction register by generating an invalid metric."""
     # Invalid because length can't be calculated at grid scale
     with pytest.raises(ValueError):
-        mu.metric_factory('grid_pbias_length')
+        mu.metric_factory('grid_relerror_length')
 
     # Invalid because nmanholes can't be evaluated with nse
     with pytest.raises(ValueError):
         mu.metric_factory('outlet_nse_nmanholes')
+
+def test_nodes_to_subs():
+    """Test the nodes_to_subs function."""
+    subs = get_subs()
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    nodes = mu.nodes_to_subs(G, subs)
+    nodes = set([(r.id, r.sub_id) for _, r in nodes.iterrows()])
+    nodes_ = {(107733, 107733),
+            (107736, 1696030874),
+            (107737, 107733),
+            (32925453, 6277683849),
+            (770549936, 1696030874),
+            (6277683849, 6277683849)}
+    assert nodes == nodes_
+
+def test_align_by_shape_and_median_coef():
+    """Test the align_by_shape and median_coef_by_group function."""
+    subs = get_subs()
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+    results = get_results()
+    # Align the grid
+    aligned = mu.align_by_shape('flooding',
+                                results,
+                                results,
+                                subs,
+                                G,
+                                G)
+    assert aligned.shape[0] == 4
+    assert (aligned.value_real == aligned.value_syn).all()
+
+    # Test interp
+    results_ = results.copy()
+    results_ = pd.concat([results_,
+        results_.replace(
+            {'date': 
+             {pd.to_datetime('2021-01-01 00:00:00'): 
+              pd.to_datetime('2021-01-01 00:00:03'),
+              pd.to_datetime('2021-01-01 00:00:05'): 
+              pd.to_datetime('2021-01-01 00:00:02'),
+              }})])
+    
+    aligned = mu.align_by_shape('flooding',
+                                results,
+                                results_,
+                                subs,
+                                G,
+                                G)
+    assert aligned.shape[0] == 8
+    assert (
+        aligned.loc[aligned.date.isin(results.date)].value_real == 
+        aligned.loc[aligned.date.isin(results.date)].value_syn
+        ).all()
+    assert_close(aligned.loc[[2,3,4,5],'value_syn'], 
+                 [3.3333,16.6666,3.6666,18.3333])
+    
+    # Test median coef
+    meds = mu.median_coef_by_group(aligned,
+                                     'sub_id',
+                                     mu.nse)
+    assert_close(meds,0.1111)

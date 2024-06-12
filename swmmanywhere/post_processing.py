@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from swmmanywhere.logging import logger
 from swmmanywhere.parameters import FilePaths
 
 
@@ -97,7 +98,7 @@ def synthetic_write(addresses: FilePaths):
     # TODO automatically match units to storm.csv?
     event = {'name' : '1',
              'unit' : 'mm',
-             'interval' : '05:00',
+             'interval' : '00:05', # hh:mm
              'fid' : str(addresses.precipitation)
                                  }
 
@@ -171,10 +172,10 @@ def overwrite_section(data: np.ndarray,
                 i += 1
 
             example_line = lines[ix + i]
-            print('example_line {1}: {0}'.format(
-                example_line.replace('\n', ''), section))
-            print('note - this line must have at least as many column')
-            print('entries as all other rows in this section\n')
+            # print('example_line {1}: {0}'.format(
+            #     example_line.replace('\n', ''), section))
+            # print('note - this line must have at least as many column')
+            # print('entries as all other rows in this section\n')
             pattern = r'(\s+)'
 
             # Find all matches of the pattern in the input line
@@ -185,7 +186,7 @@ def overwrite_section(data: np.ndarray,
                             for x, y in zip(matches, example_line.split())]
             if not space_counts:
                 if data.shape[0] != 0:
-                    print('no template for data?')
+                    logger.warning('no template for data?')
                 continue
 
             space_counts[-1] -= 1
@@ -251,7 +252,6 @@ def data_dict_to_inp(data_dict: dict[str, np.ndarray],
 
     # Write the inp file
     for key, data in data_dict.items():
-        print(key)
         start_section = '[{0}]'.format(key)
      
         overwrite_section(data, start_section, new_input_file)

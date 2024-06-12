@@ -20,9 +20,13 @@ import sys
 import loguru
 
 
+def verbose() -> bool:
+    """Get the verbosity."""
+    return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
+
 def dynamic_filter(record):
     """A dynamic filter."""
-    return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
+    return verbose()
 
 def get_logger() -> loguru.logger:
     """Get a logger."""

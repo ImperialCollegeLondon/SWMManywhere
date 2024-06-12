@@ -13,23 +13,45 @@ real:
   results: null
 starting_graph: null
 graphfcn_list:
-  - assign_id
-  - format_osmnx_lanes
-  - remove_non_pipe_allowable_links
-  - double_directed
-  - fix_geometries
-  - split_long_edges
-  - calculate_contributing_area
-  - set_elevation
-  - set_surface_slope
-  - set_chahinian_slope
-  - set_chahinian_angle
-  - calculate_weights
-  - identify_outlets
-  - derive_topology
-  - pipe_by_pipe
-  - assign_id
+  - assign_id # Initial pass to ensure consistent 'id' and remove duplicates
+  - fix_geometries # Ensure consistent geometry directions
+  - remove_non_pipe_allowable_links # Filter out things like bridges/motorways
+  - calculate_streetcover # Create shapefile of impervious street cover
+  - remove_parallel_edges # Remove parallel edges retaining the shorter one
+  - to_undirected # Convert graph to undirected to facilitate cleanup
+  - split_long_edges # Set a maximum edge length
+  - merge_street_nodes # Merge street nodes that are too close together
+  - assign_id # Remove duplicates arising from merge_street_nodes
+  - clip_to_catchments # Clip graph to catchment subbasins
+  - calculate_contributing_area # Calculate runoff coefficient
+  - set_elevation # Set node elevation from DEM
+  - double_directed # Format as directed graph enabling travel in both directions
+  - fix_geometries # Ensure consistent geometries due to undirected->directed
+  - set_surface_slope # Calculate surface slope of edges
+  - set_chahinian_slope # Transform surface slope to more sensible slope for weights
+  - set_chahinian_angle # Transform edge angles to more sensible angle for weights
+  - calculate_weights # Calculate weights for each edge
+  - identify_outlets # Identify potential street->river outlets
+  - derive_topology # Shortest path to give network topology
+  - pipe_by_pipe # Design pipe diameters and depths
+  - fix_geometries # Ensure geometries present before printing
+  - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
+  - outlet_nse_flow
+  - outlet_kge_flow
+  - outlet_relerror_flow
+  - outlet_relerror_length
+  - outlet_relerror_npipes
+  - outlet_relerror_nmanholes
+  - outlet_nse_flooding
+  - outlet_kge_flooding
+  - outlet_relerror_flooding
+  - grid_nse_flooding
+  - grid_kge_flooding
+  - grid_relerror_flooding
+  - subcatchment_nse_flooding
+  - subcatchment_kge_flooding
+  - subcatchment_relerror_flooding
   - nc_deltacon0
   - nc_laplacian_dist
   - nc_laplacian_norm_dist
@@ -39,8 +61,7 @@ metric_list:
   - bias_flood_depth
   - kstest_edge_betweenness
   - kstest_betweenness
-  - outlet_nse_flow
-  - outlet_nse_flooding
+  - outlet_kstest_diameters
 parameter_overrides:
   hydraulic_design:
     diameters:

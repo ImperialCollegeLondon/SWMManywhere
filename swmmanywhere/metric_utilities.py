@@ -153,7 +153,7 @@ def restriction_on_scale(scale: str,
                          variable: str):
     """Restriction on scale.
     
-    Restrict the design variables to the outlet scale if the metric is 'pbias'.
+    Restrict the design variables to the outlet scale if the metric is 'relerror'.
 
     Args:
         scale (str): The scale of the metric.
@@ -169,15 +169,15 @@ def restriction_on_metric(scale: str,
                           variable: str):
     """Restriction on metric.
 
-    Restrict the variable to 'flow' if the metric is 'pbias'.
+    Restrict the variable to 'flow' if the metric is 'relerror'.
 
     Args:
         scale (str): The scale of the metric.
         metric (str): The metric.
         variable (str): The variable.
     """
-    if variable in ('length', 'nmanholes', 'npipes') and metric != 'pbias':
-        raise ValueError(f"Variable {variable} only valid with pbias metric")
+    if variable in ('length', 'nmanholes', 'npipes') and metric != 'relerror':
+        raise ValueError(f"Variable {variable} only valid with relerror metric")
 
 
 # Coefficient Registry
@@ -209,23 +209,21 @@ def register_coef(coef_func: Callable):
     return coef_func
 
 @register_coef
-def pbias(y: np.ndarray,
+def relerror(y: np.ndarray,
           yhat: np.ndarray) -> float:
-    r"""Percentage bias, PBIAS.
+    r"""Relative error, relerror.
 
-    Calculate the percent bias:
+    Calculate the relative error:
 
     $$
-    PBIAS = \frac{\sum_{i=1}^{n} (Q_{sim,i} - Q_{obs,i})}
-                 {\sum_{i=1}^{n} Q_{obs,i}} 
-            \times 100
+    relerror = \frac{\mean(synthetic) - \mean(real)}
+                 {\mean(real)} 
     $$
 
     where:
 
-    - \(Q_{\text{sim},i}\) is the simulated value at \(i\),
-    - \(Q_{\text{obs},i}\) is the observed value at \(i\),
-    - \(n\) is the number of observations.
+    - \(synthetic\) is the synthetic data,
+    - \(real\) is the real data,
 
 
     Args:
@@ -233,12 +231,12 @@ def pbias(y: np.ndarray,
         yhat (np.ndarray): The synthetic data.
 
     Returns:
-        float: The PBIAS value.
+        float: The relerror value.
     """
-    total_observed = y.sum()
+    total_observed = y.mean()
     if total_observed == 0:
         return np.inf
-    return (yhat.sum() - total_observed) / total_observed
+    return (yhat.mean() - total_observed) / total_observed
 
 @register_coef
 def nse(y: np.ndarray,
@@ -318,7 +316,8 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
                   coef_func: Callable = nse) -> float:
     """Align and calculate coef_func.
 
-    Aggregate synthetic and real results by date for specifics ids. 
+    Aggregate synthetic and real results by date for specifics ids (i.e., sum
+    up over all ids - so we are only comparing timeseries for one aggregation). 
     Align the synthetic and real dates and calculate the coef_func metric
     of the variable over time. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
@@ -408,7 +407,8 @@ def median_coef_by_group(results: pd.DataFrame,
 
     Calculate the median coef_func value of a variable over time
     for each group in the results dataframe, and return the median of these
-    values.
+    values. Assumes that the results dataframe has a 'value_real' and 'value_syn'
+    and that these properly line up.
 
     Args:
         results (pd.DataFrame): The results dataframe.
@@ -420,9 +420,6 @@ def median_coef_by_group(results: pd.DataFrame,
     """
     val = (
         results
-        .groupby(['date',gb_key])
-        .sum()
-        .reset_index()
         .groupby(gb_key)
         .apply(lambda x: coef_func(x.value_real, x.value_syn))
     )
@@ -526,7 +523,7 @@ def edge_betweenness_centrality(G: nx.Graph,
                                 weight: Optional[str] = "weight", 
                                 njobs: int = -1):
     """Parallel betweenness centrality function."""
-    njobs = joblib.cpu_count(True) if njobs == -1 else njobs
+    njobs = 1 #joblib.cpu_count(True) if njobs == -1 else njobs #TODO hotfix
     node_chunks = tlz.partition_all(G.order() // njobs, G.nodes())
     bt_func = tlz.partial(nx.edge_betweenness_centrality_subset, 
                           G=G, 
@@ -549,10 +546,12 @@ def align_by_shape(var,
                           real_results: pd.DataFrame,
                           shapes: gpd.GeoDataFrame,
                           synthetic_G: nx.Graph,
-                          real_G: nx.Graph) -> pd.DataFrame:
+                          real_G: nx.Graph,
+                          key: str = 'sub_id') -> pd.DataFrame:
     """Align by subcatchment.
 
-    Align synthetic and real results by shape and return the results.
+    Align synthetic and real results by shape and return the results. If multiple
+    ids exist in the same shape, these are aggregated by sum.
 
     Args:
         var (str): The variable to align.
@@ -561,6 +560,7 @@ def align_by_shape(var,
         shapes (gpd.GeoDataFrame): The shapes to align by (e.g., grid or real_subs).
         synthetic_G (nx.Graph): The synthetic graph.
         real_G (nx.Graph): The real graph.
+        key (str): The column to align by.
     """
     synthetic_joined = nodes_to_subs(synthetic_G, shapes)
     real_joined = nodes_to_subs(real_G, shapes)
@@ -578,20 +578,42 @@ def align_by_shape(var,
 
     # Align data
     synthetic_results = pd.merge(synthetic_results,
-                                 synthetic_joined[['id','sub_id']],
+                                 synthetic_joined[['id',key]],
                                  on='id')
+    synthetic_gb = (
+        synthetic_results
+        .groupby(['date',key])
+        .value
+        .sum()
+        .reset_index()
+    )
     real_results = pd.merge(real_results,
-                            real_joined[['id','sub_id']],
+                            real_joined[['id',key]],
                             on='id')
-    
-    results = pd.merge(real_results[['date','sub_id','value']],
-                            synthetic_results[['date','sub_id','value']],
-                            on = ['date','sub_id'],
+    real_gb = (
+        real_results
+        .groupby(['date',key])
+        .value
+        .sum()
+        .reset_index()
+    )
+    results = pd.merge(real_gb[['date',key,'value']],
+                            synthetic_gb[['date',key,'value']],
+                            on = ['date',key],
                             suffixes = ('_real', '_syn'),
                             how = 'outer'
                             )
     
-    results['value_syn'] = results.value_syn.interpolate().to_numpy()
+    syn_interp = (
+        results
+        .groupby(key)
+        .apply(func = 
+               lambda x : x.set_index('date')[['value_syn']].interpolate())
+        .reset_index()
+    )
+    results = pd.merge(results.drop('value_syn', axis=1), 
+                       syn_interp, 
+                       on = ['sub_id','date'])
     results = results.dropna(subset=['value_real'])
 
     return results
@@ -787,7 +809,12 @@ def outlet(synthetic_results: pd.DataFrame,
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
     sg_real, real_outlet = dominant_outlet(real_G, real_results)
     
-    allowable_var = ['nmanholes', 'npipes', 'length', 'flow', 'flooding']
+    allowable_var = ['nmanholes', 
+                     'diameter', 
+                     'npipes', 
+                     'length', 
+                     'flow', 
+                     'flooding']
     if var not in allowable_var:
         raise ValueError(f"Invalid variable {var}. Can be {allowable_var}")
 
@@ -803,10 +830,20 @@ def outlet(synthetic_results: pd.DataFrame,
         # Calculate the coefficient based on the total length of the pipes
         return coef_func(
             np.array(
-                list(nx.get_edge_attributes(sg_real, 'length').values())
+                sum(nx.get_edge_attributes(sg_real, var).values())
                 ),
             np.array(
-                list(nx.get_edge_attributes(sg_syn, 'length').values())
+                sum(nx.get_edge_attributes(sg_syn, var).values())
+                )
+            )
+    if var == 'diameter':
+        # Calculate the coefficient based on the average diameter of the pipes
+        return coef_func(
+            np.array(
+                list(nx.get_edge_attributes(sg_real, var).values())
+                ),
+            np.array(
+                list(nx.get_edge_attributes(sg_syn, var).values())
                 )
             )
     if var == 'flow':
@@ -868,23 +905,24 @@ def metric_factory(name: str):
 
 metrics.register(metric_factory('outlet_nse_flow'))
 metrics.register(metric_factory('outlet_kge_flow'))
-metrics.register(metric_factory('outlet_pbias_flow'))
+metrics.register(metric_factory('outlet_relerror_flow'))
 
-metrics.register(metric_factory('outlet_pbias_length'))
-metrics.register(metric_factory('outlet_pbias_npipes'))
-metrics.register(metric_factory('outlet_pbias_nmanholes'))
+metrics.register(metric_factory('outlet_relerror_length'))
+metrics.register(metric_factory('outlet_relerror_npipes'))
+metrics.register(metric_factory('outlet_relerror_nmanholes'))
+metrics.register(metric_factory('outlet_relerror_diameter'))
 
 metrics.register(metric_factory('outlet_nse_flooding'))
 metrics.register(metric_factory('outlet_kge_flooding'))
-metrics.register(metric_factory('outlet_pbias_flooding'))
+metrics.register(metric_factory('outlet_relerror_flooding'))
 
 metrics.register(metric_factory('grid_nse_flooding'))
 metrics.register(metric_factory('grid_kge_flooding'))
-metrics.register(metric_factory('grid_pbias_flooding'))
+metrics.register(metric_factory('grid_relerror_flooding'))
 
 metrics.register(metric_factory('subcatchment_nse_flooding'))
 metrics.register(metric_factory('subcatchment_kge_flooding'))
-metrics.register(metric_factory('subcatchment_pbias_flooding'))
+metrics.register(metric_factory('subcatchment_relerror_flooding'))
 
 @metrics.register
 def nc_deltacon0(synthetic_G: nx.Graph,

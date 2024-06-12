@@ -54,12 +54,13 @@ def test_swmmanywhere():
         # Set some test values
         base_dir = Path(temp_dir)
         config['base_dir'] = str(base_dir)
-        config['bbox'] = [0.05428,51.55847,0.07193,51.56726]
+        config['bbox'] = [0.05677,51.55656,0.07193,51.56726]
         config['address_overrides'] = {
             'building': str(test_data_dir / 'building.geoparquet'),
             'precipitation': str(defs_dir / 'storm.dat')
             }
-        
+        config['parameter_overrides'] = {'subcatchment_derivation' : 
+                                         {'subbasin_streamorder' : 5}}
         config['run_settings']['duration'] = 1000
         api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
         with open(base_dir / 'api_keys.yml', 'w') as f:
@@ -150,16 +151,15 @@ def test_load_config_schema_validation():
         # Test schema validation
         with pytest.raises(jsonschema.exceptions.ValidationError) as exc_info:
             swmmanywhere.load_config(base_dir / 'test_config.yml')
-            assert "null" in str(exc_info.value)
+            assert "null" in str(exc_info.value)            
 
-def test_check_parameters_to_sample():
-    """Test the check_parameters_to_sample validation."""
+def test_save_config():
+    """Test the save_config function."""
     with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
         test_data_dir = Path(__file__).parent / 'test_data'
         defs_dir = Path(__file__).parent.parent / 'swmmanywhere' / 'defs'
-        base_dir = Path(temp_dir)
 
-        # Load the config
         with (test_data_dir / 'demo_config.yml').open('r') as f:
             config = yaml.safe_load(f)
         
@@ -170,15 +170,7 @@ def test_check_parameters_to_sample():
         config['base_dir'] = str(defs_dir / 'storm.dat')
         config['api_keys'] = str(defs_dir / 'storm.dat')
 
-        # Make an edit that should fail
-        config['parameters_to_sample'] = ['not_a_parameter']
-        
-        with open(base_dir / 'test_config.yml', 'w') as f:
-            yaml.dump(config, f)
+        swmmanywhere.save_config(config, temp_dir / 'test.yml')
 
-        # Test parameter validation
-        with pytest.raises(ValueError) as exc_info:
-            swmmanywhere.load_config(base_dir / 'test_config.yml')
-            assert "not_a_parameter" in str(exc_info.value)
-
-
+        # Reload to check OK
+        config = swmmanywhere.load_config(temp_dir / 'test.yml')

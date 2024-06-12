@@ -6,16 +6,23 @@
 from __future__ import annotations
 
 import math
+import os
 import tempfile
 from pathlib import Path
 
 import geopandas as gpd
 import networkx as nx
+import pytest
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
+from swmmanywhere.graph_utilities import (
+    _filter_streets,
+    iterate_graphfcns,
+    load_graph,
+    save_graph,
+)
 from swmmanywhere.graph_utilities import graphfcns as gu
-from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 
 
 def load_street_network():
@@ -52,20 +59,29 @@ def test_double_directed():
     for u, v in G.edges():
         assert (v,u) in G.edges
 
-def test_format_osmnx_lanes():
-    """Test the format_osmnx_lanes function."""
+def test_calculate_streetcover():
+    """Test the calculate_streetcover function."""
     G, _ = load_street_network()
     params = parameters.SubcatchmentDerivation()
-    G = gu.format_osmnx_lanes(G, params)
-    for u, v, data in G.edges(data=True):
-        assert 'width' in data.keys()
-        assert isinstance(data['width'], float)
+    addresses = parameters.FilePaths(base_dir = None,
+                                        project_name = None,
+                                        bbox_number = None,
+                                        model_number = None,
+                                        extension = 'json')
+    with tempfile.TemporaryDirectory() as temp_dir:
+        addresses.streetcover = Path(temp_dir) / 'streetcover.geojson'
+        _ = gu.calculate_streetcover(G, params, addresses)
+        # TODO test that G hasn't changed? or is that a waste of time?
+        assert addresses.streetcover.exists()
+        gdf = gpd.read_file(addresses.streetcover)
+        assert len(gdf) == len(G.edges)
+        assert gdf.geometry.area.sum() > 0
 
 def test_split_long_edges():
     """Test the split_long_edges function."""
     G, _ = load_street_network()
     G = gu.assign_id(G)
-    max_length = 20
+    max_length = 40
     params = parameters.SubcatchmentDerivation(max_street_length = max_length)
     G = gu.split_long_edges(G, params)
     for u, v, data in G.edges(data=True):
@@ -82,6 +98,7 @@ def test_derive_subcatchments():
                             model_number = 1)
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
         addresses.building = temp_path / 'building.geojson'
+        addresses.streetcover = temp_path / 'building.geojson'
         addresses.subcatchments = temp_path / 'subcatchments.geojson'
         params = parameters.SubcatchmentDerivation()
         G, bbox = load_street_network()
@@ -167,6 +184,98 @@ def test_calculate_weights():
     for u, v, data in G.edges(data=True):
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
+        
+def test_identify_outlets_no_river():
+    """Test the identify_outlets in the no river case."""
+    G, _ = load_street_network()
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    addresses.elevation = elev_fid
+    G = gu.set_elevation(G, addresses)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+    params = parameters.OutletDerivation()
+    G = gu.identify_outlets(G, params)
+    outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 1
+
+def test_identify_outlets_sg():
+    """Test the identify_outlets with subgraphs."""
+    G, _ = load_street_network()
+    
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    addresses = parameters.FilePaths(base_dir = None,
+                                    project_name = None,
+                                    bbox_number = None,
+                                    model_number = None)
+    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
+    addresses.elevation = elev_fid
+    G = gu.set_elevation(G, addresses)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+
+    params = parameters.OutletDerivation(river_buffer_distance = 200,
+                                         outlet_length = 10,
+                                         method = 'withtopo')
+    dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
+                                    (699932.546,5709882.575)])
+    dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
+                                    (700011.524,5710060.636)])
+    dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
+                                    (700103.427,5710169.052)])
+    
+    G.add_edge('river1', 'river2', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river1-to-river2',
+                                    'geometry' :  dummy_river1})
+    G.add_edge('river2', 'river3', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river2-to-river3',
+                                    'geometry' :  dummy_river2})
+    
+    G.add_edge('river3', 'river4', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river3-to-river4',
+                                    'geometry' :  dummy_river3})
+
+    G.nodes['river1']['x'] = 699913.878
+    G.nodes['river1']['y'] = 5709769.851
+    G.nodes['river2']['x'] = 699932.546
+    G.nodes['river2']['y'] = 5709882.575
+    G.nodes['river3']['x'] = 700011.524
+    G.nodes['river3']['y'] = 5710060.636
+    G.nodes['river4']['x'] = 700103.427
+    G.nodes['river4']['y'] = 5710169.052
+
+    # Cut into subgraphs
+    G.remove_edge(12354833, 25472373)
+    G.remove_edge(25472373, 12354833)
+    G.remove_edge(109753, 25472854)
+    G.remove_edge(25472854, 109753)
+
+    # Test outlet derivation
+    G_ = G.copy()
+    G_ = gu.identify_outlets(G_, params)
+
+    # Two subgraphs = two routes to waste
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+               if d['edge_type'] == 'waste-outlet']
+    assert len(outlets) == 2
+
+    # With buffer distance 300, the subgraph near the river will have an outlet
+    # between the nearest street node to each river node (there are 3 potential
+    # links in 150m). The subgraph further from the river is too far to be linked 
+    # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 3
 
 def test_identify_outlets_and_derive_topology():
     """Test the identify_outlets and derive_topology functions."""
@@ -177,7 +286,9 @@ def test_identify_outlets_and_derive_topology():
         d['edge_type'] = 'street'
         d['weight'] = ix
 
-    params = parameters.OutletDerivation(river_buffer_distance = 300)
+    params = parameters.OutletDerivation(river_buffer_distance = 200,
+                                         outlet_length = 10,
+                                         method = 'separate')
     dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
                                     (699932.546,5709882.575)])
     dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
@@ -216,8 +327,13 @@ def test_identify_outlets_and_derive_topology():
     assert len(outlets) == 2
     
     # Test topo derivation
-    G_ = gu.derive_topology(G_)
+    G_ = gu.derive_topology(G_,params)
     assert len(G_.edges) == 22
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 2
+    for u,d in G_.nodes(data=True):
+        assert 'x' in d.keys()
+        assert 'y' in d.keys()
+
 
     # Test outlet derivation parameters
     G_ = G.copy()
@@ -225,6 +341,74 @@ def test_identify_outlets_and_derive_topology():
     G_ = gu.identify_outlets(G_, params)
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
+        
+def test_identify_outlets_and_derive_topology_withtopo():
+    """Test the identify_outlets and derive_topology functions."""
+    G, _ = load_street_network()
+    G = gu.assign_id(G)
+    G = gu.double_directed(G)
+    for ix, (u,v,d) in enumerate(G.edges(data=True)):
+        d['edge_type'] = 'street'
+        d['weight'] = ix
+
+    params = parameters.OutletDerivation(river_buffer_distance = 250,
+                                         outlet_length = 10,
+                                         method = 'withtopo')
+    dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
+                                    (699932.546,5709882.575)])
+    dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
+                                    (700011.524,5710060.636)])
+    dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
+                                    (700103.427,5710169.052)])
+    
+    G.add_edge('river1', 'river2', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river1-to-river2',
+                                    'geometry' :  dummy_river1})
+    G.add_edge('river2', 'river3', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river2-to-river3',
+                                    'geometry' :  dummy_river2})
+    
+    G.add_edge('river3', 'river4', **{'length' :  10,
+                                    'edge_type' : 'river',
+                                    'id' : 'river3-to-river4',
+                                    'geometry' :  dummy_river3})
+    
+    G.nodes['river1']['x'] = 699913.878
+    G.nodes['river1']['y'] = 5709769.851
+    G.nodes['river2']['x'] = 699932.546
+    G.nodes['river2']['y'] = 5709882.575
+    G.nodes['river3']['x'] = 700011.524
+    G.nodes['river3']['y'] = 5710060.636
+    G.nodes['river4']['x'] = 700103.427
+    G.nodes['river4']['y'] = 5710169.052
+
+    # Test outlet derivation
+    G_ = G.copy()
+    G_ = gu.identify_outlets(G_, params)
+
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+               if d['edge_type'] == 'waste-outlet']
+    assert len(outlets) == 1
+
+    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+    assert len(outlets) == 4
+    
+    # Test topo derivation
+    G_ = gu.derive_topology(G_,params)
+    assert len(G_.edges) == 20
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 4
+
+    # Test outlet derivation parameters
+    G_ = G.copy()
+    params.outlet_length = 600
+    G_ = gu.identify_outlets(G_, params)
+    G_ = gu.derive_topology(G_, params)
+    assert len(set([d['outlet'] for u,d in G_.nodes(data=True)])) == 1
+    for u,d in G_.nodes(data=True):
+        assert 'x' in d.keys()
+        assert 'y' in d.keys()
 
 def test_pipe_by_pipe():
     """Test the pipe_by_pipe function."""
@@ -275,6 +459,7 @@ def test_iterate_graphfcns():
     """Test the iterate_graphfcns function."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     params = parameters.get_full_parameters()
+    params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         addresses = parameters.FilePaths(base_dir = None,
@@ -286,12 +471,13 @@ def test_iterate_graphfcns():
         addresses.model = temp_path
         G = iterate_graphfcns(G, 
                                 ['assign_id',
-                                'format_osmnx_lanes'],
+                                'remove_non_pipe_allowable_links'],
                                 params, 
                                 addresses)
         for u, v, d in G.edges(data=True):
             assert 'id' in d.keys()
-            assert 'width' in d.keys()
+        assert 'primary' not in get_edge_types(G)
+        assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) == 1
 
 def test_fix_geometries():
     """Test the fix_geometries function."""
@@ -308,3 +494,113 @@ def test_fix_geometries():
     # Check that the edge geometry now matches the node coordinates
     assert G_fixed.get_edge_data(107733, 25472373,0)['geometry'].coords[0] == \
         (G_fixed.nodes[107733]['x'], G_fixed.nodes[107733]['y'])
+
+def almost_equal(a, b, tol=1e-6):
+    """Check if two numbers are almost equal."""
+    return abs(a-b) < tol
+
+def test_merge_street_nodes():
+    """Test the merge_street_nodes function."""
+    G, _ = load_street_network()
+    subcatchment_derivation = parameters.SubcatchmentDerivation(
+        node_merge_distance = 20)
+    G_ = gu.merge_street_nodes(G, subcatchment_derivation)
+    assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
+    assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
+
+def test_clip_to_catchments():
+    """Test the clip_to_catchments function."""
+    G, _ = load_street_network()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+        temp_path = Path(temp_dir)
+        addresses = parameters.FilePaths(base_dir = temp_path,
+                                        project_name = 'test',
+                                        bbox_number = 0,
+                                        model_number = 0)
+        addresses.nodes = addresses.base_dir / 'nodes.geojson'
+        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+
+        # Test clipping
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 3,
+            subbasin_membership = 0.9,
+            subbasin_clip_method = 'community'
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 30
+
+        # Test clipping with different params
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0.3,
+            subbasin_clip_method = 'community'
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 38
+
+        # Test no cuts
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 0,
+            subbasin_clip_method = 'community'
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 39
+
+        # Cut between every community not entirely within the same basin
+        subcatchment_derivation = parameters.SubcatchmentDerivation(
+            subbasin_streamorder = 4,
+            subbasin_membership = 1,
+            subbasin_clip_method = 'community'
+        )
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 28
+
+        # Check streamorder adjustment
+        with pytest.raises(ValueError):
+            subcatchment_derivation = parameters.SubcatchmentDerivation(
+                subbasin_streamorder = 5,
+                subbasin_membership = 0.9
+            )
+            G_ = gu.clip_to_catchments(G, 
+                                    addresses=addresses,
+                                    subcatchment_derivation=subcatchment_derivation)
+
+def test_filter_streets():
+    """Test the _filter_streets function."""
+    # Create a sample graph
+    G = nx.Graph()
+    G.add_edges_from([(1, 2, {'edge_type': 'street'}),
+                        (2, 3, {'edge_type': 'street'}),
+                        (3, 4, {'edge_type': 'outlet'}),
+                        (4, 5, {'edge_type': 'river'})])
+
+    # Test case 1: Filter streets
+    G_streets = _filter_streets(G)
+    assert set(G_streets.nodes) == {1, 2, 3}
+    assert set(G_streets.edges) == {(1, 2),(2, 3)}
+
+    # Test case 2: Empty graph
+    G_empty = nx.Graph()
+    G_empty_streets = _filter_streets(G_empty)
+    assert len(G_empty_streets.nodes) == 0
+    assert len(G_empty_streets.edges) == 0
+
+    # Test case 3: All non-street edges
+    G_non_streets = nx.Graph()
+    G_non_streets.add_edges_from([(1, 2, {'edge_type': 'non-street'}),
+                                    (2, 3, {'edge_type': 'non-street'})])
+    G_non_streets_filtered = _filter_streets(G_non_streets)
+    assert len(G_non_streets_filtered.nodes) == 0
+    assert len(G_non_streets_filtered.edges) == 0
