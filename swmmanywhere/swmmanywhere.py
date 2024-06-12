@@ -115,21 +115,20 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
-    if not config.get('real', None):
-        logger.info("No real data provided.")
-        return addresses.inp, None
-
-    if config['real'].get('results',None):
+    if config.get('real', {}).get('results',None):
         logger.info("Loading real results.")
         real_results = pd.read_parquet(config['real']['results'])
-    elif config['real']['inp']:
+    elif config.get('real', {}).get('inp',None):
         logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
         if verbose():
             real_results.to_parquet(config['real']['inp'].parent /\
                                      f'real_results.{addresses.extension}')
-    
+    else:
+        logger.info("No real network provided, returning SWMM .inp file.")
+        return addresses.inp, None
+        
     # Iterate the metrics
     logger.info("Iterating metrics.")
     metrics = iterate_metrics(synthetic_results,
@@ -354,7 +353,9 @@ def run(model: Path,
         ind = 0
         logger.info(f"Starting simulation for: {model}")
 
-        progress_bar = tqdm(total=duration, disable = not verbose())
+        progress_bar = tqdm(total=duration, 
+                            disable = not verbose()
+                            )
 
         offset = 0
         while (offset <= duration) & \
