@@ -57,7 +57,7 @@ config['project'] = 'my_first_swmm'
 # The bounding box is a list of four values: [minx, miny, maxx, maxy], we will
 # pick one in Andorra because the area is small and we can download the building
 # data for it very quickly (larger countries will take longer)
-config['bbox'] = [1.50766,42.49559,1.57321,42.52276]
+config['bbox'] = [1.52740,42.50524,1.54273,42.51259]
 
 # We need to locate the API keys file
 config['api_keys'] = base_dir / 'api_keys.yml'
@@ -66,6 +66,12 @@ config['api_keys'] = base_dir / 'api_keys.yml'
 # design storm
 config['address_overrides'] = {'precipitation' : 
                     Path(swmmanywhere.__file__).parent / 'defs' / 'storm.dat'}
+
+# If you do not know the outline of your urban drainage network (as in this case)
+# you will have to run the `clip_to_catchments` graph function. T
+config['parameter_overrides'] = {'subcatchment_derivation' : 
+                                 {'subbasin_streamorder' : 5}
+                                 }
 
 # We do not have a real SWMM model for this so we will delete that entry
 del config['real']
@@ -107,7 +113,7 @@ gb.get_group(('flow', results.iloc[-1].id)).plot(x='date',
                                                  y='value',
                                                  title='Flow in a pipe',
                                                  xlabel='Date',
-                                                 ylabel='Flow (m3/s)'
+                                                 ylabel='Flow (l/s)'
                                                  )
 # %% [markdown]
 # Hooray! We have run a synthetic SWMM model and plotted some results. This is

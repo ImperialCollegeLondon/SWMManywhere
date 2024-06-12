@@ -115,6 +115,10 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
+    if not config.get('real', None):
+        logger.info("No real data provided.")
+        return addresses.inp, None
+
     if config['real'].get('results',None):
         logger.info("Loading real results.")
         real_results = pd.read_parquet(config['real']['results'])
@@ -253,7 +257,8 @@ def save_config(config: dict, config_path: Path):
     """
     yaml_dump(config, config_path.open('w'))
 
-def load_config(config_path: Path, 
+def load_config(config_path: Path = Path(__file__).parent.parent / 'tests' / \
+                    'test_data' / 'demo_config.yml', 
                 validation: bool = True, 
                 schema_fid: Path | None = None):
     """Load, validate, and convert Paths in a configuration file.
