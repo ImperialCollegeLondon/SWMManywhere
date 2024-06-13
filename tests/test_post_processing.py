@@ -191,7 +191,7 @@ def test_synthetic_write():
         nodes.reset_index().to_file(addresses.nodes)
 
         # Check that there will be more outfalls than edges
-        assert sum(~nodes.index.astype(str).isin(edges.u.astype(str))) > 1
+        assert sum(~nodes.index.astype(str).isin(edges.u.astype(str))) > edges.shape[0]
         
         # Run to check
         stt.synthetic_write(addresses)
