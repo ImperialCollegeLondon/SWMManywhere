@@ -116,7 +116,7 @@ def generate_data_dict():
     rain_fid = 'storm.dat'
     event = {'name' : '1',
                     'unit' : 'mm',
-                    'interval' : '01:00',
+                    'interval' : '00:05',
                     'fid' : rain_fid}
     symbol = {'x' : 0,
                 'y' : 0,
@@ -160,6 +160,11 @@ def test_synthetic_write():
         comparison_file = addresses.model / "model_base.inp"
         template_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
             'basic_drainage_all_bits.inp'
+        
+        # Manually convert to ha to make comparable to synthetic_write
+        data_dict['subs']['area'] /= 10000
+
+        # Write the model with data_dict_to_inp
         stt.data_dict_to_inp(stt.format_to_swmm_dict(**data_dict),
                              template_fid,
                              comparison_file)
@@ -175,8 +180,8 @@ def test_synthetic_write():
                 diff = difflib.unified_diff(
                     file1.readlines(),
                     file2.readlines(),
-                    fromfile=new_input_file,
-                    tofile=comparison_file,
+                    fromfile=str(new_input_file),
+                    tofile=str(comparison_file),
                 )
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"

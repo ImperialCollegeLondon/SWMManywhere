@@ -5,10 +5,8 @@
 """
 from __future__ import annotations
 
-from pathlib import Path
 from time import time
 
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from swmmanywhere import metric_utilities as mu
@@ -48,6 +46,7 @@ if __name__ == '__main__':
                                 'l2':l2})
     df = pd.DataFrame(results).sort_values(by=['l1','l2'])
 
+    """
     # Plot heatmap by func
     f,axs = plt.subplots(4,2,figsize=(10,10))
     for (func,grp),ax in zip(df.groupby('func'),axs.reshape(-1)):
@@ -63,3 +62,4 @@ if __name__ == '__main__':
     plots = Path(__file__).parent
     f.tight_layout()
     f.savefig(plots / 'heatmap.png')
+    """

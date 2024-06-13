@@ -26,13 +26,29 @@ def get_full_parameters_flat():
     #                     for k, y in v.model_json_schema()['properties'].items()}
     parameters_flat = {}
     for cat, v in parameters.items():
-        for k, y in v.schema()['properties'].items():
+        for k, y in v.model_json_schema()['properties'].items():
             parameters_flat[k] = {**y, **{'category' : cat}}
 
     return parameters_flat
 
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
+    subbasin_streamorder: int = Field(default = 7,
+            ge = 1,
+            le = 20,
+            unit = "-",
+            description = "Stream order for subbasin derivation.")
+    
+    subbasin_membership: float = Field(default = 0.5,
+            ge = 0,
+            le = 1,
+            unit = "-",
+            description = "Membership threshold for subbasin derivation.")
+    
+    subbasin_clip_method: str = Field(default = 'subbasin',
+        unit = '-',
+        description = "Method to clip subbasins, can be `subbasin` or `community`.")
+    
     lane_width: float = Field(default = 3.5,
             ge = 2.0,
             le = 5.0,
@@ -46,33 +62,43 @@ class SubcatchmentDerivation(BaseModel):
             description = "Depth of road/river carve for flow accumulation.")
 
     max_street_length: float = Field(default = 60.0,
-            ge = 20.0,
+            ge = 40.0,
             le = 100.0,
             unit = "m", 
             description = "Distance to split streets into segments.")
 
+    node_merge_distance: float = Field(default = 10,
+                ge = 1,
+                le = 39.9, # should be less than max_street_length
+                unit = 'm',
+                description = "Distance within which to merge street nodes.")
+    
 class OutletDerivation(BaseModel):
 	"""Parameters for outlet derivation."""
-	max_river_length: float = Field(default = 30.0,
-		ge = 5.0,
-		le = 100.0,
-		unit = "m",
-		description = "Distance to split rivers into segments.")   
+	method: str = Field(default = 'separate',
+        unit = '-',
+        description = """Method to derive outlet locations, 
+            can be 'separate' or 'withtopo'.""")
 
 	river_buffer_distance: float = Field(default = 150.0,
-		ge = 50.0,
-		le = 300.0,
+		ge = 10.0,
+		le = 500.0,
 		unit = "m",
 		description = "Buffer distance to link rivers to streets.")
 
 	outlet_length: float = Field(default = 40.0,
-		ge = 10.0,
+		ge = 0.0,
 		le = 600.0,
-		unit = "m",
-		description = "Length to discourage street drainage into river buffers.")
+		unit = "-",
+		description = "Weight to discourage street drainage into river buffers.")
 
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
+    allowable_networks: list = Field(default = ['walk', 'drive'],
+                                     min_items = 1,
+                        unit = "-",
+                        description = "OSM networks to consider")
+    
     weights: list = Field(default = ['chahinian_slope',
                                       'chahinian_angle',
                                       'length',
@@ -81,25 +107,34 @@ class TopologyDerivation(BaseModel):
                         unit = "-",
                         description = "Weights for topo derivation")
 
+    omit_edges: list = Field(default = ['motorway', 
+                                        'motorway_link',
+                                        'bridge', 
+                                        'tunnel',
+                                        'corridor'],
+                        min_items = 1,
+                        unit = "-",
+                        description = "OSM paths pipes are not allowed under")
+
     chahinian_slope_scaling: float = Field(default = 1,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to surface slope in topo derivation")
     
-    chahinian_angle_scaling: float = Field(default = 1,
+    chahinian_angle_scaling: float = Field(default = 0,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to chahinian angle in topo derivation")
     
-    length_scaling: float = Field(default = 1,
+    length_scaling: float = Field(default = 0.1,
         le = 1,
         ge = 0,
         unit = "-",
         description = "Constant to apply to length in topo derivation")
     
-    contributing_area_scaling: float = Field(default = 1,
+    contributing_area_scaling: float = Field(default = 0.1,
         le = 1,
         ge = 0,
         unit = "-",
@@ -107,25 +142,25 @@ class TopologyDerivation(BaseModel):
     
     chahinian_slope_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to surface slope in topo derivation")
     
     chahinian_angle_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to chahinian angle in topo derivation")
 
     length_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to length in topo derivation")
     
     contributing_area_exponent: float = Field(default = 1,
         le = 2,
-        ge = -2,
+        ge = 0,
         unit = "-",
         description = "Exponent to apply to contributing area in topo derivation")
     
@@ -143,7 +178,8 @@ class TopologyDerivation(BaseModel):
 
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
-    diameters: list = Field(default = np.linspace(0.15,3,int((3-0.15)/0.075) + 1),
+    diameters: list = Field(default = 
+                            np.linspace(0.15,3,int((3-0.15)/0.075) + 1).tolist(),
                             min_items = 1,
                             unit = "m",
                             description = """Diameters to consider in 
@@ -187,8 +223,8 @@ class HydraulicDesign(BaseModel):
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
     grid_scale: float = Field(default = 100,
-                        le = 10,
-                        ge = 5000,
+                        le = 5000,
+                        ge = 10,
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
 
@@ -284,6 +320,9 @@ class FilePaths:
     def _generate_building(self):
         return self._generate_property(f'building.geo{self.extension}', 
                                         'download')
+    def _generate_streetcover(self):
+        return self._generate_property(f'streetcover.geo{self.extension}', 
+                                        'model')
     def _generate_precipitation(self):
         return self._generate_property(f'precipitation.{self.extension}', 
                                         'download')

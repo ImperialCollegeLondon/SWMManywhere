@@ -6,14 +6,13 @@ utilities (such as save/load functions).
 from __future__ import annotations
 
 import json
-import os
+import sys
 import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from heapq import heappop, heappush
 from itertools import product
 from pathlib import Path
-from typing import Any, Callable, Dict, Hashable, List, Optional
+from typing import Any, Callable, Dict, Hashable, List, Optional, cast
 
 import geopandas as gpd
 import networkx as nx
@@ -21,11 +20,11 @@ import numpy as np
 import osmnx as ox
 import pandas as pd
 import shapely
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere import parameters
-from swmmanywhere.logging import logger
+from swmmanywhere import parameters, shortest_path_utils
+from swmmanywhere.logging import logger, verbose
 
 
 def load_graph(fid: Path) -> nx.Graph:
@@ -179,12 +178,16 @@ def iterate_graphfcns(G: nx.Graph,
     not_exists = [g for g in graphfcn_list if g not in graphfcns]
     if not_exists:
         raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
-    verbose = os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses = addresses, **params)
         logger.info(f"graphfcn: {function} completed.")
-        if verbose:
+        if verbose():
             save_graph(G, addresses.model / f"{function}_graph.json")
+            go.graph_to_geojson(graphfcns.fix_geometries(G),
+                                addresses.model / f"{function}_nodes.geojson",
+                                addresses.model / f"{function}_edges.geojson",
+                                G.graph['crs']
+                                )
     return G
 
 @register_graphfcn
@@ -214,44 +217,146 @@ class assign_id(BaseGraphFunction,
         for u, v, key, data in G.edges(data=True, keys = True):
             data['id'] = f'{u}-{v}'
             if data['id'] in edge_ids:
-                logger.warning(f"Duplicate edge ID: {data['id']}")
                 edges_to_remove.append((u, v, key))
             edge_ids.add(data['id'])
         for u, v, key in edges_to_remove:
             G.remove_edge(u, v, key)
         return G
+    
+@register_graphfcn
+class remove_parallel_edges(BaseGraphFunction):
+    """remove_parallel_edges class."""
+
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Remove parallel edges from a street network.
+
+        Retain the edge with the smallest weight (i.e., length).
+
+        Args:
+            G (nx.MultiDiGraph): A graph.
+            **kwargs: Additional keyword arguments are ignored.
+        
+        Returns:
+            G (nx.DiGraph): The graph with parallel edges removed.
+
+        Author:
+            Taher Chegini
+        """
+        # Set the attribute (weight) used to determine which parallel edge to
+        # retain. Could make this a parameter in parameters.py if needed.
+        weight = 'length' 
+        graph = ox.get_digraph(G)
+        _, _, attr_list = next(iter(graph.edges(data=True)))  # type: ignore
+        attr_list = cast("dict[str, Any]", attr_list)
+        if weight not in attr_list:
+            raise ValueError(f"{weight} not in edge attributes.")
+        attr = nx.get_node_attributes(graph, weight)
+        parallels = (e for e in attr if e[::-1] in attr)
+        graph.remove_edges_from({e if attr[e] > attr[e[::-1]] 
+                                else e[::-1] for e in parallels})
+        return graph
+    
+@register_graphfcn
+class remove_non_pipe_allowable_links(BaseGraphFunction):
+    """remove_non_pipe_allowable_links class."""
+    def __call__(self,
+                 G: nx.Graph,
+                 topology_derivation: parameters.TopologyDerivation,
+                 **kwargs) -> nx.Graph:
+        """Remove non-pipe allowable links.
+
+        This function removes links that are not allowable for pipes. The non-
+        allowable links are specified in the `omit_edges` attribute of the 
+        topology_derivation parameter. There two cases handled:
+        1. The `highway` property of the edge. In `osmnx`, `highway` is a category
+            that contains the road type, e.g., motorway, trunk, primary. If the
+            edge contains a value in the `highway` property that is in `omit_edges`, 
+            the edge is removed.
+        2. Any other properties of the edge that are in `omit_edges`. If the 
+            property is not null in the edge data, the edge is removed. e.g.,
+            if `bridge` is in `omit_edges` and the `bridge` entry of the edge 
+            is NULL, then the edge is retained, if it is something like 'yes', 
+            or 'viaduct' then the edge is removed.
+        
+        Args:
+            G (nx.Graph): A graph
+            topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
+                parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        edges_to_remove = set()
+        for u, v, keys, data in G.edges(data=True,keys = True):
+            for omit in topology_derivation.omit_edges:
+                if data.get('highway', None) == omit:
+                    # Check whether the 'highway' property is 'omit'
+                    edges_to_remove.add((u, v, keys))
+                elif data.get(omit, None):
+                    # Check whether the 'omit' property of edge is not None 
+                    edges_to_remove.add((u, v, keys))
+        for edges in edges_to_remove:
+            G.remove_edge(*edges)
+        return G
 
 @register_graphfcn
-class format_osmnx_lanes(BaseGraphFunction,
-                         required_edge_attributes = ['lanes'],
-                         adds_edge_attributes = ['width']):
-    """format_osmnx_lanes class."""
+class calculate_streetcover(BaseGraphFunction,
+                         required_edge_attributes = ['lanes','geometry']
+                         ):
+    """calculate_streetcover class."""
     # i.e., in osmnx format, i.e., empty for single lane, an int for a
     # number of lanes or a list if the edge has multiple carriageways
 
     def __call__(self,
                  G: nx.Graph, 
-                       subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                       **kwargs) -> nx.Graph:
+                subcatchment_derivation: parameters.SubcatchmentDerivation, 
+                addresses: parameters.FilePaths,
+                **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
+
+        Only the `drive` network is assumed to contribute to impervious area and 
+        so others `network_types` have lanes set to 0. If no `network_type` is
+        present, the edge is assumed to be of type `drive`. 
 
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
+            addresses (parameters.FilePaths): A FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
             G (nx.Graph): A graph
         """
         G = G.copy()
+        lines = []
         for u, v, data in G.edges(data=True):
-            lanes = data.get('lanes',1)
+            if data.get('network_type','drive') == 'drive':
+                lanes = data.get('lanes',1)
+            else:
+                lanes = 0
             if isinstance(lanes, list):
                 lanes = sum([float(x) for x in lanes])
             else:
                 lanes = float(lanes)
-            data['width'] = lanes * subcatchment_derivation.lane_width
+            lines.append({'geometry' : data['geometry'].buffer(lanes * 
+                                subcatchment_derivation.lane_width,
+                                cap_style=2,
+                                join_style=2),
+                            'u' : u,
+                            'v' : v
+                            }
+                        )
+        lines_df = pd.DataFrame(lines)
+        lines_gdf = gpd.GeoDataFrame(lines_df, 
+                                    geometry=lines_df.geometry,
+                                        crs = G.graph['crs'])
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            lines_gdf.to_parquet(addresses.streetcover)
+        else:
+            lines_gdf.to_file(addresses.streetcover, driver='GeoJSON')
+
         return G
 
 @register_graphfcn
@@ -276,24 +381,56 @@ class double_directed(BaseGraphFunction,
         Returns:
             G (nx.Graph): A graph
         """
-        #TODO the geometry is left as is currently - should be reversed, however
-        # in original osmnx geometry there are some incorrectly directed ones
-        # someone with more patience might check start and end Points to check
-        # which direction the line should be going in...
-        G_new = G.copy()
+        # Convert to directed
+        G_new = nx.MultiDiGraph(G.copy())
+        
+        # MultiDiGraph adds edges in both directions, but rivers (and geometries)
+        # are only in one direction. So we remove the reverse edges and add them
+        # back in with the correct geometry.
+        # This assumes that 'id' is of format 'start-end' (see assign_id)
+        arcs_to_remove = [(u,v) for u,v,d in G_new.edges(data=True)
+                          if f'{u}-{v}' != d.get('id')]
+        
+        # Remove the reverse edges
+        for u, v in arcs_to_remove:
+            G_new.remove_edge(u, v)
+
+        # Add in reversed edges for streets only and with geometry
         for u, v, data in G.edges(data=True):
             include = data.get('edge_type', True)
             if isinstance(include, str):
                 include = include == 'street'
-            if ((v, u) not in G.edges) & include:
+            if ((v, u) not in G_new.edges) & include:
                 reverse_data = data.copy()
                 reverse_data['id'] = f"{data['id']}.reversed"
+                new_geometry = shapely.LineString(
+                    list(reversed(data['geometry'].coords)))
+                reverse_data['geometry'] = new_geometry
                 G_new.add_edge(v, u, **reverse_data)
         return G_new
+    
+@register_graphfcn
+class to_undirected(BaseGraphFunction):
+    """to_undirected class."""
+    
+    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+        """Convert the graph to an undirected graph.
+
+        Args:
+            G (nx.Graph): A graph
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): An undirected graph
+        """
+        # Don't use osmnx.to_undirected! It enables multigraph if the geometries
+        # are different, but we have already saved the street cover so don't 
+        # want this!
+        return G.to_undirected()
 
 @register_graphfcn
 class split_long_edges(BaseGraphFunction,
-                       required_edge_attributes = ['id', 'geometry', 'length']):
+                       required_edge_attributes = ['id', 'geometry']):
     """split_long_edges class."""
     
     def __call__(self, 
@@ -303,10 +440,9 @@ class split_long_edges(BaseGraphFunction,
         """Split long edges into shorter edges.
 
         This function splits long edges into shorter edges. The edges are split
-        into segments of length 'max_street_length'. The first and last segment
-        are connected to the original nodes. Intermediate segments are connected
-        to newly created nodes. The 'geometry' of the original edge must be
-        a LineString.
+        into segments of length 'max_street_length'. The 'geometry' of the 
+        original edge must be a LineString. Intended to follow up with call of 
+        `merge_nodes`.
         
         Args:
             G (nx.Graph): A graph
@@ -317,104 +453,100 @@ class split_long_edges(BaseGraphFunction,
         Returns:
             graph (nx.Graph): A graph
         """
-        #TODO refactor obviously
         max_length = subcatchment_derivation.max_street_length
-        graph = G.copy()
-        edges_to_remove = []
-        edges_to_add = []
-        nodes_to_add = []
-        maxlabel = max(graph.nodes) + 1
-        ll = 0
 
-        def create_new_edge_data(line, data, id_):
-            new_line = shapely.LineString(line)
-            new_data = data.copy()
-            new_data['id'] = id_
-            new_data['length'] = new_line.length
-            new_data['geometry'] =  shapely.LineString([(x[0], x[1]) 
-                                                    for x in new_line.coords])
-            return new_data
+        # Split edges
+        new_linestrings = shapely.segmentize([d['geometry'] 
+                                             for u,v,d in G.edges(data=True)], 
+                                             max_length)
+        new_nodes = shapely.get_coordinates(new_linestrings)
 
-        for u, v, data in graph.edges(data=True):
-            line = data['geometry']
-            length = data['length']
-            if ((u, v) not in edges_to_remove) & ((v, u) not in edges_to_remove):
-                if length > max_length:
-                    new_points = [shapely.Point(x) 
-                                for x in ox.utils_geo.interpolate_points(line, 
-                                                                        max_length)]
-                    if len(new_points) > 2:
-                        for ix, (start, end) in enumerate(zip(new_points[:-1], 
-                                                            new_points[1:])):
-                            new_data = create_new_edge_data([start, 
-                                                            end], 
-                                                            data, 
-                                                            f"{data['id']}.{ix}")
-                            if (v,u) in graph.edges:
-                                # Create reversed data
-                                data_r = graph.get_edge_data(v, u).copy()[0]
-                                id_ = f"{data_r['id']}.{ix}"
-                                new_data_r = create_new_edge_data([end, start], 
-                                                                data_r.copy(), 
-                                                                id_)
-                            if ix == 0:
-                                # Create start to first intermediate
-                                edges_to_add.append((u, maxlabel + ll, new_data.copy()))
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                
-                                if (v, u) in graph.edges:
-                                    # Create first intermediate to start
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        u, 
-                                                        new_data_r.copy()))
-                                
-                                ll += 1
-                            elif ix == len(new_points) - 2:
-                                # Create last intermediate to end
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    v, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create end to last intermediate
-                                    edges_to_add.append((v, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                            else:
-                                nodes_to_add.append((maxlabel + ll, 
-                                                    {'x': 
-                                                    new_data['geometry'].coords[-1][0],
-                                                    'y': 
-                                                    new_data['geometry'].coords[-1][1]}))
-                                # Create N-1 intermediate to N intermediate
-                                edges_to_add.append((maxlabel + ll - 1, 
-                                                    maxlabel + ll, 
-                                                    new_data.copy()))
-                                if (v, u) in graph.edges:
-                                    # Create N intermediate to N-1 intermediate
-                                    edges_to_add.append((maxlabel + ll, 
-                                                        maxlabel + ll - 1, 
-                                                        new_data_r.copy()))
-                                ll += 1
-                        edges_to_remove.append((u, v))
-                        if (v, u) in graph.edges:
-                            edges_to_remove.append((v, u))
+        
+        new_edges = {}
+        for new_linestring, (u,v,d) in zip(new_linestrings, G.edges(data=True)):
+            # Create an arc for each segment
+            for start, end in zip(new_linestring.coords[:-1],
+                                  new_linestring.coords[1:]):
+                geom = shapely.LineString([start, end])
+                new_edges[(start, end, 0)] = {**d,
+                                           'length' : geom.length
+                                           }
 
-        for u, v in edges_to_remove:
-            if (u, v) in graph.edges:
-                graph.remove_edge(u, v)
+        # Create new graph
+        new_graph = nx.MultiGraph()
+        new_graph.graph = G.graph.copy()
+        new_graph.add_edges_from(new_edges)
+        nx.set_edge_attributes(new_graph, new_edges)
+        nx.set_node_attributes(
+            new_graph,
+            {tuple(node): {'x': node[0], 'y': node[1]} for node in new_nodes}
+            )
+        return nx.relabel_nodes(new_graph,
+                         {node: ix for ix, node in enumerate(new_graph.nodes)}
+                         )
+    
+@register_graphfcn
+class merge_street_nodes(BaseGraphFunction):
+    """merge_nodes class."""
+    def __call__(self, 
+                 G: nx.Graph, 
+                 subcatchment_derivation: parameters.SubcatchmentDerivation,
+                 **kwargs) -> nx.Graph:
+        """Merge nodes that are close together.
 
-        for node in nodes_to_add:
-            graph.add_node(node[0], **node[1])
+        Merges `street` nodes that are within a certain distance of each
+        other. The distance is specified in the `node_merge_distance` attribute
+        of the `subcatchment_derivation` parameter. The merged nodes are given
+        the same coordinates, and the graph is relabeled with nx.relabel_nodes.
+        Suggest to follow with call of `assign_id` to remove duplicate edges.
 
-        for edge in edges_to_add:
-            graph.add_edge(edge[0], edge[1], **edge[2])
+        Args:
+            G (nx.Graph): A graph
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+            
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
 
-        return graph
+        # Separate out streets         
+        street_edges = [(u, v, k) for u, v, k, d in G.edges(data=True, keys=True)
+                        if d.get('edge_type','street') == 'street']
+        streets = G.edge_subgraph(street_edges).copy()
 
+        # Identify nodes that are within threshold of each other
+        mapping = go.merge_points([(d['x'], d['y']) 
+                                   for u,d in streets.nodes(data=True)],
+                              subcatchment_derivation.node_merge_distance)
+
+        # Get indexes of node names
+        node_indices = {ix: node for ix, node in enumerate(streets.nodes)}
+
+        # Create a mapping of old node names to new node names
+        node_names = {}
+        for ix, node in enumerate(streets.nodes):
+            if ix in mapping:
+                # If the node is in the mapping, then it is mapped and 
+                # given the new coordinate (all nodes in a mapping family must
+                # be given the same coordinate because of how relabel_nodes 
+                # works)
+                node_names[node] = node_indices[mapping[ix]['maps_to']]
+                G.nodes[node]['x'] = mapping[ix]['coordinate'][0]
+                G.nodes[node]['y'] = mapping[ix]['coordinate'][1]
+            else:
+                node_names[node] = node
+
+        G = nx.relabel_nodes(G, node_names)
+
+        # Relabelling will create selfloops within a mapping family, which 
+        # are removed
+        self_loops = list(nx.selfloop_edges(G))
+        G.remove_edges_from(self_loops)
+
+        return G
+    
 @register_graphfcn
 class fix_geometries(BaseGraphFunction,
                      required_edge_attributes = ['geometry'],
@@ -435,10 +567,17 @@ class fix_geometries(BaseGraphFunction,
         """
         G = G.copy()
         for u, v, data in G.edges(data=True):
+            geom = data.get('geometry', None)
+            
             start_point_node = (G.nodes[u]['x'], G.nodes[u]['y'])
-            start_point_edge = data['geometry'].coords[0]
             end_point_node = (G.nodes[v]['x'], G.nodes[v]['y'])
-            end_point_edge = data['geometry'].coords[-1]
+            if not geom:
+                start_point_edge = (None, None)
+                end_point_edge = (None, None)
+            else:
+                start_point_edge = data['geometry'].coords[0]
+                end_point_edge = data['geometry'].coords[-1]
+
             if (start_point_edge == end_point_node) & \
                     (end_point_edge == start_point_node):
                 data['geometry'] = data['geometry'].reverse()
@@ -449,8 +588,174 @@ class fix_geometries(BaseGraphFunction,
         return G
 
 @register_graphfcn
+class clip_to_catchments(BaseGraphFunction,
+                         required_node_attributes = ['x','y'],
+                         required_edge_attributes = ['length'],
+                         adds_node_attributes = ['community','basin']):
+    """clip_to_catchments class."""
+    def __call__(self, 
+                 G: nx.Graph,
+                addresses: parameters.FilePaths,
+                subcatchment_derivation: parameters.SubcatchmentDerivation,
+                **kwargs) -> nx.Graph:
+        """Clip the graph to the subcatchments.
+
+        Derive the subbasins with `subcatchment_derivation.subbasin_streamorder`.
+        If no subbasins exist for that stream order, the value is iterated 
+        downwards and a warning it flagged. 
+
+        If `subcatchment_derivation.subbasin_clip_method` is 'subbasin', then
+        links between subbasins are removed. If it is 'community', then links
+        between communities in different subbasins may be removed based on the
+        following method.
+        
+        Run Louvain community detection on the street network to create street 
+        node communities. 
+
+        Communities with less than `subcatchment_derivation.subbasin_membership`
+        proportion of nodes in a subbasin have their links to all other nodes
+        in that subbasin removed. Nodes not in any subbasin are assigned to a 
+        subbasin to cover all unassigned nodes.
+
+        Community and basin ids are added to nodes mainly to help with debugging.
+
+        Args:
+            G (nx.Graph): A graph
+            addresses (parameters.FilePaths): A FilePaths parameter object
+            subcatchment_derivation (parameters.SubcatchmentDerivation): A
+                SubcatchmentDerivation parameter object
+            **kwargs: Additional keyword arguments are ignored.
+
+        Returns:
+            G (nx.Graph): A graph
+        """
+        G = G.copy()
+
+        # Derive subbasins
+        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+                                subcatchment_derivation.subbasin_streamorder)
+        
+        if verbose():
+            subbasins.to_file(
+                str(addresses.nodes).replace('nodes','subbasins'), 
+                driver='GeoJSON')
+
+        # Extract street network
+        street = G.copy()
+        street.remove_edges_from([(u, v) for u, v, d in street.edges(data=True)
+                                  if d.get('edge_type', 'street') != 'street'])
+
+        # Create gdf of street points
+        street_points = gpd.GeoDataFrame(G.nodes,
+            columns = ['id'],
+            geometry = gpd.points_from_xy(
+                [G.nodes[u]['x'] for u in G.nodes],
+                [G.nodes[u]['y'] for u in G.nodes]
+                ),
+            crs = G.graph['crs']
+            ).set_index('id')
+        
+        # Classify street points by subbasin
+        street_points = gpd.sjoin(street_points,
+                                subbasins.set_index('basin'),
+                                how='left',
+                        ).rename(columns = {'index_right': 'basin'})
+
+        if subcatchment_derivation.subbasin_clip_method == 'subbasin':
+            edges_to_remove = [
+                (u,v) for u, v in G.edges()
+                if street_points.loc[u,'basin'] != street_points.loc[v,'basin']
+                ]
+            G.remove_edges_from(edges_to_remove)
+            return G
+        
+        # Derive road network clusters
+        louv_membership = nx.community.louvain_communities(street,
+                                                           weight = 'length',
+                                                           seed = 1)
+        
+        street_points['community'] = 0 
+        # Assign louvain membership to street points
+        for ix, community in enumerate(louv_membership):
+            street_points.loc[list(community), 'community'] = ix
+        
+        
+        
+        # Introduce a non catchment basin for nan
+        street_points['basin'] = street_points['basin'].fillna(-1)
+        # TODO possibly it makes sense to just remove these nodes, or at least
+        # any communities that are all nan
+        
+        nx.set_node_attributes(G,
+                               street_points['community'].to_dict(),
+                               'community')
+        nx.set_node_attributes(G,
+                               street_points['basin'].to_dict(),
+                               'basin')
+        
+
+        # Calculate most percentage of each subbasin in each community
+        community_basin = (
+            street_points
+            .groupby('community')
+            .basin
+            .value_counts()
+            .reset_index()
+        )
+        community_size = (
+            street_points
+            .community
+            .value_counts()
+            .reset_index()
+        )
+        community_basin = community_basin.merge(community_size, 
+                                                on='community',
+                                                how = 'left',
+                                                suffixes = ('_basin', '_size')
+                                                )
+        
+        # Normalize
+        community_basin['percentage'] = (
+            community_basin['count_basin'] / community_basin['count_size']
+            )
+        
+        # Identify community-basin combinations where the percentage is less than
+        # the threshold
+        community_omit = community_basin.loc[
+            community_basin['percentage'] <= 
+            subcatchment_derivation.subbasin_membership
+            ]
+
+        community_basin = community_basin.set_index('basin')
+        
+        
+        # Cut links between communities in community_omit and commuities in those
+        # basins
+        arcs_to_remove = []
+        street_points = street_points.reset_index().set_index('basin')
+        for idx, row in community_omit.iterrows():
+            community_nodes = louv_membership[int(row['community'])]
+            basin_nodes = street_points.loc[[row['basin']],'id']
+            basin_nodes = set(basin_nodes).difference(community_nodes)
+            
+            # Include both directions because operation should work on 
+            # undirected or directed graph
+            arcs_to_remove.extend(
+                [(u, v, 0) for u, v in product(community_nodes, basin_nodes)] +
+                [(v, u, 0) for u, v in product(community_nodes, basin_nodes)]
+                )
+        G.remove_edges_from(set(G.edges).intersection(arcs_to_remove))
+        if G.is_directed():
+            subgraphs = len(list(nx.weakly_connected_components(G)))
+        else:
+            subgraphs = len(list(nx.connected_components(G)))
+        logger.info(f"clip_to_catchments has created {subgraphs} subgraphs.")
+        return G
+        
+
+@register_graphfcn
 class calculate_contributing_area(BaseGraphFunction,
-                                required_edge_attributes = ['id', 'geometry', 'width'],
+                                required_edge_attributes = ['id', 'geometry'],
                                 adds_edge_attributes = ['contributing_area'],
                                 adds_node_attributes = ['contributing_area']):
     """calculate_contributing_area class."""
@@ -463,7 +768,10 @@ class calculate_contributing_area(BaseGraphFunction,
         
         This function calculates the contributing area for each edge. The
         contributing area is the area of the subcatchment that drains to the
-        edge. The contributing area is calculated from the elevation data.
+        edge. The contributing area is calculated from the elevation data. 
+        Runoff coefficient (RC) for each contributing area is also calculated, 
+        the RC is calculated using `addresses.buildings` and 
+        `addresses.streetcover`.        
 
         Also writes the file 'subcatchments.geojson' to addresses.subcatchments.
 
@@ -491,13 +799,20 @@ class calculate_contributing_area(BaseGraphFunction,
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
+            if verbose():
+                subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
         if addresses.building.suffix in ('.geoparquet','.parquet'):
             buildings = gpd.read_parquet(addresses.building)
         else:
             buildings = gpd.read_file(addresses.building)
-        subs_rc = go.derive_rc(subs_gdf, G, buildings)
+        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
+            streetcover = gpd.read_parquet(addresses.streetcover)
+        else:
+            streetcover = gpd.read_file(addresses.streetcover)
+
+        subs_rc = go.derive_rc(subs_gdf, buildings, streetcover)
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs
@@ -602,15 +917,16 @@ class set_chahinian_slope(BaseGraphFunction,
         """
         G = G.copy()
 
-        # Values where the weight of the angle can be matched to the values 
-        # in weights
-        angle_points = [-1, 0.3, 0.7, 10] 
-        weights = [1, 0, 0, 1]
+        # Values where the weight of the slope can be matched to the values 
+        # in weights - e.g., a slope of 0.3% has 0 weight (preferred), while 
+        # a slope of <=-1% has a weight of 1 (not preferred)
+        slope_points = [-1, 0.3, 0.7, 10] 
+        weights = [1, 0, 0, 1] 
 
         # Calculate weights
         slope = nx.get_edge_attributes(G, "surface_slope")
         weights = np.interp(np.asarray(list(slope.values())) * 100, 
-                            angle_points,
+                            slope_points,
                             weights, 
                             left=1, 
                             right=1)
@@ -713,19 +1029,232 @@ class calculate_weights(BaseGraphFunction,
             d['weight'] = total_weight
         return G
 
+def _get_points(G: nx.Graph) -> tuple[Dict[str, shapely.Point],
+                                      Dict[str, shapely.Point]]:
+    """Get the river and street points from the graph.
+    
+    A river point are the start and end nodes of an edge with `edge_type = river`.
+    A street point are the start and end nodes of an edge with 
+    `edge_type = street`.
+
+    Args:
+        G (nx.Graph): A graph
+        
+    Returns:
+        river_points (dict): A dictionary of river points
+        street_points (dict): A dictionary of street points
+    """
+    # Get edge types, convert to nx.Graph to remove keys
+    etypes = nx.get_edge_attributes(nx.Graph(G), "edge_type")
+
+    # Get river and street points as a dict
+    n_types = (
+        pd.DataFrame(etypes.items(), 
+                    columns=['key', 'type'])
+        .explode('key')
+        .reset_index(drop=True)
+        .groupby("type")["key"]
+        .apply(list)
+        .to_dict()
+    )
+    river_points = {n: shapely.Point(G.nodes[n]['x'], G.nodes[n]['y']) 
+                    for n in n_types.get('river',{})}
+    street_points = {n: shapely.Point(G.nodes[n]['x'], G.nodes[n]['y']) 
+                     for n in n_types['street']}
+
+    return river_points, street_points
+
+def _pair_rivers(G: nx.Graph, 
+                 river_points: Dict[str, shapely.Point], 
+                 street_points: Dict[str, shapely.Point], 
+                 river_buffer_distance: float,
+                 outlet_length: float) -> nx.Graph:
+    """Pair river and street nodes.
+
+    Pair river and street nodes within a certain distance of each other. If
+    there are no plausible outlets for an entire subgraph, then a dummy river
+    node is created and the lowest elevation node is used as the outlet.
+
+    Args:
+        G (nx.Graph): A graph
+        river_points (dict): A dictionary of river points
+        street_points (dict): A dictionary of street points
+        river_buffer_distance (float): The distance within which a river and
+            street node can be paired
+        outlet_length (float): The length of the outlet
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    matched_outlets = {}
+
+    # Insert a dummy river node and use lowest elevation node as outlet
+    # for each subgraph with no matched outlets
+    subgraphs = []
+    for sg in nx.weakly_connected_components(G):      
+        sg = G.subgraph(sg).copy()
+        subgraphs.append(sg)
+
+        # Ignore the rivers, they are drained later
+        if all([d['edge_type'] == "river" for _,_,d in sg.edges(data=True)]):
+            continue
+        
+        # Pair up the river and street nodes for each subgraph
+        street_points_ = {k: v for k, v in street_points.items() 
+                            if k in sg.nodes}
+        
+        subgraph_outlets = go.nearest_node_buffer(street_points_,
+                                    river_points,
+                                    river_buffer_distance)
+
+        # Check if there are any matched outlets
+        if subgraph_outlets:
+            # Update all matched outlets
+            matched_outlets.update(subgraph_outlets)
+            continue
+
+        # In cases of e.g., an area with no rivers to discharge into or too
+        # small a buffer
+
+        # Identify the lowest elevation node
+        lowest_elevation_node = min(sg.nodes, 
+                    key = lambda x: sg.nodes[x]['surface_elevation'])
+        
+        # Create a dummy river to discharge into
+        name = f'{lowest_elevation_node}-dummy_river'
+        dummy_river = {'id' : name,
+                    'x' : G.nodes[lowest_elevation_node]['x'] + 1,
+                    'y' : G.nodes[lowest_elevation_node]['y'] + 1}
+        sg.add_node(name)
+        nx.set_node_attributes(sg, {name : dummy_river})
+
+        # Update function's dicts
+        matched_outlets[lowest_elevation_node] = name
+        river_points[name] = shapely.Point(dummy_river['x'],
+                                            dummy_river['y'])
+        
+        logger.warning(f"""No outlets found for subgraph containing 
+                        {lowest_elevation_node}, using this node as outlet.""")
+        
+    G = nx.compose_all(subgraphs)
+
+    # Add edges between the paired river and street nodes
+    for street_id, river_id in matched_outlets.items():
+        # TODO instead use a weight based on the distance between the two nodes
+        G.add_edge(street_id, river_id,
+                    **{'length' : outlet_length,
+                        'weight' : outlet_length,
+                    'edge_type' : 'outlet',
+                    'geometry' : shapely.LineString([street_points[street_id],
+                                                river_points[river_id]]),
+                    'id' : f'{street_id}-{river_id}-outlet'})
+            
+    return G
+
+def _root_nodes(G: nx.Graph) -> nx.Graph:
+    """Root nodes with a waste node.
+
+    Connect all nodes that have nowhere to flow to to a waste node, i.e., the 
+    root of the entire graph.
+
+    Args:
+        G (nx.Graph): A graph
+
+    Returns:
+        G (nx.Graph): A graph
+    """
+    G_ = G.copy()
+
+    # Add edges from the river nodes to a waste node
+    G.add_node('waste')
+
+    for node in G_.nodes:
+        if G.out_degree(node) == 0:
+            # Location of the waste node doesn't matter - so if there
+            # are multiple river nodes with out_degree 0 - that's fine.
+            G.nodes['waste']['x'] = G.nodes[node]['x'] + 1
+            G.nodes['waste']['y'] = G.nodes[node]['y'] + 1
+            G.add_edge(node,
+                        'waste',
+                        **{'length' : 0,
+                            'weight' : 0,
+                        'edge_type' : 'waste-outlet',
+                        'id' : f'{node}-waste-outlet'})
+    return G
+
+def _connect_mst_outlets(paired_G: nx.Graph, raw_G: nx.Graph) -> nx.Graph:
+    """Connect outlets to a waste node.
+
+    Run a minimum spanning tree (MST) on the paired graph to identify the 
+    'efficient' outlets. These outlets are inserted into the original graph.
+
+    Args:
+        paired_G (nx.Graph): A graph where streets and rivers are paired with 
+            outlets.
+        raw_G (nx.Graph): A graph where streets and rivers are separated
+
+    Returns:
+        (nx.Graph): A graph
+    """
+    # Find shortest path to identify only 'efficient' outlets. The MST
+    # makes sense here over shortest path as each node is only allowed to
+    # be visited once - thus encouraging fewer outlets. In shortest path
+    # nodes near rivers will always just pick their nearest river node.
+    T = nx.minimum_spanning_tree(paired_G.to_undirected(),
+                                    weight = 'length')
+    
+    # Retain the shortest path outlets in the original graph
+    for u,v,d in T.edges(data=True):
+        if (d['edge_type'] == 'outlet') & (v != 'waste') & (u != 'waste'):
+            if u not in raw_G.nodes():
+                raw_G.add_node(u, **paired_G.nodes[u])
+            elif v not in raw_G.nodes():
+                raw_G.add_node(v, **paired_G.nodes[v])
+
+            # Need to check both directions since T is undirected
+            if (u,v) in paired_G.edges():
+                raw_G.add_edge(u,v,**d)
+            elif (v,u) in paired_G.edges():
+                raw_G.add_edge(v,u,**d)
+            else:
+                raise ValueError(f"Edge {u}-{v} not found in paired_G")
+            
+                
+    return raw_G
+
 @register_graphfcn
 class identify_outlets(BaseGraphFunction,
                        required_edge_attributes = ['length', 'edge_type'],
-                       required_node_attributes = ['x', 'y']):
+                       required_node_attributes = ['x', 'y','surface_elevation']):
     """identify_outlets class."""
 
-    def __call__(self, G: nx.Graph,
-                     outlet_derivation: parameters.OutletDerivation,
-                     **kwargs) -> nx.Graph:
+    def __call__(self, 
+                 G: nx.Graph,
+                 outlet_derivation: parameters.OutletDerivation,
+                 **kwargs) -> nx.Graph:
         """Identify outlets in a combined river-street graph.
 
         This function identifies outlets in a combined river-street graph. An
-        outlet is a node that is connected to a river and a street. 
+        outlet is a node that is connected to a river and a street. Each street
+        node is paired with the nearest river node provided that it is within
+        a distance of outlet_derivation.river_buffer_distance - this provides a
+        large set of plausible outlets. If there are no plausible outlets for an
+        entire subgraph, then a dummy river node is created and the lowest
+        elevation node is paired with it. Any street->river/outlet link is given
+        a `weight` and `length` of outlet_derivation.outlet_length, this is to
+        ensure some penalty on the total number of outlets selected.
+
+        Two methods are available for determining which plausible outlets to 
+        retain:
+
+        - `withtopo`: all plausible outlets are retained, connected to a single
+        'waste' node and assumed to be later identified as part of the 
+        `derive_topology` graphfcn.
+        
+        - `separate`: the retained outlets are those that are selected as part 
+        of the minimum spanning tree (MST) of the combined street-river graph. 
+        This method can be temporamental because the MST is undirected, because
+        rivers are inherently directed unusual outlet locations may be retained.
 
         Args:
             G (nx.Graph): A graph
@@ -737,91 +1266,94 @@ class identify_outlets(BaseGraphFunction,
             G (nx.Graph): A graph
         """
         G = G.copy()
-        river_points = {}
-        street_points = {}
-
-        # Get the points for each river and street node
-        for u, v, d in G.edges(data=True):
-            upoint = shapely.Point(G.nodes[u]['x'], G.nodes[u]['y'])
-            vpoint = shapely.Point(G.nodes[v]['x'], G.nodes[v]['y'])
-            if d['edge_type'] == 'river':
-                river_points[u] = upoint
-                river_points[v] = vpoint
-            else:
-                street_points[u] = upoint
-                street_points[v] = vpoint
         
-        # Pair up the river and street nodes
-        matched_outlets = go.nearest_node_buffer(river_points,
-                                                street_points,
-                                                outlet_derivation.river_buffer_distance)
+        river_points, street_points = _get_points(G)
         
-        # Copy graph to run shortest path on
-        G_ = G.copy()
-
-        # Add edges between the paired river and street nodes
-        for river_id, street_id in matched_outlets.items():
-            # TODO instead use a weight based on the distance between the two nodes
-            G_.add_edge(street_id, river_id,
-                        **{'length' : outlet_derivation.outlet_length,
-                        'edge_type' : 'outlet',
-                        'geometry' : shapely.LineString([street_points[street_id],
-                                                    river_points[river_id]]),
-                        'id' : f'{street_id}-{river_id}-outlet'})
-        
-        # Add edges from the river nodes to a waste node
-        for river_node in river_points.keys():
-            if G.out_degree(river_node) == 0:
-                G_.add_edge(river_node,
-                            'waste',
-                            **{'length' : 0,
-                            'edge_type' : 'outlet',
-                            'id' : f'{river_node}-waste-outlet'})
+        G_ = _pair_rivers(G, 
+            river_points, 
+            street_points, 
+            outlet_derivation.river_buffer_distance,
+            outlet_derivation.outlet_length)
         
         # Set the length of the river edges to 0 - from a design perspective 
         # once water is in the river we don't care about the length - since it 
         # costs nothing
-        for u,v,d in G_.edges(data=True):
+        for _,_,d in G_.edges(data=True):
             if d['edge_type'] == 'river':
                 d['length'] = 0
+                d['weight'] = 0
         
-        # Find shortest path to identify only 'efficient' outlets. The MST
-        # makes sense here over shortest path as each node is only allowed to
-        # be visited once - thus encouraging fewer outlets. In shortest path
-        # nodes near rivers will always just pick their nearest river node.
-        T = nx.minimum_spanning_tree(G_.to_undirected(),
-                                        weight = 'length')
-        
-        # Retain the shortest path outlets in the original graph
-        for u,v,d in T.edges(data=True):
-            if (d['edge_type'] == 'outlet') & (v != 'waste'):
-                # Need to check both directions since T is undirected
-                if (u,v) in G_.edges():
-                    G.add_edge(u,v,**d)
-                elif (v,u) in G_.edges():
-                    G.add_edge(v,u,**d)
+        # Add edges from the river nodes to a waste node
+        G_ = _root_nodes(G_)
 
-        return G
+        if outlet_derivation.method == 'withtopo':
+            # The outlets can be derived as part of the shortest path calculations
+            return G_
+        elif outlet_derivation.method == 'separate':
+            return _connect_mst_outlets(G_, G)
+        else:
+            raise ValueError(f"Unknown method {outlet_derivation.method}")
+
+def _filter_streets(G):
+    """Filter streets.
+
+    This function removes non streets from a graph.
+
+    Args:
+        G (nx.Graph): A graph
+
+    Returns:
+       (nx.Graph): A graph of only street edges
+    """
+    G = G.copy()
+    # Remove non-street edges/nodes and unconnected nodes
+    nodes_to_remove = []
+    for u, v, d in G.edges(data=True):
+        if d['edge_type'] != 'street':
+            if d['edge_type'] == 'outlet':
+                nodes_to_remove.append(v)
+            else:
+                nodes_to_remove.extend((u,v))
+    G.remove_nodes_from(nodes_to_remove)
+    return G
 
 @register_graphfcn
 class derive_topology(BaseGraphFunction,
                       required_edge_attributes = ['edge_type', # 'rivers' and 'streets'
                                                   'weight'],
-                      adds_node_attributes = ['outlet', 'shortest_path']):
+                      adds_node_attributes = ['outlet', 
+                                              'shortest_path']):
     """derive_topology class."""
     
 
-    def __call__(self, G: nx.Graph,
-                    **kwargs) -> nx.Graph:
+    def __call__(self, 
+                 G: nx.Graph,
+                 outlet_derivation: parameters.OutletDerivation,
+                 **kwargs) -> nx.Graph:
         """Derive the topology of a graph.
 
-        Runs a djiikstra-based algorithm to identify the shortest path from each
-        node to its nearest outlet (weighted by the 'weight' edge value). The 
+        Derives the network topology based on the weighted graph of potential
+        pipe carrying edges in the graph.
+
+        Two methods are available:
+        - `separate`: The original and that assumes outlets have already been
+        narrowed down from the original plausible set. Runs a djiikstra-based 
+        algorithm to identify the shortest path from each node to its nearest 
+        outlet (weighted by the 'weight' edge value). The 
         returned graph is one that only contains the edges that feature  on the 
-        shortest paths.
+        shortest paths. 
+        - `withtopo`: The alternative method that assumes no narrowing of plausible
+        outlets has been performed. This method runs a Tarjan's algorithm to
+        identify the spanning forest starting from a `waste` node that all 
+        plausible outlets are connected to (whether via a river or directly).
+        
+        In both methods, street nodes that have no plausible route to any outlet
+        are removed.
 
         Args:
             G (nx.Graph): A graph
+            outlet_derivation (parameters.OutletDerivation): An OutletDerivation
+                parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -829,77 +1361,48 @@ class derive_topology(BaseGraphFunction,
         """
         G = G.copy()
         
+        visited: set = set()
+        
+        # Increase recursion limit to allow to iterate over the entire graph
+        # Seems to be the quickest way to identify which nodes have a path to
+        # the outlet
+        original_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(max(original_limit, len(G.nodes)))
+
         # Identify outlets
-        outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+        if outlet_derivation.method == 'withtopo':
+            visited = set(nx.ancestors(G,'waste')) | {'waste'}
 
-        # Remove non-street edges/nodes and unconnected nodes
-        nodes_to_remove = []
-        for u, v, d in G.edges(data=True):
-            if d['edge_type'] != 'street':
-                if d['edge_type'] == 'outlet':
-                    nodes_to_remove.append(v)
-                else:
-                    nodes_to_remove.extend((u,v))
+            # Remove nodes not reachable from waste
+            G.remove_nodes_from(set(G.nodes) - visited)
 
-        isolated_nodes = list(nx.isolates(G))
-
-        for u in set(nodes_to_remove).union(isolated_nodes):
-            G.remove_node(u)
-
-        # Check for negative cycles
-        if nx.negative_edge_cycle(G, weight = 'weight'):
-            logger.warning('Graph contains negative cycle')
-
-        # Initialize the dictionary with infinity for all nodes
-        shortest_paths = {node: float('inf') for node in G.nodes}
-
-        # Initialize the dictionary to store the paths
-        paths: dict[Hashable,list] = {node: [] for node in G.nodes}
-
-        # Set the shortest path length to 0 for outlets
-        for outlet in outlets:
-            shortest_paths[outlet] = 0
-            paths[outlet] = [outlet]
-
-        # Initialize a min-heap with (distance, node) tuples
-        heap = [(0, outlet) for outlet in outlets]
-        while heap:
-            # Pop the node with the smallest distance
-            dist, node = heappop(heap)
-
-            # For each neighbor of the current node
-            for neighbor, _, edge_data in G.in_edges(node, data=True):
-                # Calculate the distance through the current node
-                alt_dist = dist + edge_data['weight']
-                # If the alternative distance is shorter
-
-                if alt_dist >= shortest_paths[neighbor]:
-                    continue
-                
-                # Update the shortest path length
-                shortest_paths[neighbor] = alt_dist
-                # Update the path
-                paths[neighbor] = paths[node] + [neighbor]
-                # Push the neighbor to the heap
-                heappush(heap, (alt_dist, neighbor))
-
-        edges_to_keep: set = set()
-        for path in paths.values():
-            # Assign outlet
-            outlet = path[0]
-            for node in path:
-                G.nodes[node]['outlet'] = outlet
-                G.nodes[node]['shortest_path'] = shortest_paths[node]
-
-            # Store path
-            edges_to_keep.update(zip(path[1:], path[:-1]))
+            # Run shorted path
+            G = shortest_path_utils.tarjans_pq(G,'waste')
             
-        # Remove edges not on paths
-        new_graph = G.copy()
-        for u,v in G.edges():
-            if (u,v) not in edges_to_keep:
-                new_graph.remove_edge(u,v)
-        return new_graph
+            G = _filter_streets(G)
+        else:
+            outlets = [u for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+            visited = set(outlets)
+            for outlet in outlets:
+                visited = visited | set(nx.ancestors(G,outlet))
+
+            G.remove_nodes_from(set(G.nodes) - visited)
+            G = _filter_streets(G)
+
+            # Check for negative cycles
+            if nx.negative_edge_cycle(G, weight = 'weight'):
+                logger.warning('Graph contains negative cycle')
+
+            G = shortest_path_utils.dijkstra_pq(G, outlets)
+
+        # Reset recursion limit
+        sys.setrecursionlimit(original_limit)
+
+        # Log total weight
+        total_weight = sum([d['weight'] for u,v,d in G.edges(data=True)])
+        logger.info(f"Total graph weight {total_weight}.")
+
+        return G
 
 def design_pipe(ds_elevation: float,
                        chamber_floor: float, 
@@ -992,6 +1495,7 @@ def design_pipe(ds_elevation: float,
                                                     'v_feasibility',
                                                     'fr_feasibility',
                                                     # 'shear_feasibility',
+                                                    'depth',
                                                     'cost'], 
                                                 ascending = True).iloc[0]
         return ideal_pipe.diam, ideal_pipe.depth
@@ -1093,7 +1597,8 @@ class pipe_by_pipe(BaseGraphFunction,
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable,Hashable,int],float] = {}
         # Iterate over nodes in topological order
-        for node in tqdm(topological_order):
+        for node in tqdm(topological_order,
+                         disable = not verbose()):
             # Check if there's any nodes upstream, if not set the depth to min_depth
             if len(nx.ancestors(G,node)) == 0:
                 chamber_floor[node] = surface_elevations[node] - \
