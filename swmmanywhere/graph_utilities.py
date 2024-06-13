@@ -1012,6 +1012,12 @@ class calculate_weights(BaseGraphFunction,
             bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf))
             bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
 
+        # Avoid division by zero
+        for w, bnd in bounds.items():
+            if bnd[0] == bnd[1]:
+                # I guess this shouldn't make a difference what the value is
+                bounds[w][1] += 1e-10 
+
         G = G.copy()
         eps = np.finfo(float).eps
         for u, v, d in G.edges(data=True):
