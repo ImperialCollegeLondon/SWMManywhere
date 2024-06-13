@@ -184,7 +184,20 @@ def test_calculate_weights():
     for u, v, data in G.edges(data=True):
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
-        
+
+def test_calculate_weights_novar():
+    """Test the calculate_weights function with no variance."""
+    G, _ = load_street_network()
+    params = parameters.TopologyDerivation()
+    for weight in params.weights:
+        for ix, (u,v,data) in enumerate(G.edges(data=True)):
+            data[weight] = 1.5
+    
+    G = gu.calculate_weights(G, params)
+    for u, v, data in G.edges(data=True):
+        assert 'weight' in data.keys()
+        assert math.isfinite(data['weight'])
+    
 def test_identify_outlets_no_river():
     """Test the identify_outlets in the no river case."""
     G, _ = load_street_network()
