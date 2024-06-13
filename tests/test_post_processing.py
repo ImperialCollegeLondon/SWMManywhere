@@ -186,6 +186,16 @@ def test_synthetic_write():
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"
 
+        # Test that it doesn't break there are more outfalls than links
+        nodes.loc['new_node'] = nodes.iloc[0].copy()
+        nodes.reset_index().to_file(addresses.nodes)
+
+        # Check that there will be more outfalls than edges
+        assert sum(~nodes.index.astype(str).isin(edges.u.astype(str))) > 1
+        
+        # Run to check
+        stt.synthetic_write(addresses)
+
 def test_format_to_swmm_dict():
     """Test the format_format_to_swmm_dict function.
     
