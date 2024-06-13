@@ -503,7 +503,7 @@ def test_iterate_graphfcns_noedges():
                                         model_number = None)
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
         addresses.model = temp_path
-        original_function = gu.remove_non_pipe_allowable_links
+        original_function = gu['remove_non_pipe_allowable_links']
         gu['remove_non_pipe_allowable_links'] = _remove_edges
         G = iterate_graphfcns(G, 
                                 ['assign_id',
