@@ -479,8 +479,7 @@ def test_iterate_graphfcns():
                                         project_name = None,
                                         bbox_number = None,
                                         model_number = None)
-        # Needed if VERBOSE is on.. maybe I should turn it off at the top of 
-        # each test, not sure
+
         addresses.model = temp_path
         G = iterate_graphfcns(G, 
                                 ['assign_id',
@@ -491,6 +490,44 @@ def test_iterate_graphfcns():
             assert 'id' in d.keys()
         assert 'primary' not in get_edge_types(G)
         assert len(set([d.get('bridge',None) for u,v,d in G.edges(data=True)])) == 1
+
+def _remove_edges(G: nx.Graph,**kw):
+    """Remove all edges from the graph.
+    
+    Args:
+        G (nx.Graph): The graph to remove edges from.
+        kw: Additional keyword arguments. (which are ignored)
+        
+    Returns:
+        nx.Graph: The graph with no edges.
+    """
+    G.remove_edges_from(list(G.edges))
+    return G
+
+def test_iterate_graphfcns_noedges():
+    """Test the iterate_graphfcns function for a graph with no edges."""
+    G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        addresses = parameters.FilePaths(base_dir = None,
+                                        project_name = None,
+                                        bbox_number = None,
+                                        model_number = None)
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+        addresses.model = temp_path
+        original_function = gu['remove_non_pipe_allowable_links']
+        gu['remove_non_pipe_allowable_links'] = _remove_edges
+        G = iterate_graphfcns(G, 
+                                ['assign_id',
+                                'remove_non_pipe_allowable_links'],
+                                {}, 
+                                addresses)
+        gu['remove_non_pipe_allowable_links'] = original_function
+        os.environ['SWMMANYWHERE_VERBOSE'] = 'false'
+        assert (addresses.model / 'assign_id_graph.json').exists()
+        assert not (addresses.model /\
+                     'remove_non_pipe_allowable_links_graph.json').exists()
 
 def test_fix_geometries():
     """Test the fix_geometries function."""

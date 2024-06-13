@@ -179,8 +179,15 @@ def iterate_graphfcns(G: nx.Graph,
     if not_exists:
         raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
     for function in graphfcn_list:
-        G = graphfcns[function](G, addresses = addresses, **params)
-        logger.info(f"graphfcn: {function} completed.")
+        G_ = graphfcns[function](G, addresses = addresses, **params)
+        if len(_filter_streets(G_).edges) == 0:
+            logger.warning(f"""graphfcn: {function} removed all edges, 
+                           returning previous graph.""")
+            return G
+        else:
+            logger.info(f"graphfcn: {function} completed.")
+            G = G_
+        
         if verbose():
             save_graph(G, addresses.model / f"{function}_graph.json")
             go.graph_to_geojson(graphfcns.fix_geometries(G),
