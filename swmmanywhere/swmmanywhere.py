@@ -65,10 +65,8 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Run downloads
     logger.info("Running downloads.")
-    api_keys = yaml_load(config['api_keys'].read_text())
     preprocessing.run_downloads(config['bbox'],
                 addresses,
-                api_keys,
                 network_types = params['topology_derivation'].allowable_networks
                 )
 
@@ -152,7 +150,7 @@ def check_top_level_paths(config: dict):
     Raises:
         FileNotFoundError: If a top level path does not exist.
     """
-    for key in ['base_dir', 'api_keys']:
+    for key in ['base_dir']:
         if not Path(config[key]).exists():
             raise FileNotFoundError(f"{key} not found at {config[key]}")
         config[key] = Path(config[key])

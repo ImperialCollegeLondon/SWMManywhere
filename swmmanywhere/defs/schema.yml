@@ -3,7 +3,6 @@ properties:
   base_dir: {type: string}
   project: {type: string}
   bbox: {type: array, items: {type: number}, minItems: 4, maxItems: 4}
-  api_keys: {type: string}
   model_number: {type: integer}
   run_settings:
     type: object
