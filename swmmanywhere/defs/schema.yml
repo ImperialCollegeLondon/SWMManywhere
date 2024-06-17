@@ -30,4 +30,4 @@ properties:
   metric_list: {type: array, items: {type: string}}
   address_overrides: {type: ['object', 'null']}
   parameter_overrides: {type: ['object', 'null']}
-required: [base_dir, project, bbox, api_keys, graphfcn_list]
+required: [base_dir, project, bbox, graphfcn_list]
