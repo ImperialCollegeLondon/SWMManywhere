@@ -1009,8 +1009,8 @@ class calculate_weights(BaseGraphFunction,
 
         for (u, v, d), w in product(G.edges(data=True), 
                                     topology_derivation.weights):
-            bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf))
-            bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf))
+            bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf)) # lower bound
+            bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf)) # upper bound
 
         # Avoid division by zero
         for w, bnd in bounds.items():
