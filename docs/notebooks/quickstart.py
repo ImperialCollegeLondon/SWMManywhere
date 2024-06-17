@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Quickstart
 # Note - this script can also be opened in interactive Python if you wanted to
-# play around. On the GitHub it is in [docs/demo/scripts]()
+# play around. On the GitHub it is in [docs/notebooks]()
 #
 # %%
 # Import modules
