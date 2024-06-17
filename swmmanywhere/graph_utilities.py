@@ -1007,17 +1007,13 @@ class calculate_weights(BaseGraphFunction,
         # Calculate bounds to normalise between
         bounds: Dict[Any, List[float]] = defaultdict(lambda: [np.Inf, -np.Inf])
 
-        for (u, v, d), w in product(G.edges(data=True), 
-                                    topology_derivation.weights):
-            bounds[w][0] = min(bounds[w][0], d.get(w, np.Inf)) # lower bound
-            bounds[w][1] = max(bounds[w][1], d.get(w, -np.Inf)) # upper bound
+        for w in topology_derivation.weights:
+            bounds[w][0] = min(nx.get_edge_attributes(G, w).values()) # lower bound
+            bounds[w][1] = max(nx.get_edge_attributes(G, w).values()) # upper bound
 
         # Avoid division by zero
-        for w, bnd in bounds.items():
-            if bnd[0] == bnd[1]:
-                # I guess this shouldn't make a difference what the value is
-                bounds[w][1] += 1e-10 
-
+        bounds = {w : [b[0], b[1]] for w, b in bounds.items() if b[0] != b[1]}
+        
         G = G.copy()
         eps = np.finfo(float).eps
         for u, v, d in G.edges(data=True):
