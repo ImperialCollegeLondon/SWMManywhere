@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import geopandas as gpd
 import networkx as nx
 import numpy as np
+import pytest
 import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
@@ -17,7 +18,8 @@ from swmmanywhere import graph_utilities as ge
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
 
-def load_street_network():
+@pytest.fixture
+def street_network():
     """Load a street network."""
     G = ge.load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     return G
@@ -217,19 +219,18 @@ def test_burn_shape_in_raster():
         raster_fid.unlink(missing_ok=True)
         new_raster_fid.unlink(missing_ok=True)
         
-def test_derive_subcatchments():
+def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
-    G = load_street_network()
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
     for method in ['pysheds', 'pyflwdir']:
-        polys = go.derive_subcatchments(G, elev_fid,method=method)
+        polys = go.derive_subcatchments(street_network, elev_fid,method=method)
         assert 'slope' in polys.columns
         assert 'area' in polys.columns
         assert 'geometry' in polys.columns
         assert 'id' in polys.columns
         assert polys.shape[0] > 0
         assert polys.dropna().shape == polys.shape
-        assert polys.crs == G.graph['crs']
+        assert polys.crs == street_network.graph['crs']
 
         # Pyflwdir and pysheds catchment derivation aren't absolutely identical
         assert almost_equal(polys.set_index('id').loc[2623975694, 'area'], 
@@ -239,10 +240,9 @@ def test_derive_subcatchments():
         assert almost_equal(polys.set_index('id').loc[2623975694, 'width'], 
                             21.845, tol = 0.001)
 
-def test_derive_rc():
+def test_derive_rc(street_network):
     """Test the derive_rc function."""
-    G = load_street_network()
-    crs = G.graph['crs']
+    crs = street_network.graph['crs']
     eg_bldg = sgeom.Polygon([(700291,5709928), 
                        (700331,5709927),
                        (700321,5709896), 
@@ -276,7 +276,7 @@ def test_derive_rc():
                             (700329, 5709883),
                             (700351, 5709883)])]
 
-    streetcover = [d['geometry'].buffer(5) for u,v,d in G.edges(data=True)]
+    streetcover = [d['geometry'].buffer(5) for u,v,d in street_network.edges(data=True)]
     streetcover = gpd.GeoDataFrame(geometry = streetcover, crs = crs)
 
     subs = gpd.GeoDataFrame(data = {'id' : [107733,
@@ -410,27 +410,26 @@ def test_remove_intersections():
     assert polys_.set_index('id')[['area']].equals(
         targets.set_index('id')[['area']])
 
-def test_graph_to_geojson():
+def test_graph_to_geojson(street_network):
     """Test the graph_to_geojson function."""
-    G = load_street_network()
-    crs = G.graph['crs']
+    crs = street_network.graph['crs']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        go.graph_to_geojson(G, 
+        go.graph_to_geojson(street_network, 
                             temp_path / 'graph_nodes.geojson', 
                             temp_path / 'graph_edges.geojson', 
                             crs)
         gdf = gpd.read_file(temp_path / 'graph_nodes.geojson')
         assert gdf.crs == crs
-        assert gdf.shape[0] == len(G.nodes)
+        assert gdf.shape[0] == len(street_network.nodes)
 
         gdf = gpd.read_file(temp_path / 'graph_edges.geojson')
-        assert gdf.shape[0] == len(G.edges)
+        assert gdf.shape[0] == len(street_network.edges)
 
-def test_merge_points():
+def test_merge_points(street_network):
     """Test the merge_points function."""
-    G = load_street_network()
-    mapping = go.merge_points([(d['x'], d['y']) for u,d in G.nodes(data=True)],
+    mapping = go.merge_points([(d['x'], d['y']) 
+                               for u,d in street_network.nodes(data=True)],
                               20)
     assert set(mapping.keys()) == set([2,3,5,15,16,18,22])
     assert set([x['maps_to'] for x in mapping.values()]) == set([2,5,15])
