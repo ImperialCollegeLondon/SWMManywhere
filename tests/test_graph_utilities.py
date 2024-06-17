@@ -25,16 +25,17 @@ from swmmanywhere.graph_utilities import (
 from swmmanywhere.graph_utilities import graphfcns as gu
 
 
-def load_street_network():
+@pytest.fixture
+def street_network():
     """Load a street network."""
     bbox = (-0.11643,51.50309,-0.11169,51.50549)
     G = load_graph(Path(__file__).parent / 'test_data' / 'street_graph.json')
     return G, bbox
 
-def test_save_load():
+def test_save_load(street_network):
     """Test the save_graph and load_graph functions."""
+    G, _ = street_network
     # Load a street network
-    G,_ = load_street_network()
     with tempfile.TemporaryDirectory() as temp_dir:
         # Save the graph
         save_graph(G, Path(temp_dir) / 'test_graph.json')
@@ -43,25 +44,25 @@ def test_save_load():
         # Check if the loaded graph is the same as the original graph
         assert nx.is_isomorphic(G, G_new)
 
-def test_assign_id():
+def test_assign_id(street_network):
     """Test the assign_id function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     for u, v, data in G.edges(data=True):
         assert 'id' in data.keys()
         assert isinstance(data['id'], str)
 
-def test_double_directed():
+def test_double_directed(street_network):
     """Test the double_directed function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     for u, v in G.edges():
         assert (v,u) in G.edges
 
-def test_calculate_streetcover():
+def test_calculate_streetcover(street_network):
     """Test the calculate_streetcover function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     params = parameters.SubcatchmentDerivation()
     addresses = parameters.FilePaths(base_dir = None,
                                         project_name = None,
@@ -77,9 +78,9 @@ def test_calculate_streetcover():
         assert len(gdf) == len(G.edges)
         assert gdf.geometry.area.sum() > 0
 
-def test_split_long_edges():
+def test_split_long_edges(street_network):
     """Test the split_long_edges function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     max_length = 40
     params = parameters.SubcatchmentDerivation(max_street_length = max_length)
@@ -87,7 +88,7 @@ def test_split_long_edges():
     for u, v, data in G.edges(data=True):
         assert data['length'] <= (max_length * 2)
 
-def test_derive_subcatchments():
+def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -101,7 +102,7 @@ def test_derive_subcatchments():
         addresses.streetcover = temp_path / 'building.geojson'
         addresses.subcatchments = temp_path / 'subcatchments.geojson'
         params = parameters.SubcatchmentDerivation()
-        G, bbox = load_street_network()
+        G, _ = street_network
         
         # mock up buildings
         eg_bldg = sgeom.Polygon([(700291.346,5709928.922), 
@@ -122,9 +123,9 @@ def test_derive_subcatchments():
             assert 'contributing_area' in data.keys()
             assert isinstance(data['contributing_area'], float)
 
-def test_set_elevation_and_slope():
+def test_set_elevation_and_slope(street_network):
     """Test the set_elevation, set_surface_slope, chahinian_slope function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         addresses = parameters.FilePaths(base_dir = temp_path, 
@@ -162,9 +163,9 @@ def test_set_elevation_and_slope():
 
 
 
-def test_chahinian_angle():
+def test_chahinian_angle(street_network):
     """Test the chahinian_angle function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.set_chahinian_angle(G)
     for u, v, data in G.edges(data=True):
         assert 'chahinian_angle' in data.keys()
@@ -172,9 +173,9 @@ def test_chahinian_angle():
 
 
 
-def test_calculate_weights():
+def test_calculate_weights(street_network):
     """Test the calculate_weights function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     params = parameters.TopologyDerivation()
     for weight in params.weights:
         for ix, (u,v,data) in enumerate(G.edges(data=True)):
@@ -185,9 +186,9 @@ def test_calculate_weights():
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
 
-def test_calculate_weights_novar():
+def test_calculate_weights_novar(street_network):
     """Test the calculate_weights function with no variance."""
-    G, _ = load_street_network()
+    G, _ = street_network
     params = parameters.TopologyDerivation()
     for weight in params.weights:
         for ix, (u,v,data) in enumerate(G.edges(data=True)):
@@ -198,9 +199,9 @@ def test_calculate_weights_novar():
         assert 'weight' in data.keys()
         assert math.isfinite(data['weight'])
     
-def test_identify_outlets_no_river():
+def test_identify_outlets_no_river(street_network):
     """Test the identify_outlets in the no river case."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
@@ -218,9 +219,9 @@ def test_identify_outlets_no_river():
     outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
 
-def test_identify_outlets_sg():
+def test_identify_outlets_sg(street_network):
     """Test the identify_outlets with subgraphs."""
-    G, _ = load_street_network()
+    G, _ = street_network
     
     G = gu.assign_id(G)
     G = gu.double_directed(G)
@@ -290,9 +291,9 @@ def test_identify_outlets_sg():
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 3
 
-def test_identify_outlets_and_derive_topology():
+def test_identify_outlets_and_derive_topology(street_network):
     """Test the identify_outlets and derive_topology functions."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     for ix, (u,v,d) in enumerate(G.edges(data=True)):
@@ -355,9 +356,9 @@ def test_identify_outlets_and_derive_topology():
     outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
     assert len(outlets) == 1
         
-def test_identify_outlets_and_derive_topology_withtopo():
+def test_identify_outlets_and_derive_topology_withtopo(street_network):
     """Test the identify_outlets and derive_topology functions."""
-    G, _ = load_street_network()
+    G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     for ix, (u,v,d) in enumerate(G.edges(data=True)):
@@ -512,18 +513,18 @@ def almost_equal(a, b, tol=1e-6):
     """Check if two numbers are almost equal."""
     return abs(a-b) < tol
 
-def test_merge_street_nodes():
+def test_merge_street_nodes(street_network):
     """Test the merge_street_nodes function."""
-    G, _ = load_street_network()
+    G, _ = street_network
     subcatchment_derivation = parameters.SubcatchmentDerivation(
         node_merge_distance = 20)
     G_ = gu.merge_street_nodes(G, subcatchment_derivation)
     assert not set([107736,266325461,2623975694,32925453]).intersection(G_.nodes)
     assert almost_equal(G_.nodes[25510321]['x'], 700445.0112082)
 
-def test_clip_to_catchments():
+def test_clip_to_catchments(street_network):
     """Test the clip_to_catchments function."""
-    G, _ = load_street_network()
+    G, _ = street_network
 
     with tempfile.TemporaryDirectory() as temp_dir:
         
