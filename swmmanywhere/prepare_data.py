@@ -141,7 +141,7 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     return cast("nx.MultiDiGraph", graph)
 
 def download_elevation(fid: Path, 
-                       bbox: tuple[float, float, float, float]) -> int:
+                       bbox: tuple[float, float, float, float]) -> None:
     """Download NASADEM elevation data from Microsoft Planetary computer.
 
     Downloads elevation data in GeoTIFF format from Microsoft Planetary computer
@@ -151,9 +151,6 @@ def download_elevation(fid: Path,
         fid (Path): File path to save the downloaded elevation data.
         bbox (tuple[float, float, float, float]): Bounding box as tuple in form 
             of (west, south, east, north) at EPSG:4326.
-
-    Returns:
-        status_code (int): Response status code.
 
     Example:
         ```
@@ -179,7 +176,6 @@ def download_elevation(fid: Path,
                                   for href in signed_asset])
     dem = dem.rio.clip_box(*bbox)
     dem.rio.to_raster(fid)
-    return 200
 
 def download_precipitation(bbox: tuple[float, float, float, float], 
                            start_date: str = '2015-01-01',

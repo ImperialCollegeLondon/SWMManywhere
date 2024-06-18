@@ -96,11 +96,8 @@ def test_elevation_downloader_download():
         temp_fid = Path(temp_dir) / 'temp.tif'
         
         # Download
-        response = downloaders.download_elevation(temp_fid, bbox)
+        downloaders.download_elevation(temp_fid, bbox)
 
-        # Check response
-        assert response == 200
-        
         # Check response
         assert temp_fid.exists(), "Elevation data file not found after download."
 
@@ -214,33 +211,33 @@ def test_download_elevation():
             mock.patch(f'{module_base}rxr_merge.merge_arrays') as mock_merge_arrays:
             
             # Mock the behavior of the catalog search and items
-            mock_catalog = mock.Mock()
+            mock_catalog = mock.MagicMock()
             mock_open.return_value = mock_catalog
-            mock_search = mock.Mock()
+            mock_search = mock.MagicMock()
             mock_catalog.search.return_value = mock_search
-            mock_items = [mock.Mock(), mock.Mock()]
+            mock_items = [mock.MagicMock(), mock.MagicMock()]
             for item in mock_items:
-                item.assets = {"elevation": mock.Mock()}
+                item.assets = {"elevation": mock.MagicMock()}
             mock_search.items.return_value = mock_items
 
             # Mock the signed URLs
-            mock_sign.side_effect = lambda x: mock.Mock(href=f"signed_{x}")
+            mock_sign.side_effect = lambda x: mock.MagicMock(href=f"signed_{x}")
 
             # Mock the raster data
-            mock_raster = mock.Mock()
+            mock_raster = mock.MagicMock()
             mock_open_rasterio.return_value = mock_raster
 
             # Mock the merged array
-            mock_merged_array = mock.Mock()
+            mock_merged_array = mock.MagicMock()
             mock_merge_arrays.return_value = mock_merged_array
 
             # Mock the `rio` attribute on the merged array
-            mock_merged_array.rio = mock.Mock()
+            mock_merged_array.rio = mock.MagicMock()
             mock_merged_array.rio.clip_box.return_value = mock_merged_array
             mock_merged_array.rio.to_raster.return_value = None
 
             # Call the function
-            response = downloaders.download_elevation(temp_fid, bbox)
+            downloaders.download_elevation(temp_fid, bbox)
 
             # Assertions
             mock_open.assert_called_once_with(
@@ -257,4 +254,3 @@ def test_download_elevation():
             mock_merge_arrays.assert_called_once()
             mock_merged_array.rio.clip_box.assert_called_once_with(*bbox)
             mock_merged_array.rio.to_raster.assert_called_once_with(temp_fid)
-            assert response == 200
