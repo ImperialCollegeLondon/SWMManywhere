@@ -173,9 +173,8 @@ def download_elevation(fid: Path,
         collections=["nasadem"],
         bbox=bbox,
     )
-    items = list(search.items())
-    signed_asset = [planetary_computer.sign(item.assets["elevation"]).href 
-                    for item in items]
+    signed_asset = (planetary_computer.sign(item.assets["elevation"]).href 
+                    for item in search.items())
     dem = rxr_merge.merge_arrays([rioxarray.open_rasterio(href).squeeze(drop=True) 
                                   for href in signed_asset])
     dem = dem.rio.clip_box(*bbox)
