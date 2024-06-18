@@ -12,7 +12,6 @@ from pathlib import Path
 from pprint import pprint as print
 
 import pandas as pd
-import yaml
 
 from swmmanywhere import swmmanywhere
 
@@ -20,15 +19,6 @@ from swmmanywhere import swmmanywhere
 base_dir = Path.cwd() / 'swmmanywhere_models'
 print(base_dir)
 base_dir.mkdir(exist_ok=True, parents=True)
-
-# %% [markdown]
-## API keys
-# ... Information here about how to handle API keys
-# TODO
-# %%
-api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
-with (base_dir / 'api_keys.yml').open('w') as f:
-    yaml.dump(api_keys, f)
 
 # %% [markdown]
 ## Define configuration file
@@ -59,11 +49,8 @@ config['project'] = 'my_first_swmm'
 # data for it very quickly (larger countries will take longer)
 config['bbox'] = [1.52740,42.50524,1.54273,42.51259]
 
-# We need to locate the API keys file
-config['api_keys'] = base_dir / 'api_keys.yml'
-
-# The precipitation downloader is currently broken so we will just use the 
-# design storm
+# A precipitation downloader will be added in the future so we will just use 
+# the design storm
 config['address_overrides'] = {'precipitation' : 
                     Path(swmmanywhere.__file__).parent / 'defs' / 'storm.dat'}
 
