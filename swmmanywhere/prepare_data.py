@@ -149,8 +149,8 @@ def download_elevation(fid: Path,
 
     Args:
         fid (Path): File path to save the downloaded elevation data.
-        bbox (tuple): Bounding box coordinates in the format 
-            (minx, miny, maxx, maxy).
+        bbox (tuple[float, float, float, float]): Bounding box as tuple in form 
+            of (west, south, east, north) at EPSG:4326.
 
     Returns:
         status_code (int): Response status code.
