@@ -3,7 +3,6 @@ properties:
   base_dir: {type: string}
   project: {type: string}
   bbox: {type: array, items: {type: number}, minItems: 4, maxItems: 4}
-  api_keys: {type: string}
   model_number: {type: integer}
   run_settings:
     type: object
@@ -31,4 +30,4 @@ properties:
   metric_list: {type: array, items: {type: string}}
   address_overrides: {type: ['object', 'null']}
   parameter_overrides: {type: ['object', 'null']}
-required: [base_dir, project, bbox, api_keys, graphfcn_list]
+required: [base_dir, project, bbox, graphfcn_list]
