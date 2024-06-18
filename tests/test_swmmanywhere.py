@@ -62,10 +62,6 @@ def test_swmmanywhere():
         config['parameter_overrides'] = {'subcatchment_derivation' : 
                                          {'subbasin_streamorder' : 5}}
         config['run_settings']['duration'] = 1000
-        api_keys = {'nasadem_key' : 'b206e65629ac0e53d599e43438560d28'}
-        with open(base_dir / 'api_keys.yml', 'w') as f:
-            yaml.dump(api_keys, f)
-        config['api_keys'] = str(base_dir / 'api_keys.yml')
         
         # Fill the real dict with unused paths to avoid filevalidation errors
         config['real']['subcatchments'] = str(defs_dir / 'storm.dat')
@@ -124,7 +120,6 @@ def test_load_config_file_validation():
         
         # Fill with unused paths to avoid filevalidation errors
         config['base_dir'] = str(defs_dir / 'storm.dat')
-        config['api_keys'] = str(defs_dir / 'storm.dat')
         
         with open(base_dir / 'test_config.yml', 'w') as f:
             yaml.dump(config, f)
@@ -168,7 +163,6 @@ def test_save_config():
         
         # Fill with unused paths to avoid filevalidation errors
         config['base_dir'] = str(defs_dir / 'storm.dat')
-        config['api_keys'] = str(defs_dir / 'storm.dat')
 
         swmmanywhere.save_config(config, temp_dir / 'test.yml')
 

@@ -8,7 +8,6 @@ pytest -m downloads
 """
 from __future__ import annotations
 
-import io
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -91,20 +90,14 @@ def test_river_downloader_download():
 @pytest.mark.downloads
 def test_elevation_downloader_download():
     """Check elevation downloads, writes, contains data, and a known elevation."""
-    # Please do not reuse api_key
-    test_api_key = 'b206e65629ac0e53d599e43438560d28' 
-
     bbox = (-0.17929,51.49638, -0.17383,51.49846)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / 'temp.tif'
         
         # Download
-        response = downloaders.download_elevation(temp_fid, bbox, test_api_key)
+        downloaders.download_elevation(temp_fid, bbox)
 
-        # Check response
-        assert response == 200
-        
         # Check response
         assert temp_fid.exists(), "Elevation data file not found after download."
 
@@ -202,30 +195,62 @@ def test_river_downloader():
         assert G.size() == 0
 
 
-def test_elevation_downloader():
+def test_download_elevation():
     """Check elevation downloads, writes, contains data, and a known elevation."""
-    # Please do not reuse api_key
-    test_api_key = 'b206e65629ac0e53d599e43438560d28' 
-
-    bbox = (-0.17929,51.49638, -0.17383,51.49846)
+    bbox = (-0.17929, 51.49638, -0.17383, 51.49846)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / 'temp.tif'
-        
-        mock_response = mock.Mock()
-        mock_response.status_code = 200
-        mock_response.raw = io.BytesIO(b'25')
-        with mock.patch('requests.get', 
-                        return_value=mock_response) as mock_get:
-            # Call your function that uses requests.get
-            response = downloaders.download_elevation(temp_fid, 
-                                                        bbox, 
-                                                        test_api_key)
-            # Assert that requests.get was called with the right arguments
-            assert 'https://portal.opentopography.org/API/globaldem?demtype=NASADEM&south=51.49638&north=51.49846&west=-0.17929&east=-0.17383&outputFormat=GTiff&API_Key' in mock_get.call_args[0][0] # noqa: E501
 
-        # Check response
-        assert response == 200
-        
-        # Check response
-        assert temp_fid.exists(), "Elevation data file not found after download."
+        # Mock the external dependencies
+        module_base = 'swmmanywhere.prepare_data.'
+        with mock.patch(f'{module_base}pystac_client.Client.open') as mock_open, \
+            mock.patch(f'{module_base}planetary_computer.sign_inplace'), \
+            mock.patch(f'{module_base}planetary_computer.sign') as mock_sign, \
+            mock.patch(f'{module_base}rioxarray.open_rasterio') as mock_open_rasterio, \
+            mock.patch(f'{module_base}rxr_merge.merge_arrays') as mock_merge_arrays:
+            
+            # Mock the behavior of the catalog search and items
+            mock_catalog = mock.MagicMock()
+            mock_open.return_value = mock_catalog
+            mock_search = mock.MagicMock()
+            mock_catalog.search.return_value = mock_search
+            mock_items = [mock.MagicMock(), mock.MagicMock()]
+            for item in mock_items:
+                item.assets = {"elevation": mock.MagicMock()}
+            mock_search.items.return_value = mock_items
+
+            # Mock the signed URLs
+            mock_sign.side_effect = lambda x: mock.MagicMock(href=f"signed_{x}")
+
+            # Mock the raster data
+            mock_raster = mock.MagicMock()
+            mock_open_rasterio.return_value = mock_raster
+
+            # Mock the merged array
+            mock_merged_array = mock.MagicMock()
+            mock_merge_arrays.return_value = mock_merged_array
+
+            # Mock the `rio` attribute on the merged array
+            mock_merged_array.rio = mock.MagicMock()
+            mock_merged_array.rio.clip_box.return_value = mock_merged_array
+            mock_merged_array.rio.to_raster.return_value = None
+
+            # Call the function
+            downloaders.download_elevation(temp_fid, bbox)
+
+            # Assertions
+            mock_open.assert_called_once_with(
+                "https://planetarycomputer.microsoft.com/api/stac/v1",
+                modifier=mock.ANY,
+            )
+            mock_catalog.search.assert_called_once_with(
+                collections=["nasadem"],
+                bbox=bbox,
+            )
+            assert len(mock_items) == 2
+            assert mock_sign.call_count == len(mock_items)
+            mock_open_rasterio.assert_called()
+            mock_merge_arrays.assert_called_once()
+            mock_merged_array.rio.clip_box.assert_called_once_with(*bbox)
+            mock_merged_array.rio.to_raster.assert_called_once_with(temp_fid)
