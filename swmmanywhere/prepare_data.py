@@ -4,7 +4,6 @@ A module to download data needed for SWMManywhere.
 """
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import cast
 
@@ -12,7 +11,11 @@ import cdsapi
 import networkx as nx
 import osmnx as ox
 import pandas as pd
+import planetary_computer
+import pystac_client
 import requests
+import rioxarray
+import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
 
@@ -138,56 +141,41 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
     return cast("nx.MultiDiGraph", graph)
 
 def download_elevation(fid: Path, 
-                       bbox: tuple[float, float, float, float], 
-                       api_key: str ='<your_api_key>') -> int:
-    """Download NASADEM elevation data from OpenTopography API.
+                       bbox: tuple[float, float, float, float]) -> None:
+    """Download NASADEM elevation data from Microsoft Planetary computer.
 
-    Downloads elevation data in GeoTIFF format from OpenTopography API based on
-      the specified bounding box.
+    Downloads elevation data in GeoTIFF format from Microsoft Planetary computer
+      based on the specified bounding box.
 
     Args:
         fid (Path): File path to save the downloaded elevation data.
-        bbox (tuple): Bounding box coordinates in the format 
-            (minx, miny, maxx, maxy).
-        api_key (str, optional): Your OpenTopography API key. 
-            Defaults to '<your_api_key>'.
-
-    Returns:
-        status_code (int): Response status code
-
-    Raises:
-        requests.exceptions.RequestException: If there is an error in the API 
-            request.
+        bbox (tuple[float, float, float, float]): Bounding box as tuple in form 
+            of (west, south, east, north) at EPSG:4326.
 
     Example:
         ```
         bbox = (-120, 35, -118, 37)  # Example bounding box coordinates
         download_elevation('elevation_data.tif', 
-                            bbox, 
-                            api_key='your_actual_api_key')
+                            bbox)
         ```
 
-    Note:
-        To obtain an API key, you need to sign up on the OpenTopography 
-        website.
-
+    Author:
+        cheginit
     """
-    minx, miny, maxx, maxy = bbox
-    url = f'https://portal.opentopography.org/API/globaldem?demtype=NASADEM&south={miny}&north={maxy}&west={minx}&east={maxx}&outputFormat=GTiff&API_Key={api_key}'
-    
-    try:
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
-        
-        with fid.open('wb') as rast_file:
-            shutil.copyfileobj(r.raw, rast_file)
-            
-        logger.info('Elevation data downloaded successfully.')
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f'Error downloading elevation data: {e}')
-    
-    return r.status_code
+    catalog = pystac_client.Client.open(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        modifier=planetary_computer.sign_inplace,
+    )
+    search = catalog.search(
+        collections=["nasadem"],
+        bbox=bbox,
+    )
+    signed_asset = (planetary_computer.sign(item.assets["elevation"]).href 
+                    for item in search.items())
+    dem = rxr_merge.merge_arrays([rioxarray.open_rasterio(href).squeeze(drop=True) 
+                                  for href in signed_asset])
+    dem = dem.rio.clip_box(*bbox)
+    dem.rio.to_raster(fid)
 
 def download_precipitation(bbox: tuple[float, float, float, float], 
                            start_date: str = '2015-01-01',

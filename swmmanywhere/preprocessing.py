@@ -182,7 +182,6 @@ def prepare_precipitation(bbox: tuple[float, float, float, float],
     
 def prepare_elevation(bbox: tuple[float, float, float, float],
                     addresses: parameters.FilePaths,
-                    api_keys: dict[str, str],
                     target_crs: str):
     """Download and reproject elevation data."""
     if addresses.elevation.exists():
@@ -192,7 +191,6 @@ def prepare_elevation(bbox: tuple[float, float, float, float],
         fid = Path(temp_dir) / 'elevation.tif'
         prepare_data.download_elevation(fid,
                                         bbox, 
-                                        api_keys['nasadem_key']
                                         )
         go.reproject_raster(target_crs,
                             fid,
@@ -280,7 +278,6 @@ def prepare_river(bbox: tuple[float, float, float, float],
 
 def run_downloads(bbox: tuple[float, float, float, float],
                   addresses: parameters.FilePaths,
-                  api_keys: dict[str, str],
                   network_types = ['drive']):
     """Run the data downloads.
 
@@ -292,16 +289,16 @@ def run_downloads(bbox: tuple[float, float, float, float],
         bbox (tuple[float, float, float, float]): Bounding box coordinates in 
             the format (minx, miny, maxx, maxy) in EPSG:4326.
         addresses (FilePaths): Class containing the addresses of the directories.
-        api_keys (dict): Dictionary containing the API keys.
         network_types (list): List of network types to download.
     """
     target_crs = go.get_utm_epsg(bbox[0], bbox[1])
 
     # Download precipitation data
-    prepare_precipitation(bbox, addresses, api_keys, target_crs)
+    # Currently commented because it doesn't work
+    # prepare_precipitation(bbox, addresses, api_keys, target_crs)
     
     # Download elevation data
-    prepare_elevation(bbox, addresses, api_keys, target_crs)
+    prepare_elevation(bbox, addresses, target_crs)
     
     # Download building data
     prepare_building(bbox, addresses, target_crs)
