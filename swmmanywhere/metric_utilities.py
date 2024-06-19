@@ -273,18 +273,16 @@ def kge(y: np.ndarray,yhat: np.ndarray) -> float:
     kge = 1 - np.sqrt((r - 1)**2 + (alpha - 1)**2 + (beta - 1)**2)
     return kge
 
-def align_calc_coef(synthetic_results: pd.DataFrame, 
+def align_by_id(synthetic_results: pd.DataFrame, 
                   real_results: pd.DataFrame, 
                   variable: str, 
                   syn_ids: list,
-                  real_ids: list,
-                  coef_func: Callable = nse) -> float:
-    """Align and calculate coef_func.
+                  real_ids: list):
+    """Align and interpolate data by id.
 
     Aggregate synthetic and real results by date for specifics ids (i.e., sum
     up over all ids - so we are only comparing timeseries for one aggregation). 
-    Align the synthetic and real dates and calculate the coef_func metric
-    of the variable over time. In cases where the synthetic
+    Align the synthetic and real dates. In cases where the synthetic
     data is does not overlap the real data, the value is interpolated.
 
     Args:
@@ -297,7 +295,7 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
             Defaults to nse.
 
     Returns:
-        float: The coef_func value.
+        pd.DataFrame: The aligned and interpolated data.
     """
     synthetic_results = synthetic_results.copy()
     real_results = real_results.copy()
@@ -333,8 +331,7 @@ def align_calc_coef(synthetic_results: pd.DataFrame,
     df['value_syn'] = df.value_syn.interpolate().to_numpy()
     df = df.dropna(subset=['value_real'])
 
-    # Calculate coef_func
-    return coef_func(df.value_real, df.value_syn)
+    return df
 
 def create_subgraph(G: nx.Graph,
                     nodes: list) -> nx.Graph:
@@ -419,7 +416,7 @@ def nodes_to_subs(G: nx.Graph,
     return nodes_joined
 
 def best_outlet_match(synthetic_G: nx.Graph,
-                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int]:
+                      real_subs: gpd.GeoDataFrame) -> tuple[nx.Graph,int |  None]:
     """Best outlet match.
     
     Identify the outlet with the most nodes within the real_subs and return the
@@ -431,17 +428,20 @@ def best_outlet_match(synthetic_G: nx.Graph,
 
     Returns:
         nx.Graph: The subgraph of the synthetic graph for the outlet with the 
-            most nodes within the real_subs.
-        int: The id of the outlet.
+            most nodes within the real_subs. Empty if no match is made.
+        int: The id of the outlet. None if no outlet is found.
     """
     nodes_joined = nodes_to_subs(synthetic_G, real_subs)
     
+    if nodes_joined.shape[0] == 0:
+        return (nx.Graph(),None)
+
     # Select the most common outlet
     outlet = nodes_joined.outlet.value_counts().idxmax()
 
     # Subselect the matching graph
     outlet_nodes = [n for n, d in synthetic_G.nodes(data=True) 
-                    if d['outlet'] == outlet]
+                    if d.get('outlet', None) == outlet]
     sg = create_subgraph(synthetic_G,outlet_nodes)
     return sg, outlet
 
@@ -772,6 +772,10 @@ def outlet(synthetic_results: pd.DataFrame,
     """
     # Identify synthetic and real arcs that flow into the best outlet node
     sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    if len(sg_syn.nodes) == 0:
+        # No overlap exists
+        return np.inf
+    
     sg_real, real_outlet = dominant_outlet(real_G, real_results)
     
     allowable_var = ['nmanholes', 
@@ -823,12 +827,12 @@ def outlet(synthetic_results: pd.DataFrame,
         real_arc = list(sg_real.nodes)
 
     # Calculate the coefficient
-    return align_calc_coef(synthetic_results, 
+    df = align_by_id(synthetic_results,
                          real_results, 
                          var,
                          syn_arc, 
-                         real_arc,
-                         coef_func = coef_func)
+                         real_arc)
+    return coef_func(df.value_real, df.value_syn)
 
 def metric_factory(name: str):
     """Create a metric function.
@@ -1020,6 +1024,11 @@ def outlet_kstest_diameters(real_G: nx.Graph,
     """
     # Identify synthetic and real outlet arcs
     sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+
+    if len(sg_syn.nodes) == 0:
+        # No overlap exists
+        return np.inf
+
     sg_real, _ = dominant_outlet(real_G, real_results)
     
     # Extract the diameters
