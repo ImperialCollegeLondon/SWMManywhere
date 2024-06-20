@@ -130,3 +130,6 @@ dmypy.json
 
 # Pysheds cache
 cache/
+
+# Documentation generated models
+swmmanywhere_models/
