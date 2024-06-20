@@ -254,8 +254,7 @@ def save_config(config: dict, config_path: Path):
     """
     yaml_dump(config, config_path.open('w'))
 
-def load_config(config_path: Path = Path(__file__).parent.parent / 'tests' / \
-                    'test_data' / 'demo_config.yml', 
+def load_config(config_path: Path = Path(__file__).parent / 'defs' / 'demo_config.yml', 
                 validation: bool = True, 
                 schema_fid: Path | None = None):
     """Load, validate, and convert Paths in a configuration file.
