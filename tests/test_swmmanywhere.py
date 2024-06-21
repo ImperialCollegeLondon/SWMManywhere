@@ -166,3 +166,13 @@ def test_save_config():
 
         # Reload to check OK
         config = swmmanywhere.load_config(temp_dir / 'test.yml')
+
+@pytest.mark.downloads
+def test_minimal_req():
+    """Test SWMManywhere with minimal info."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        config = {'base_dir' : Path(temp_dir),
+                  'project' : 'my_test',
+                  'bbox' : [1.52740,42.50524,1.54273,42.51259]}
+        
+        swmmanywhere.swmmanywhere(config)
