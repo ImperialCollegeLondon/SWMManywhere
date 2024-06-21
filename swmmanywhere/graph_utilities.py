@@ -641,7 +641,9 @@ class clip_to_catchments(BaseGraphFunction,
 
         # Derive subbasins
         subbasins = go.derive_subbasins_streamorder(addresses.elevation,
-                                subcatchment_derivation.subbasin_streamorder)
+                        subcatchment_derivation.subbasin_streamorder,
+                        x = list(nx.get_node_attributes(G, 'x').values()),
+                        y = list(nx.get_node_attributes(G, 'y').values()))
         
         if verbose():
             subbasins.to_file(

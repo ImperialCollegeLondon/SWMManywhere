@@ -23,6 +23,7 @@ from swmmanywhere.graph_utilities import (
     save_graph,
 )
 from swmmanywhere.graph_utilities import graphfcns as gu
+from swmmanywhere.logging import logger
 
 
 @pytest.fixture
@@ -619,7 +620,12 @@ def test_clip_to_catchments(street_network):
         assert len(G_.edges) == 28
 
         # Check streamorder adjustment
-        with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:
+            fid = Path(temp_file.name)
+            os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
+            logger.add(fid)
             subcatchment_derivation = parameters.SubcatchmentDerivation(
                 subbasin_streamorder = 5,
                 subbasin_membership = 0.9
@@ -627,7 +633,13 @@ def test_clip_to_catchments(street_network):
             G_ = gu.clip_to_catchments(G, 
                                     addresses=addresses,
                                     subcatchment_derivation=subcatchment_derivation)
-
+            ftext = str(temp_file.read())
+            assert """No subbasins found""" in ftext
+            assert """WARNING""" in ftext
+            logger.remove()
+            os.environ['SWMMANYWHERE_VERBOSE'] = 'false'
+        assert (addresses.nodes.parent / 'subbasins.geojson').exists()
+            
 def test_filter_streets():
     """Test the _filter_streets function."""
     # Create a sample graph

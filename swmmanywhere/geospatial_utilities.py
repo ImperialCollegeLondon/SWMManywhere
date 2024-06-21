@@ -644,12 +644,16 @@ def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
     return gdf_bas
 
 def derive_subbasins_streamorder(fid: Path,
-                                 streamorder: int):
+                                 streamorder: int,
+                                 x: list[float] = [],
+                                 y: list[float] = []) -> gpd.GeoDataFrame:
     """Derive subbasins of a given stream order.
 
     Args:
         fid (Path): Filepath to the DEM.
         streamorder (int): The stream order to delineate subbasins for.
+        x (list): X coordinates.
+        y (list): Y coordinates.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons.
@@ -666,16 +670,19 @@ def derive_subbasins_streamorder(fid: Path,
     
     # Identify stream order
     subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
-    streamorder_ = streamorder
-    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
-        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder_)
-        streamorder_ -= 1
+    
+    if np.unique(subbasins).shape[0] == 1:
+        
+        xy = [(x_,y_) for x_, y_ in zip(x,y) 
+              if (x_ > grid.bbox[0]) and (x_ < grid.bbox[2]) 
+              and (y_ > grid.bbox[1]) and (y_ < grid.bbox[3])]
 
-    if streamorder_ != streamorder:
-        logger.warning(f"""No subbasins found in `derive_subbasins_streamorder`. 
-                Using a lower `subcatchment_derivation.subbasin_streamorder` of 
-                {streamorder_}. But you should inspect `subbasins` and probably 
-                check your DEM.""")
+        idxs, _ = flw.snap(xy=list(zip(*xy)))
+        subbasins = flw.basins(idxs=np.unique(idxs))
+        logger.warning("""No subbasins found in `derive_subbasins_streamorder`. 
+                Instead subbasins have been selected based on the most downstream 
+                points. But you should inspect `subbasins` and probably check your 
+                DEM.""")
 
     gdf_bas = vectorize(subbasins.astype(np.int32),
                             0,
