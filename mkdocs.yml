@@ -2,6 +2,8 @@ site_name: SWMManywhere docs
 
 theme:
   name: "material"
+  palette:
+    primary: 'cyan'
   
 extra_css:
   - stylesheets/extra.css
@@ -9,7 +11,7 @@ extra_css:
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: true
+      execute: false
   - search
   - coverage:
       page_name: coverage  # default
@@ -27,7 +29,7 @@ extra_javascript:
 
 nav:
   - Home: index.md
-  - Quickstart: notebooks/quickstart.py
+  - Quickstart: quickstart.md
   - Contributing: CONTRIBUTING.md
   - API reference:
     - SWMManywhere: reference.md

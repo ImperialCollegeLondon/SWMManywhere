@@ -6,7 +6,7 @@ derive a synthetic urban drainage network anywhere in the world.
 ## Table of contents
 
 - [Home](index.md)
-- [Quickstart](./notebooks/quickstart.py)
+- [Quickstart](quickstart.md)
 - [Contributing](CONTRIBUTING.md)
 - [API reference](reference-overview.md)
   - [SWMManywhere](reference.md)

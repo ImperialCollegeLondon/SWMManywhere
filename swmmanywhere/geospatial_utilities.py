@@ -31,7 +31,7 @@ from shapely import ops as sops
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
 
-from swmmanywhere.logging import verbose
+from swmmanywhere.logging import logger, verbose
 
 os.environ['NUMBA_NUM_THREADS'] = '1'
 import pyflwdir  # noqa: E402
@@ -666,10 +666,16 @@ def derive_subbasins_streamorder(fid: Path,
     
     # Identify stream order
     subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
-    if np.unique(subbasins.reshape(-1)).shape[0] == 1:
-        raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
-                Use a lower `subcatchment_derivation.subbasin_streamorder` and 
-                probably check your DEM.""")
+    streamorder_ = streamorder
+    while np.unique(subbasins.reshape(-1)).shape[0] == 1:
+        subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder_)
+        streamorder_ -= 1
+
+    if streamorder_ != streamorder:
+        logger.warning(f"""No subbasins found in `derive_subbasins_streamorder`. 
+                Using a lower `subcatchment_derivation.subbasin_streamorder` of 
+                {streamorder_}. But you should inspect `subbasins` and probably 
+                check your DEM.""")
 
     gdf_bas = vectorize(subbasins.astype(np.int32),
                             0,
