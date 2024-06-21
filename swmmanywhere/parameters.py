@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
+from swmmanywhere.utilities import yaml_dump, yaml_load
+
 
 def get_full_parameters():
     """Get the full set of parameters."""
@@ -229,6 +231,12 @@ class MetricEvaluation(BaseModel):
                         description = "Scale of the grid for metric evaluation")
 
 
+def filepaths_from_yaml(f: Path):
+    """Get file paths from a yaml file."""
+    address_dict = yaml_load(f.read_text())
+    address_dict['base_dir'] = Path(address_dict['base_dir'])
+    addresses = FilePaths(**address_dict)
+    return addresses
 
 class FilePaths:
     """Parameters for file path lookup."""
@@ -238,14 +246,25 @@ class FilePaths:
                  project_name: str, 
                  bbox_number: int, 
                  model_number: int, 
-                 extension: str='json'):
+                 extension: str='json',
+                 **kwargs):
         """Initialise the class."""
         self.base_dir = base_dir
         self.project_name = project_name
         self.bbox_number = bbox_number
         self.model_number = model_number
         self.extension = extension
+        for key, value in kwargs.items():
+            value_path = Path(value)
+            if not value_path.exists():
+                raise FileNotFoundError(f"Path {value} does not exist.")
+            setattr(self, key, value_path)
     
+    def to_yaml(self, f: Path):
+        """Convert a file to json."""
+        address_dict = self.__dict__
+        yaml_dump(address_dict, f.open('w'))
+
     def __getattr__(self, name):
         """Fetch the address."""
         return self._fetch_address(name)

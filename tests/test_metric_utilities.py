@@ -17,8 +17,8 @@ from swmmanywhere.parameters import MetricEvaluation
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
     """Assert that two floats are close."""
     assert np.isclose(a, b, rtol=rtol).all()
-
-def get_subs():
+@pytest.fixture
+def subs():
     """Get a GeoDataFrame of subcatchments."""
     subs = [shapely.Polygon([(700262, 5709928),
                             (700262, 5709883),
@@ -54,7 +54,8 @@ def get_subs():
                                     crs = 'EPSG:32630')
     return subs
 
-def get_results():
+@pytest.fixture
+def results():
     """Get a DataFrame of results."""
     results = pd.DataFrame([{'id' : 4253560,
                              'variable' : 'flow',
@@ -159,10 +160,9 @@ def test_kstest_edge_betweenness():
     val = mu.metrics.kstest_edge_betweenness(synthetic_G = G_, real_G = G)
     assert_close(val, 0.38995)
 
-def test_best_outlet_match():
+def test_best_outlet_match(subs):
     """Test the best_outlet_match and ks_betweenness."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-    subs = get_subs()
     
     sg, outlet = mu.best_outlet_match(synthetic_G = G, 
                                      real_subs = subs)
@@ -210,11 +210,10 @@ def test_relerror_different_length():
                          yhat = np.array([1]))
     assert_close(val, (1 - 3.5)/3.5)
 
-def test_outlet_nse_flow():
+def test_outlet_nse_flow(subs):
     """Test the outlet_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-    subs = get_subs()
 
     # Mock results
     results = pd.DataFrame([{'id' : 4253560,
@@ -287,11 +286,10 @@ def test_outlet_nse_flow():
                                     metric_evaluation = None)
     assert val == -15.0
 
-def test_outlet_nse_flooding():
+def test_outlet_nse_flooding(subs):
     """Test the outlet_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-    subs = get_subs()
 
     # Mock results
     results = pd.DataFrame([{'id' : 4253560,
@@ -381,11 +379,10 @@ def test_outlet_nse_flooding():
                                     metric_evaluation = None)
     assert val == 0.0
 
-def test_design_params():
+def test_design_params(subs):
     """Test the design param related metrics."""
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     nx.set_edge_attributes(G, 0.15, 'diameter')
-    subs = get_subs()
 
     # Mock results (only needed for dominant outlet)
     results = pd.DataFrame([{'id' : 4253560,
@@ -472,14 +469,11 @@ def test_netcomp_iterate():
         assert metric in netcomp_results
         assert np.isclose(val, netcomp_results[metric])
         
-def test_subcatchment_nse_flooding():
+def test_subcatchment_nse_flooding(subs, results):
     """Test the outlet_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-    subs = get_subs()
 
-    # Mock results
-    results = get_results()
     
     # Calculate NSE (perfect results)
     val = mu.metrics.subcatchment_nse_flooding(synthetic_G = G,
@@ -539,9 +533,8 @@ def test_restirctions():
     with pytest.raises(ValueError):
         mu.metric_factory('outlet_nse_nmanholes')
 
-def test_nodes_to_subs():
+def test_nodes_to_subs(subs):
     """Test the nodes_to_subs function."""
-    subs = get_subs()
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
     nodes = mu.nodes_to_subs(G, subs)
     nodes = set([(r.id, r.sub_id) for _, r in nodes.iterrows()])
@@ -553,11 +546,9 @@ def test_nodes_to_subs():
             (6277683849, 6277683849)}
     assert nodes == nodes_
 
-def test_align_by_shape_and_median_coef():
+def test_align_by_shape_and_median_coef(subs, results):
     """Test the align_by_shape and median_coef_by_group function."""
-    subs = get_subs()
     G = load_graph(Path(__file__).parent / 'test_data' / 'graph_topo_derived.json')
-    results = get_results()
     # Align the grid
     aligned = mu.align_by_shape('flooding',
                                 results,

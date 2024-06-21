@@ -122,6 +122,11 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                         )
     save_graph(G, addresses.graph)
 
+    # Check any edges
+    if len(G.edges) == 0:
+        logger.warning("No edges in graph, returning graph file.")
+        return addresses.graph, None
+    
     # Write to .inp
     synthetic_write(addresses)
 

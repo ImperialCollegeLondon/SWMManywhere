@@ -78,17 +78,19 @@ def synthetic_write(addresses: FilePaths):
     outfalls['id'] = outfalls['id'] + '_outfall'
 
     # Reduce elevation to ensure flow
-    outfalls['chamber_floor_elevation'] -= 1
-    outfalls['x'] -= 1
-    outfalls['y'] -= 1
+    outfalls['chamber_floor_elevation'] -= 5
+    outfalls['x'] -= 50
+    outfalls['y'] -= 50
 
     # Link stores to outfalls
-    new_edges = edges.iloc[0:outfalls.shape[0]].copy()
+    new_edges = pd.DataFrame(columns = edges.columns, index = range(len(outfalls)))
     new_edges['u'] = outfalls['id'].str.replace('_outfall','').values
     new_edges['v'] = outfalls['id'].values
     new_edges['id'] = [f'{u}-{v}' for u,v in zip(new_edges['u'], new_edges['v'])]
     new_edges['diameter'] = 15 # TODO .. big pipe to enable all outfall...
-    new_edges['length'] = 1
+    new_edges['length'] = (50**2 + 50 ** 2) ** 0.5
+    new_edges['roughness'] = 0.01
+    new_edges['capacity'] = 1E10
 
     # Append new edges
     edges = pd.concat([edges, new_edges], ignore_index = True)

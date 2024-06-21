@@ -91,14 +91,14 @@ def generate_data_dict():
                                 'manhole_area' : [0.5,0.5]
                                 })
     outfalls = gpd.GeoDataFrame({'id' : ['node2_outfall'],
-                                    'chamber_floor_elevation' : [0],
-                                    'surface_elevation' : [0],
-                                    'x' : [0],
-                                    'y' : [0]})
+                                    'chamber_floor_elevation' : [-4],
+                                    'surface_elevation' : [-4],
+                                    'x' : [-49],
+                                    'y' : [-49]})
     conduits = gpd.GeoDataFrame({'id' : ['node1-node2','node2-node2_outfall'],
                                     'u' : ['node1','node2'],
                                     'v' : ['node2','node2_outfall'],
-                                    'length' : [1,1],
+                                    'length' : [1,(50**2+50**2)**0.5],
                                     'roughness' : [0.01,0.01],
                                     'shape_swmm' : ['CIRCULAR','CIRCULAR'],
                                     'diameter' : [1,15],
@@ -185,6 +185,16 @@ def test_synthetic_write():
                 )
             print(''.join(diff))
         assert are_files_identical, "The files are not identical"
+
+        # Test that it doesn't break there are more outfalls than links
+        nodes.loc['new_node'] = nodes.iloc[0].copy()
+        nodes.reset_index().to_file(addresses.nodes)
+
+        # Check that there will be more outfalls than edges
+        assert sum(~nodes.index.astype(str).isin(edges.u.astype(str))) > edges.shape[0]
+        
+        # Run to check
+        stt.synthetic_write(addresses)
 
 def test_format_to_swmm_dict():
     """Test the format_format_to_swmm_dict function.
