@@ -649,6 +649,9 @@ def derive_subbasins_streamorder(fid: Path,
                                  y: list[float] = []) -> gpd.GeoDataFrame:
     """Derive subbasins of a given stream order.
 
+    By backup it will use the pyflwdir snap function to find the most downstream
+    points in each subbasin.
+
     Args:
         fid (Path): Filepath to the DEM.
         streamorder (int): The stream order to delineate subbasins for.
