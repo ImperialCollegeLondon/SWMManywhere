@@ -64,7 +64,7 @@ class SubcatchmentDerivation(BaseModel):
             description = "Depth of road/river carve for flow accumulation.")
 
     max_street_length: float = Field(default = 60.0,
-            ge = 40.0,
+            ge = 55.0,
             le = 100.0,
             unit = "m", 
             description = "Distance to split streets into segments.")
