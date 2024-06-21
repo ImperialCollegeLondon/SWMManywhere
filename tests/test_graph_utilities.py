@@ -575,6 +575,21 @@ def test_clip_to_catchments(street_network):
         addresses.nodes = addresses.base_dir / 'nodes.geojson'
         addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
 
+        # Test default clipping
+        subcatchment_derivation = parameters.SubcatchmentDerivation()
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 9
+
+        # Test default clipping streamorder
+        subcatchment_derivation = parameters.SubcatchmentDerivation()
+        subcatchment_derivation.subbasin_streamorder = 4
+        G_ = gu.clip_to_catchments(G, 
+                                addresses=addresses,
+                                subcatchment_derivation=subcatchment_derivation)
+        assert len(G_.edges) == 4
+
         # Test clipping
         subcatchment_derivation = parameters.SubcatchmentDerivation(
             subbasin_streamorder = 3,
