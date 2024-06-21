@@ -272,7 +272,7 @@ def nse(y: np.ndarray,
 def kge(y: np.ndarray,yhat: np.ndarray) -> float:
     r"""Calculate the Kling-Gupta Efficiency (KGE) between simulated and observed data.
     
-    Calculate KGE:
+    Calculate KGE with the 2009 formulation:
     $$
     KGE = 1 - 
         \sqrt{ (r - 1)^2 + 
