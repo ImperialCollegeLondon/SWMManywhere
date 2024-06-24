@@ -31,7 +31,7 @@ from shapely import ops as sops
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
 
-from swmmanywhere.logging import verbose
+from swmmanywhere.logging import logger, verbose
 
 os.environ['NUMBA_NUM_THREADS'] = '1'
 import pyflwdir  # noqa: E402
@@ -644,12 +644,20 @@ def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
     return gdf_bas
 
 def derive_subbasins_streamorder(fid: Path,
-                                 streamorder: int):
-    """Derive subbasins of a given stream order.
+                                 streamorder: int | None = None,
+                                 x: list[float] = [],
+                                 y: list[float] = []) -> gpd.GeoDataFrame:
+    """Derive subbasins.
+
+    Use the pyflwdir snap function to find the most downstream points in each 
+    subbasin. If streamorder is provided it will use that instead, although 
+    defaulting to snap if there are no cells of the correct streamorder.
 
     Args:
         fid (Path): Filepath to the DEM.
         streamorder (int): The stream order to delineate subbasins for.
+        x (list): X coordinates.
+        y (list): Y coordinates.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons.
@@ -663,13 +671,24 @@ def derive_subbasins_streamorder(fid: Path,
             check_ftype = False,
             transform = grid.affine,
         )
+    xy = [(x_,y_) for x_, y_ in zip(x,y) 
+        if (x_ > grid.bbox[0]) and (x_ < grid.bbox[2]) 
+        and (y_ > grid.bbox[1]) and (y_ < grid.bbox[3])]
+
+    idxs, _ = flw.snap(xy=list(zip(*xy)))
+    subbasins = flw.basins(idxs=np.unique(idxs))
     
-    # Identify stream order
-    subbasins, _ = flw.subbasins_streamorder(min_sto=streamorder)
-    if np.unique(subbasins.reshape(-1)).shape[0] == 1:
-        raise ValueError("""No subbasins found in derive_subbasins_streamorder. 
-                Use a lower `subcatchment_derivation.subbasin_streamorder` and 
-                probably check your DEM.""")
+    if streamorder is not None:
+        # Identify stream order
+        subbasins_, _ = flw.subbasins_streamorder(min_sto=streamorder)
+    
+        if np.unique(subbasins_).shape[0] == 1:
+            logger.warning("""No subbasins found in `derive_subbasins_streamorder`. 
+                    Instead subbasins have been selected based on the most downstream 
+                    points. But you should inspect `subbasins` and probably check your 
+                    DEM.""")
+        else:
+            subbasins = subbasins_
 
     gdf_bas = vectorize(subbasins.astype(np.int32),
                             0,
