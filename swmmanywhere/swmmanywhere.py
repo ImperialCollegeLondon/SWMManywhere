@@ -18,6 +18,22 @@ from swmmanywhere.post_processing import synthetic_write
 from swmmanywhere.utilities import yaml_dump, yaml_load
 
 
+def _check_defaults(config: dict) -> dict:
+    """Check the config for needed values and add them from defaults if missing.
+
+    Args:
+        config (dict): The configuration.
+
+    Returns:
+        dict: The configuration with defaults added.
+    """
+    config_ = load_config(validation=False)
+    for key in ['run_settings', 'graphfcn_list', 'metric_list']:
+        if key not in config:
+            config[key] = config_[key]
+    
+    return config
+
 def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     """Run SWMManywhere processes.
     
@@ -50,6 +66,11 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     for key, val in config.get('address_overrides', {}).items():
         logger.info(f"Setting {key} to {val}")
         setattr(addresses, key, val)
+    
+    # Check for defaults
+    config = _check_defaults(config)
+    if not addresses.precipitation.exists():
+        addresses.precipitation = Path(__file__).parent / 'defs' / 'storm.dat'
 
     # Load the parameters and perform any manual overrides
     logger.info("Loading and setting parameters.")
@@ -108,7 +129,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     
     # Write to .inp
     synthetic_write(addresses)
-                    
+
     # Run the model
     logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.inp, 
@@ -119,11 +140,10 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                       f'results.{addresses.extension}')
 
     # Get the real results
-    if config['real'].get('results',None):
+    if config.get('real', {}).get('results',None):
         logger.info("Loading real results.")
-        # TODO.. bit messy
         real_results = pd.read_parquet(config['real']['results'])
-    elif config['real']['inp']:
+    elif config.get('real', {}).get('inp',None):
         logger.info("Running the real model.")
         real_results = run(config['real']['inp'],
                            **config['run_settings'])
@@ -133,7 +153,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
         return addresses.inp, None
-    
+
     # Iterate the metrics
     logger.info("Iterating metrics.")
     metrics = iterate_metrics(synthetic_results,
@@ -261,7 +281,7 @@ def save_config(config: dict, config_path: Path):
     """
     yaml_dump(config, config_path.open('w'))
 
-def load_config(config_path: Path, 
+def load_config(config_path: Path = Path(__file__).parent / 'defs' / 'demo_config.yml', 
                 validation: bool = True, 
                 schema_fid: Path | None = None):
     """Load, validate, and convert Paths in a configuration file.

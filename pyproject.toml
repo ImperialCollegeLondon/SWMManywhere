@@ -65,6 +65,18 @@ dev = [
   "pytest-mypy",
   "ruff",
 ]
+doc = [
+  "mkdocs",
+  "mkdocs-autorefs",
+  "mkdocs-bibtex",
+  "mkdocs-coverage",
+  "mkdocs-gen-files",
+  "mkdocs-jupyter",
+  "mkdocs-material",
+  "mkdocs-material-extensions",
+  "mkdocstrings[python]",
+  "pypandoc",
+]
 
 [tool.mypy]
 disallow_any_explicit = false
@@ -79,7 +91,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
-addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/__main__.py"
+addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
 
 [tool.ruff]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort

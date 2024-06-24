@@ -42,6 +42,7 @@ metric_list:
   - outlet_relerror_length
   - outlet_relerror_npipes
   - outlet_relerror_nmanholes
+  - outlet_relerror_diameter
   - outlet_nse_flooding
   - outlet_kge_flooding
   - outlet_relerror_flooding
@@ -51,48 +52,10 @@ metric_list:
   - subcatchment_nse_flooding
   - subcatchment_kge_flooding
   - subcatchment_relerror_flooding
-  - nc_deltacon0
-  - nc_laplacian_dist
-  - nc_laplacian_norm_dist
-  - nc_adjacency_dist
-  - nc_vertex_edge_distance
-  - nc_resistance_distance
   - bias_flood_depth
   - kstest_edge_betweenness
   - kstest_betweenness
   - outlet_kstest_diameters
-parameter_overrides:
-  hydraulic_design:
-    diameters:
-      - 0.15
-      - 0.225
-      - 0.3
-      - 0.375
-      - 0.45
-      - 0.525
-      - 0.6
-      - 0.675
-      - 0.75
-      - 0.825
-      - 0.9
-      - 1.125
-      - 1.35
-      - 1.5
-      - 1.95
-      - 3.0
-address_overrides: null
-parameters_to_sample:
-  - min_v: [0.5, 1.5]
-  - max_v
-  - max_fr
-  - precipitation
-  - outlet_length
-  - chahinian_slope_scaling
-  - length_scaling
-  - contributing_area_scaling
-  - chahinian_slope_exponent
-  - length_exponent
-  - contributing_area_exponent
-  - lane_width
-  - max_street_length
-sample_magnitude: 9
+  - nc_deltacon0
+  - nc_laplacian_dist
+  - nc_vertex_edge_distance

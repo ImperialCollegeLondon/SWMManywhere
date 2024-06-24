@@ -1,0 +1,43 @@
+site_name: SWMManywhere docs
+
+theme:
+  name: "material"
+  palette:
+    primary: 'cyan'
+  
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - mkdocstrings
+  - mkdocs-jupyter: 
+      execute: false
+  - search
+  - coverage:
+      page_name: coverage  # default
+      html_report_dir: htmlcov  # default
+        
+markdown_extensions:
+  - footnotes
+  - pymdownx.arithmatex:
+      generic: true
+ 
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Contributing: CONTRIBUTING.md
+  - API reference:
+    - SWMManywhere: reference.md
+    - Graph utilities: reference-graph-utilities.md
+    - Geospatial utilities: reference-geospatial-utilities.md
+    - Metric utilities: reference-metric-utilities.md
+    - Logging: reference-logging.md
+    - Parameters: reference-parameters.md
+    - Post processing: reference-post-processing.md
+    - Preprocessing: reference-preprocessing.md
+  - Coverage report: coverage.md
