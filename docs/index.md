@@ -17,4 +17,4 @@ derive a synthetic urban drainage network anywhere in the world.
   - [Parameters](reference-parameters.md)
   - [Post processing](reference-post-processing.md)
   - [Preprocessing](reference-preprocessing.md)
-- [Coverage report](coverage.md)
+<!---  - [Coverage report](coverage.md)--->
