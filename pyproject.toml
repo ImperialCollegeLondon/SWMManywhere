@@ -43,7 +43,7 @@ dependencies = [
   "pyarrow",
   "pydantic",
   "pyflwdir",
-  "pysheds",
+  "pysheds==0.3.5",
   "pystac_client",
   "pyswmm",
   "PyYAML",
