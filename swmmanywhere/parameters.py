@@ -181,7 +181,8 @@ class TopologyDerivation(BaseModel):
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
     diameters: list = Field(default = 
-                            np.linspace(0.15,3,int((3-0.15)/0.075) + 1).tolist(),
+                            np.linspace(0.15,3,int((3-0.15)/0.075) + 1).tolist() \
+                                + [5,7,9,11],
                             min_items = 1,
                             unit = "m",
                             description = """Diameters to consider in 
@@ -207,7 +208,7 @@ class HydraulicDesign(BaseModel):
 		unit = "m/s",
 		description = "Maximum velocity in pipe by pipe method")
     min_depth: float = Field(default = 0.5,
-		le = 1,
+		le = 4,
 		ge = 0,
 		unit = "m",
 		description = "Minimum excavation depth in pipe by pipe method")

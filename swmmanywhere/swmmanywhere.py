@@ -356,6 +356,8 @@ def run(model: Path,
             'flooding': {'class': pyswmm.Nodes, 'id': '_nodeid'},
             'depth': {'class': pyswmm.Nodes, 'id': '_nodeid'},
             'flow': {'class': pyswmm.Links, 'id': '_linkid'},
+            'ups_xsection_area': {'class': pyswmm.Links, 'id': '_linkid'},
+            'ds_xsection_area': {'class': pyswmm.Links, 'id': '_linkid'},
             'runoff': {'class': pyswmm.Subcatchments, 'id': '_subcatchmentid'}
         }
 

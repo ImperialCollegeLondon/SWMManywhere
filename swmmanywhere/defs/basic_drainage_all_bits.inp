@@ -16,11 +16,11 @@ START_TIME           00:00:00
 REPORT_START_DATE    01/01/2000
 REPORT_START_TIME    00:00:00
 END_DATE             01/01/2000
-END_TIME             23:59:00
+END_TIME             03:00:00
 SWEEP_START          1/1
 SWEEP_END            12/31
 DRY_DAYS             0
-REPORT_STEP          00:15:00
+REPORT_STEP          00:05:00
 WET_STEP             00:05:00
 DRY_STEP             01:00:00
 ROUTING_STEP         0:00:05 
