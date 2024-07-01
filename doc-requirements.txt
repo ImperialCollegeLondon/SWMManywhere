@@ -37,7 +37,7 @@ certifi==2024.2.2
     #   pyproj
     #   rasterio
     #   requests
-cftime==1.6.3
+cftime==1.6.4
     # via netcdf4
 charset-normalizer==3.3.2
     # via requests
