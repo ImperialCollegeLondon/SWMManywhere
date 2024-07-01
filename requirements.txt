@@ -114,7 +114,7 @@ numba==0.58.1
     # via
     #   pyflwdir
     #   pysheds
-numpy==1.26.4
+numpy==2.0.0
     # via
     #   cftime
     #   fastparquet
