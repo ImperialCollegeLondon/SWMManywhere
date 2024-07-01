@@ -110,7 +110,7 @@ networkx==3.2.1
     #   osmnx
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-numba==0.58.1
+numba==0.60.0
     # via
     #   pyflwdir
     #   pysheds
