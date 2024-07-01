@@ -261,7 +261,7 @@ networkx==3.2.1
     #   osmnx
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-numba==0.59.1
+numba==0.60.0
     # via pysheds
 numpy==1.26.4
     # via
