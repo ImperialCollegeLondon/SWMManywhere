@@ -30,11 +30,10 @@ def test_getattr():
     addresses.elevation = filepath
     assert addresses.elevation == filepath
 
-    #addresses.bbox = filepath
-    #assert addresses.bbox == filepath
-    #assert addresses.elevation == filepath
-    #assert addresses.precipitation == filepath / 'download/precipitation.parquet'
-
+    addresses.bbox_number = 2
+    assert addresses.bbox == addresses.project / 'bbox_2'
+    assert addresses.download == addresses.project / 'bbox_2' / 'download'
+    assert addresses.model == addresses.project / 'bbox_2' / 'model_1'
 
 def test_to_yaml_normal():
     """Test the to_yaml and from_yaml methods."""
