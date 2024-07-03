@@ -35,6 +35,7 @@ def test_getattr():
     assert addresses.download == addresses.project / 'bbox_2' / 'download'
     assert addresses.model == addresses.project / 'bbox_2' / 'model_1'
 
+
 def test_to_yaml_normal():
     """Test the to_yaml and from_yaml methods."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -59,15 +60,17 @@ def test_to_yaml_normal_with_overrides():
     with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
         addresses = FilePaths(base_dir,
-            'test',
-            1,
-            1,
-            'parquet',
-
-            # File override (to something that exists for validation)
-            elevation = base_dir
-            )
+                                'test',
+                                1,
+                                1,
+                                'parquet')
         
+        # Model number override
+        addresses.model_number = 2
+
+        # File override (to something that exists for validation)
+        addresses.elevation = base_dir / 'test.yaml' 
+
         addresses.to_yaml(base_dir / 'test.yaml')
 
         addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
