@@ -65,10 +65,10 @@ def test_calculate_streetcover(street_network):
     """Test the calculate_streetcover function."""
     G, _ = street_network
     params = parameters.SubcatchmentDerivation()
-    addresses = parameters.FilePaths(base_dir = None,
-                                        project_name = None,
-                                        bbox_number = None,
-                                        model_number = None,
+    addresses = parameters.FilePaths(base_dir = Path(),
+                                        project_name = '',
+                                        bbox_number = '',
+                                        model_number = '',
                                         extension = 'json')
     with tempfile.TemporaryDirectory() as temp_dir:
         addresses.streetcover = Path(temp_dir) / 'streetcover.geojson'
@@ -206,10 +206,10 @@ def test_identify_outlets_no_river(street_network):
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    addresses = parameters.FilePaths(base_dir = None,
-                                    project_name = None,
-                                    bbox_number = None,
-                                    model_number = None)
+    addresses = parameters.FilePaths(base_dir = Path(),
+                                    project_name = '',
+                                    bbox_number = '',
+                                    model_number = '')
     addresses.elevation = elev_fid
     G = gu.set_elevation(G, addresses)
     for ix, (u,v,d) in enumerate(G.edges(data=True)):
@@ -226,10 +226,10 @@ def test_identify_outlets_sg(street_network):
     
     G = gu.assign_id(G)
     G = gu.double_directed(G)
-    addresses = parameters.FilePaths(base_dir = None,
-                                    project_name = None,
-                                    bbox_number = None,
-                                    model_number = None)
+    addresses = parameters.FilePaths(base_dir = Path(),
+                                    project_name = '',
+                                    bbox_number = '',
+                                    model_number = '')
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
     addresses.elevation = elev_fid
     G = gu.set_elevation(G, addresses)
@@ -477,10 +477,10 @@ def test_iterate_graphfcns():
     params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = None,
-                                        project_name = None,
-                                        bbox_number = None,
-                                        model_number = None)
+        addresses = parameters.FilePaths(base_dir = Path(),
+                                        project_name = '',
+                                        bbox_number = '',
+                                        model_number = '')
 
         addresses.model = temp_path
         G = iterate_graphfcns(G, 
@@ -512,10 +512,10 @@ def test_iterate_graphfcns_noedges():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = None,
-                                        project_name = None,
-                                        bbox_number = None,
-                                        model_number = None)
+        addresses = parameters.FilePaths(base_dir = Path(),
+                                        project_name = '',
+                                        bbox_number = '',
+                                        model_number = '')
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
         addresses.model = temp_path
         original_function = gu['remove_non_pipe_allowable_links']

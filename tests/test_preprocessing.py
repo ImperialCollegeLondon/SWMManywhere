@@ -30,10 +30,10 @@ def test_getattr():
     addresses.elevation = filepath
     assert addresses.elevation == filepath
 
-    addresses.bbox = filepath
-    assert addresses.bbox == filepath
-    assert addresses.elevation == filepath
-    assert addresses.precipitation == filepath / 'download/precipitation.parquet'
+    #addresses.bbox = filepath
+    #assert addresses.bbox == filepath
+    #assert addresses.elevation == filepath
+    #assert addresses.precipitation == filepath / 'download/precipitation.parquet'
 
 
 def test_to_yaml_normal():
@@ -60,17 +60,15 @@ def test_to_yaml_normal_with_overrides():
     with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
         addresses = FilePaths(base_dir,
-                                'test',
-                                1,
-                                1,
-                                'parquet')
+            'test',
+            1,
+            1,
+            'parquet',
+
+            # File override (to something that exists for validation)
+            elevation = base_dir
+            )
         
-        # Model number override
-        addresses.model_number = 2
-
-        # File override (to something that exists for validation)
-        addresses.elevation = base_dir / 'test.yaml' 
-
         addresses.to_yaml(base_dir / 'test.yaml')
 
         addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')

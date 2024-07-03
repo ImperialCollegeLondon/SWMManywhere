@@ -230,6 +230,168 @@ class MetricEvaluation(BaseModel):
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
 
+class BasePaths:
+    """Base paths class."""
+    def __init__(self, base_dir: Path):
+        """Initialise the base paths.
+
+        Args:
+            base_dir (Path): The base directory.
+        """
+        self.base_dir = base_dir
+
+    def _path(self, *parts):
+        return self.base_dir.joinpath(*parts)
+
+class ProjectPaths(BasePaths):
+    """Paths for the project folder (within base_dir)."""
+    def __init__(self, 
+                 base_dir: Path, 
+                 project_name: str, 
+                 extension: str = 'parquet'):
+        """Initialise the project paths.
+        
+        Args:
+            base_dir (Path): The base directory.
+            project_name (str): The name of the project.
+            extension (str): The extension for the files.
+        """
+        super().__init__(base_dir)
+        self.project_name = project_name
+        self.extension = extension
+
+    @property
+    def project(self):
+        """The project folder (sits in the base_dir)."""
+        return self._path(self.project_name)
+
+    @property
+    def national(self):
+        """The national folder (for national scale downloads)."""
+        return self._path(self.project_name, "national")
+
+    @property
+    def national_building(self):
+        """The national scale building file."""
+        return self._path(self.project_name, "national", f"building.{self.extension}")
+
+
+class BBoxPaths(BasePaths):
+    """Paths for the bounding box folder (within project folder)."""
+
+    def __init__(self, 
+                 project_paths: ProjectPaths, 
+                 bbox_number: int, 
+                 extension: str = 'parquet'):
+        """Initialise the bounding box paths.
+
+        Args:
+            project_paths (ProjectPaths): The project paths.
+            bbox_number (int): The bounding box number.
+            extension (str): The extension for the files.
+        """
+        super().__init__(project_paths.project)
+        self.bbox_number = bbox_number
+        self.extension = extension
+
+    @property
+    def bbox(self):
+        """The bounding box folder (specific to a bounding box)."""
+        return self._path(f"bbox_{self.bbox_number}")
+
+    @property
+    def download(self):
+        """The download folder (for bbox specific downloaded data)."""
+        return self._path(f"bbox_{self.bbox_number}", "download")
+
+    @property
+    def river(self):
+        """The river graph for the bounding box."""
+        return self._path(f"bbox_{self.bbox_number}", 
+                          "download", 
+                          f"river.{self.extension}")
+
+    @property
+    def street(self):
+        """The street graph for the bounding box."""
+        return self._path(f"bbox_{self.bbox_number}", 
+                          "download", 
+                          f"street.{self.extension}")
+
+    @property
+    def elevation(self):
+        """The elevation file for the bounding box."""
+        return self._path(f"bbox_{self.bbox_number}", "download", "elevation.tif")
+
+    @property
+    def building(self):
+        """The building file for the bounding box (clipped from national scale)."""
+        return self._path(f"bbox_{self.bbox_number}", 
+                          "download", 
+                          f"building.geo{self.extension}")
+
+    @property
+    def precipitation(self):
+        """The precipitation data."""
+        return self._path(f"bbox_{self.bbox_number}", 
+                          "download", 
+                          f"precipitation.{self.extension}")
+
+class ModelPaths(BasePaths):
+    """Paths for the model folder (within bbox folder)."""
+
+    def __init__(self, 
+                 bbox_paths: BBoxPaths, 
+                 model_number: int,
+                 extension: str = 'parquet'):
+        """Initialise the model paths.
+
+        Args:
+            bbox_paths (BBoxPaths): The bounding box paths.
+            model_number (int): The model number.
+            extension (str): The extension for the files.
+        """
+        super().__init__(bbox_paths.bbox)
+        self.model_number = model_number
+        self.extension = extension
+
+    @property
+    def model(self):
+        """The model folder (one specific synthesised model)."""
+        return self._path(f"model_{self.model_number}")
+
+    @property
+    def inp(self):
+        """The synthesised SWMM input file for the model."""
+        return self._path(f"model_{self.model_number}", 
+                          f"model_{self.model_number}.inp")
+
+    @property
+    def subcatchments(self):
+        """The subcatchments file for the model."""
+        return self._path(f"model_{self.model_number}", 
+                          f"subcatchments.geo{self.extension}")
+
+    @property
+    def graph(self):
+        """The graph file for the model."""
+        return self._path(f"model_{self.model_number}", f"graph.{self.extension}")
+
+    @property
+    def nodes(self):
+        """The nodes file for the model."""
+        return self._path(f"model_{self.model_number}", f"nodes.geo{self.extension}")
+
+    @property
+    def edges(self):
+        """The edges file for the model."""
+        return self._path(f"model_{self.model_number}", f"edges.geo{self.extension}")
+
+    @property
+    def streetcover(self):
+        """The street cover file for the model."""
+        return self._path(f"model_{self.model_number}", 
+                          f"streetcover.geo{self.extension}")
 
 def filepaths_from_yaml(f: Path):
     """Get file paths from a yaml file."""
@@ -239,7 +401,7 @@ def filepaths_from_yaml(f: Path):
     return addresses
 
 class FilePaths:
-    """Parameters for file path lookup."""
+    """File paths class (manager for project, bbox and model)."""
 
     def __init__(self, 
                  base_dir: Path, 
@@ -248,119 +410,62 @@ class FilePaths:
                  model_number: int, 
                  extension: str='json',
                  **kwargs):
-        """Initialise the class."""
-        self.base_dir = base_dir
-        self.project_name = project_name
-        self.bbox_number = bbox_number
-        self.model_number = model_number
-        self.extension = extension
+        """Initialise the file paths.
+
+        Args:
+            base_dir (Path): The base directory.
+            project_name (str): The name of the project.
+            bbox_number (int): The bounding box number.
+            model_number (int): The model number.
+            extension (str): The extension for the files.
+            **kwargs: Additional file paths.
+        """
+        self.project_paths = ProjectPaths(base_dir, project_name, extension)
+        self.bbox_paths = BBoxPaths(self.project_paths, bbox_number, extension)
+        self.model_paths = ModelPaths(self.bbox_paths, model_number, extension)
+        self._overrides = {}
         for key, value in kwargs.items():
             value_path = Path(value)
             if not value_path.exists():
                 raise FileNotFoundError(f"Path {value} does not exist.")
-            setattr(self, key, value_path)
+            self._overrides[key] = value_path
+            
+    def __getattr__(self, name: str):
+        """Get an attribute.
+        
+        Check if the attribute is in the overrides, then check the project, bbox 
+        and model paths.
+
+        Args:
+            name (str): The attribute name.
+        """
+        if name in self._overrides:
+            return self._overrides[name]
+        for paths in [self.project_paths, self.bbox_paths, self.model_paths]:
+            if hasattr(paths, name):
+                return getattr(paths, name)
+        raise AttributeError(f"""'{self.__class__.__name__}' object has no 
+                             attribute '{name}'""")
+
+    def __setattr__(self, name, value):
+        """Set an attribute.
+
+        Set the attribute if it is in the project, bbox or model paths, otherwise
+        add it to the overrides.
+
+        Args:
+            name (str): The attribute name.
+            value (Any): The attribute value.
+        """
+        if name in ['project_paths', 'bbox_paths', 'model_paths','_overrides']:
+            super().__setattr__(name, value)
+        else:
+            self._overrides[name] = Path(value)
     
     def to_yaml(self, f: Path):
         """Convert a file to json."""
-        address_dict = self.__dict__
+        address_dict = {}
+        for attr in ['model_paths', 'bbox_paths', 'project_paths']:
+            address_dict.update(getattr(self, attr).__dict__)
+        address_dict.update(self._overrides)
         yaml_dump(address_dict, f.open('w'))
-
-    def __getattr__(self, name):
-        """Fetch the address."""
-        return self._fetch_address(name)
-    
-    def _generate_path(self, *subdirs):
-        """Generate a path."""
-        return self.base_dir.joinpath(*subdirs)
-
-    def _generate_property(self, 
-                           property_name: str, 
-                           location: str):
-        """Generate a property.
-        
-        Check if the property exists in the class, otherwise generate it.
-        
-        Args:
-            property_name (str): Name of the folder/file.
-            location (str): Name of the folder that the property_name exists 
-                in.
-            
-        Returns:
-            Path: Path to the property.
-        """
-        if property_name in self.__dict__.keys():
-             return self.__dict__[property_name]
-        
-        return self._generate_path(self.project_name, 
-                                    getattr(self, location),
-                                    property_name)
-
-    def _generate_project(self):
-        return self._generate_path(self.project_name)
-
-    def _generate_national(self):
-        return self._generate_property('national', 'project')
-
-    def _generate_national_building(self):
-        return self._generate_property('building.parquet',
-                                        'national')
-    def _generate_bbox(self):
-        return self._generate_property(f'bbox_{self.bbox_number}', 
-                                        'project')
-    def _generate_model(self):
-        return self._generate_property(f'model_{self.model_number}', 
-                                        'bbox')
-    def _generate_inp(self):
-        return self._generate_property(f'model_{self.model_number}.inp',
-                                        'model')
-    def _generate_subcatchments(self):
-        return self._generate_property(f'subcatchments.geo{self.extension}', 
-                                        'model')
-    def _generate_graph(self):
-        return self._generate_property(f'graph.{self.extension}', 
-                                        'model')
-    def _generate_nodes(self):
-        return self._generate_property(f'nodes.geo{self.extension}', 
-                                        'model')
-    def _generate_edges(self):
-        return self._generate_property(f'edges.geo{self.extension}', 
-                                        'model')
-    def _generate_download(self):
-        return self._generate_property('download', 
-                                        'bbox')
-    def _generate_river(self):
-        return self._generate_property('river.json', 
-                                        'download')
-    def _generate_street(self):
-        return self._generate_property('street.json', 
-                                        'download')
-    def _generate_elevation(self):
-        return self._generate_property('elevation.tif', 'download')
-    def _generate_building(self):
-        return self._generate_property(f'building.geo{self.extension}', 
-                                        'download')
-    def _generate_streetcover(self):
-        return self._generate_property(f'streetcover.geo{self.extension}', 
-                                        'model')
-    def _generate_precipitation(self):
-        return self._generate_property(f'precipitation.{self.extension}', 
-                                        'download')
-
-    def _fetch_address(self, name):
-        """Fetch the address.
-        
-        Generate a path to the folder/file described by name. If the 
-        folder/file has already been set, then it will be returned. Otherwise
-        it will be generated according to the default structure defined below.
-
-        Args:
-            name (str): Name of the folder/file.
-            
-        Returns:
-            Path: Path to the folder/file.
-        """
-        try:
-            return getattr(self, f"_generate_{name}")()
-        except AttributeError:
-            raise AttributeError(
-                f"Generate path for '{name}' failed. Attribute not found.")
