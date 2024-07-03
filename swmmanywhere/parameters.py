@@ -430,6 +430,14 @@ class FilePaths:
                 raise FileNotFoundError(f"Path {value} does not exist.")
             self._overrides[key] = value_path
             
+    def to_yaml(self, f: Path):
+        """Convert a file to json."""
+        address_dict = {}
+        for attr in ['model_paths', 'bbox_paths', 'project_paths']:
+            address_dict.update(getattr(self, attr).__dict__)
+        address_dict.update(self._overrides)
+        yaml_dump(address_dict, f.open('w'))
+    
     def __getattr__(self, name: str):
         """Get an attribute.
         
@@ -452,7 +460,7 @@ class FilePaths:
 
         Set the attribute. Updating the base attributes, otherwise store in
         the overrides.
-        
+
         Args:
             name (str): The attribute name.
             value (Any): The attribute value.
@@ -466,11 +474,3 @@ class FilePaths:
             self.model_paths.base_dir = self.bbox_paths.bbox
         else:
             self._overrides[name] = Path(value)
-    
-    def to_yaml(self, f: Path):
-        """Convert a file to json."""
-        address_dict = {}
-        for attr in ['model_paths', 'bbox_paths', 'project_paths']:
-            address_dict.update(getattr(self, attr).__dict__)
-        address_dict.update(self._overrides)
-        yaml_dump(address_dict, f.open('w'))
