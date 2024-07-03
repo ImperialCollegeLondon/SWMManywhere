@@ -450,15 +450,20 @@ class FilePaths:
     def __setattr__(self, name, value):
         """Set an attribute.
 
-        Set the attribute if it is in the project, bbox or model paths, otherwise
-        add it to the overrides.
-
+        Set the attribute. Updating the base attributes, otherwise store in
+        the overrides.
+        
         Args:
             name (str): The attribute name.
             value (Any): The attribute value.
         """
         if name in ['project_paths', 'bbox_paths', 'model_paths','_overrides']:
             super().__setattr__(name, value)
+        elif name == 'model_number':
+            self.model_paths.model_number = value
+        elif name == 'bbox_number':
+            self.bbox_paths.bbox_number = value
+            self.model_paths.base_dir = self.bbox_paths.bbox
         else:
             self._overrides[name] = Path(value)
     
