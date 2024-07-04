@@ -268,12 +268,12 @@ class ProjectPaths(BasePaths):
     @property
     def national(self):
         """The national folder (for national scale downloads)."""
-        return self._path(self.project_name, "national")
+        return self.project / "national"
 
     @property
     def national_building(self):
         """The national scale building file."""
-        return self._path(self.project_name, "national", f"building.{self.extension}")
+        return self.national / f"building.{self.extension}"
 
 
 class BBoxPaths(BasePaths):
@@ -302,40 +302,32 @@ class BBoxPaths(BasePaths):
     @property
     def download(self):
         """The download folder (for bbox specific downloaded data)."""
-        return self._path(f"bbox_{self.bbox_number}", "download")
+        return self.bbox / "download"
 
     @property
     def river(self):
         """The river graph for the bounding box."""
-        return self._path(f"bbox_{self.bbox_number}", 
-                          "download", 
-                          f"river.{self.extension}")
+        return self.download / f"river.{self.extension}"
 
     @property
     def street(self):
         """The street graph for the bounding box."""
-        return self._path(f"bbox_{self.bbox_number}", 
-                          "download", 
-                          f"street.{self.extension}")
+        return self.download / f"street.{self.extension}"
 
     @property
     def elevation(self):
         """The elevation file for the bounding box."""
-        return self._path(f"bbox_{self.bbox_number}", "download", "elevation.tif")
+        return self.download / "elevation.tif"
 
     @property
     def building(self):
         """The building file for the bounding box (clipped from national scale)."""
-        return self._path(f"bbox_{self.bbox_number}", 
-                          "download", 
-                          f"building.geo{self.extension}")
+        return self.download / f"building.geo{self.extension}"
 
     @property
     def precipitation(self):
         """The precipitation data."""
-        return self._path(f"bbox_{self.bbox_number}", 
-                          "download", 
-                          f"precipitation.{self.extension}")
+        return self.download / f"precipitation.{self.extension}"
 
 class ModelPaths(BasePaths):
     """Paths for the model folder (within bbox folder)."""
@@ -363,35 +355,32 @@ class ModelPaths(BasePaths):
     @property
     def inp(self):
         """The synthesised SWMM input file for the model."""
-        return self._path(f"model_{self.model_number}", 
-                          f"model_{self.model_number}.inp")
+        return self.model / f"model_{self.model_number}.inp"
 
     @property
     def subcatchments(self):
         """The subcatchments file for the model."""
-        return self._path(f"model_{self.model_number}", 
-                          f"subcatchments.geo{self.extension}")
+        return self.model / f"subcatchments.geo{self.extension}"
 
     @property
     def graph(self):
         """The graph file for the model."""
-        return self._path(f"model_{self.model_number}", f"graph.{self.extension}")
+        return self.model / f"graph.{self.extension}"
 
     @property
     def nodes(self):
         """The nodes file for the model."""
-        return self._path(f"model_{self.model_number}", f"nodes.geo{self.extension}")
+        return self.model / f"nodes.geo{self.extension}"
 
     @property
     def edges(self):
         """The edges file for the model."""
-        return self._path(f"model_{self.model_number}", f"edges.geo{self.extension}")
+        return self.model / f"edges.geo{self.extension}"
 
     @property
     def streetcover(self):
         """The street cover file for the model."""
-        return self._path(f"model_{self.model_number}", 
-                          f"streetcover.geo{self.extension}")
+        return self.model / f"streetcover.geo{self.extension}"
 
 def filepaths_from_yaml(f: Path):
     """Get file paths from a yaml file."""
