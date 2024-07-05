@@ -3,27 +3,12 @@
 SWMManywhere is a Python tool to synthesise Urban Drainage Models (UDM) anywhere in the world.
 It handles everything from data acquisition to running the UDM in the [SWMM](https://www.epa.gov/sites/default/files/2019-02/documents/epaswmm5_1_manual_master_8-2-15.pdf) software.
 
-## Configuration
-
-SWMManywhere is primarily designed to be used via a Command Line Interface (CLI).
-The user provides a `config` file address that specifies a variety of options to customise the synthesis process.
-However, the minimum requirements for a user to provide are simply:
-
-- a base directory,
-- a project name,
-- a bounding box that specifies the latitude and longitude (EPSG:4326) of the bottom left and upper right corners of the region within which to create the UDM.
-
-We can define a simple configuration `.yml` file here:
-
-```yml
-base_dir: /path/to/base/directory
-project: my_first_swmm
-bbox: [1.52740,42.50524,1.54273,42.51259]
-```
-
 ## Run SWMManywhere
 
-The basic command is:
+The intended use of SWMManywhere is via a Command Line Interface (CLI) that receives
+the path to a [configuration file](config_guide.md). You can copy the
+[minimum viable configuration file](config_guide.md/#minimum-viable-configuration)
+and run SWMManywhere with the command below:
 
 ```sh
 python -m swmmanywhere --config_path=/path/to/file.yml
