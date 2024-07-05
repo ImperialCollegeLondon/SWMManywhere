@@ -229,21 +229,8 @@ class MetricEvaluation(BaseModel):
                         ge = 10,
                         unit = "m",
                         description = "Scale of the grid for metric evaluation")
-
-class BasePaths:
-    """Base paths class."""
-    def __init__(self, base_dir: Path):
-        """Initialise the base paths.
-
-        Args:
-            base_dir (Path): The base directory.
-        """
-        self.base_dir = base_dir
-
-    def _path(self, *parts):
-        return self.base_dir.joinpath(*parts)
-
-class ProjectPaths(BasePaths):
+    
+class ProjectPaths:
     """Paths for the project folder (within base_dir)."""
     def __init__(self, 
                  base_dir: Path, 
@@ -256,14 +243,14 @@ class ProjectPaths(BasePaths):
             project_name (str): The name of the project.
             extension (str): The extension for the files.
         """
-        super().__init__(base_dir)
         self.project_name = project_name
         self.extension = extension
+        self.base_dir = base_dir
 
     @property
     def project(self):
         """The project folder (sits in the base_dir)."""
-        return self._path(self.project_name)
+        return self.base_dir / self.project_name
 
     @property
     def national(self):
@@ -276,7 +263,7 @@ class ProjectPaths(BasePaths):
         return self.national / f"building.{self.extension}"
 
 
-class BBoxPaths(BasePaths):
+class BBoxPaths:
     """Paths for the bounding box folder (within project folder)."""
 
     def __init__(self, 
@@ -290,14 +277,14 @@ class BBoxPaths(BasePaths):
             bbox_number (int): The bounding box number.
             extension (str): The extension for the files.
         """
-        super().__init__(project_paths.project)
+        self.base_dir = project_paths.project
         self.bbox_number = bbox_number
         self.extension = extension
 
     @property
     def bbox(self):
         """The bounding box folder (specific to a bounding box)."""
-        return self._path(f"bbox_{self.bbox_number}")
+        return self.base_dir / f"bbox_{self.bbox_number}"
 
     @property
     def download(self):
@@ -329,7 +316,7 @@ class BBoxPaths(BasePaths):
         """The precipitation data."""
         return self.download / f"precipitation.{self.extension}"
 
-class ModelPaths(BasePaths):
+class ModelPaths:
     """Paths for the model folder (within bbox folder)."""
 
     def __init__(self, 
@@ -343,14 +330,14 @@ class ModelPaths(BasePaths):
             model_number (int): The model number.
             extension (str): The extension for the files.
         """
-        super().__init__(bbox_paths.bbox)
+        self.base_dir = bbox_paths.bbox
         self.model_number = model_number
         self.extension = extension
 
     @property
     def model(self):
         """The model folder (one specific synthesised model)."""
-        return self._path(f"model_{self.model_number}")
+        return self.base_dir / f"model_{self.model_number}"
 
     @property
     def inp(self):
