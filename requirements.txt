@@ -96,7 +96,7 @@ julian==0.14
     # via pyswmm
 lazy-loader==0.4
     # via scikit-image
-llvmlite==0.41.1
+llvmlite>=0.41.1
     # via numba
 loguru==0.7.2
     # via swmmanywhere (pyproject.toml)
