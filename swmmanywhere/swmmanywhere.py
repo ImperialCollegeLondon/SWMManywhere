@@ -135,7 +135,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     logger.info("Writing synthetic results.")
     if verbose():
         synthetic_results.to_parquet(addresses.model_paths.model /\
-                                      f'results.parquet')
+                                      'results.parquet')
 
     # Get the real results
     if config.get('real', {}).get('results',None):
@@ -147,7 +147,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                            **config['run_settings'])
         if verbose():
             real_results.to_parquet(config['real']['inp'].parent /\
-                                     f'real_results.parquet')
+                                     'real_results.parquet')
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
         return addresses.model_paths.inp, None
