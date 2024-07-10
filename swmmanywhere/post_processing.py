@@ -37,7 +37,11 @@ def synthetic_write(addresses: FilePaths):
     # revisit once overall software architecture is more clear.
     nodes = gpd.read_file(addresses.nodes)
     edges = gpd.read_file(addresses.edges)
-    subs = gpd.read_file(addresses.subcatchments)
+
+    if addresses.subcatchments.suffix == '.geoparquet':
+        subs = gpd.read_parquet(addresses.subcatchments)
+    else:
+        subs = gpd.read_file(addresses.subcatchments)
     subs = subs.loc[subs.id.isin(nodes.id)]
 
     # Extract SWMM relevant data

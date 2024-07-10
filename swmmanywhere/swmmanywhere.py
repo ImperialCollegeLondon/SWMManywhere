@@ -52,11 +52,12 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     """
     # Create the project structure
     logger.info("Creating project structure.")
-    addresses = filepaths.create_project_structure(config['bbox'],
-                                config['project'],
-                                config['base_dir'],
-                                config.get('model_number',None)
-                                )
+    addresses = filepaths.FilePaths(config['base_dir'],
+                                    config['project'],
+                                    config['bbox'],
+                                    config.get('bbox_number',None),
+                                    config.get('model_number',None)
+                                    )
     
     logger.info(f"Project structure created at {addresses.base_dir}")
     logger.info(f"Project name: {config['project']}")
@@ -156,11 +157,20 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Iterate the metrics
     logger.info("Iterating metrics.")
+    if addresses.subcatchments.suffix == '.geoparquet':
+        subs = gpd.read_parquet(addresses.subcatchments)
+    else:
+        subs = gpd.read_file(addresses.subcatchments)
+
+    if config['real']['subcatchments'].suffix == '.geoparquet':
+        real_subs = gpd.read_parquet(config['real']['subcatchments'])
+    else:
+        real_subs = gpd.read_file(config['real']['subcatchments'])
     metrics = iterate_metrics(synthetic_results,
-                              gpd.read_file(addresses.subcatchments),
+                              subs,
                               G,
                               real_results,
-                              gpd.read_file(config['real']['subcatchments']),
+                              real_subs,
                               load_graph(config['real']['graph']),
                               config['metric_list'],
                               params['metric_evaluation'])

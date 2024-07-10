@@ -827,7 +827,10 @@ class calculate_contributing_area(BaseGraphFunction,
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs
-        subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
+        if addresses.subcatchments.suffix in ('.geoparquet','.parquet'):
+            subs_rc.to_parquet(addresses.subcatchments)
+        else:
+            subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()

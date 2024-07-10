@@ -148,6 +148,9 @@ class ProjectPaths:
         self.extension = extension
         self.base_dir = base_dir
 
+        self.project.mkdir(exist_ok=True)
+        self.national.mkdir(exist_ok=True)
+
     @property
     def project(self):
         """The project folder (sits in the base_dir)."""
@@ -181,6 +184,9 @@ class BBoxPaths:
         self.base_dir = project_paths.project
         self.bbox_number = bbox_number
         self.extension = extension
+
+        self.bbox.mkdir(exist_ok=True)
+        self.download.mkdir(exist_ok=True)
 
     @property
     def bbox(self):
@@ -235,6 +241,8 @@ class ModelPaths:
         self.model_number = model_number
         self.extension = extension
 
+        self.model.mkdir(exist_ok=True)
+
     @property
     def model(self):
         """The model folder (one specific synthesised model)."""
@@ -280,12 +288,13 @@ def filepaths_from_yaml(f: Path):
 class FilePaths:
     """File paths class (manager for project, bbox and model)."""
 
-    def __init__(self, 
+    def __init__(self,
                  base_dir: Path, 
-                 project_name: str, 
-                 bbox_number: int, 
-                 model_number: int, 
-                 extension: str='json',
+                 project_name: str,
+                 bbox_bounds: tuple[float, float, float, float],
+                 bbox_number: int | None, 
+                 model_number: int | None, 
+                 extension: str='parquet',
                  **kwargs):
         """Initialise the file paths.
 
@@ -297,9 +306,23 @@ class FilePaths:
             extension (str): The extension for the files.
             **kwargs: Additional file paths.
         """
+        
         self.project_paths = ProjectPaths(base_dir, project_name, extension)
+
+        if not bbox_number:
+            bbox_number = get_next_bbox_number(bbox_bounds, 
+                                                self.project_paths.project)
         self.bbox_paths = BBoxPaths(self.project_paths, bbox_number, extension)
+        bounding_box_info = {"bbox": bbox_bounds, 
+                             "project": self.project_paths.project_name}
+        if not (self.bbox_paths.bbox / 'bounding_box_info.json').exists():
+            with open(self.bbox_paths.bbox / 'bounding_box_info.json', 'w') as info_file:
+                json.dump(bounding_box_info, info_file, indent=2)
+                
+        if not model_number:
+            model_number = next_directory('model', self.bbox_paths.bbox)
         self.model_paths = ModelPaths(self.bbox_paths, model_number, extension)
+
         self._overrides = {}
         for key, value in kwargs.items():
             value_path = Path(value)
