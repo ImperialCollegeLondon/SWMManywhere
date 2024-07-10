@@ -4,8 +4,8 @@ The `config` file is the intended way for users to interact with SWMManywhere,
 enabling a variety of features to customise the synthesis process, which we will
 describe in this guide. You can view an example configuration file that contains
 entries for all settable attributes at
-[`demo_config.yml`](../reference-defs/#demo-configuration-file) and the schema
-that must be followed at [`schema.yml`](../reference-defs/#schema-for-configuration-file).
+[`demo_config.yml`](reference-defs.md#demo-configuration-file) and the schema
+that must be followed at [`schema.yml`](reference-defs.md#schema-for-configuration-file).
 
 ## Minimum viable configuration
 
@@ -33,11 +33,11 @@ in this section.
 ### Changing parameters
 
 Changing parameter values is by far the easiest way to change your derived
-network. You can view available [parameters](../reference-parameters) and determine
+network. You can view available [parameters](reference-parameters.md and determine
 which ones may help to fix what you are unhappy with, for example, if you feel that
 there are too many manholes, then you may want to reduce `max_street_length` (see
 source code of
-[`SubcatchmentDerivation`](../reference-parameters/#swmmanywhere.parameters.SubcatchmentDerivation)).
+[`SubcatchmentDerivation`](reference-parameters.md#swmmanywhere.parameters.SubcatchmentDerivation)).
 
 To change parameters via the `config` file, we can use the `parameter_overrides`
 field:
@@ -59,7 +59,7 @@ testing out new behaviours then you may need to...
 Graph functions are the way that operations are applied to create a synthetic UDM
 in SWMManywhere. You can read more about them [here], but a primary feature of
 the `config` file is to provide a `graphfcn_list`. By default `graphfcn_list` is
-selected from [`demo_config.yml`](../reference-defs/#demo-configuration-file).
+selected from [`demo_config.yml`](reference-defs.md#demo-configuration-file).
 Although we believe that the default list makes sense, you may instead provide
 your own `graphfcn_list`, this is essential if you plan to [add a `graphfcn`].
 Sometimes, it doesn't matter how clever your functionality is, because your
@@ -75,7 +75,7 @@ the quality of OSM is questionable, or perhaps you have knowledge that some pipe
 exist in unusual locations, then you can provide the address to a custom graph
 with the `starting_graph` entry in the `config` file. Note, for information on the
 format that this graph should take, see
-[`save_graph`](../reference-graph-utilities/#swmmanywhere.graph_utilities.save_graph).
+[`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph).
 If the default workflow is missing something that isn't to do with parameters,
 functionality, or the starting graph, then it is possible you will require additional
 data sources beyond those that are provided by default...
@@ -108,7 +108,7 @@ if you are using SWMManywhere you are presumably aware that describing any UDM
 as real is tenuous). To enable SWMManywhere to compare against a real model, we
 use the `real` entry of the `config` file. The path to a `subcatchments` geometry
 file, and a `graph` file (see
-[`save_graph`](../reference-graph-utilities/#swmmanywhere.graph_utilities.save_graph)
+[`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph)
 for format) must be provided - however this is temporary and will be unnecessary
 following the fixing of
 [this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
@@ -126,7 +126,7 @@ the synthetic model...
 The SWMManywhere package comes with a wide variety of performance
 metrics that can be used to make this comparison, explained [here]. In the `config`
 file you can specify which metrics should be calculated under the `metric_list`
-entry. The [`demo_config.yml`](../reference-defs/#demo-configuration-file)
+entry. The [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 `metric_list` contains all metrics that come with SWMManywhere, although you may
 want to choose a subselection of these if you have a very large network (say >5000
 nodes) because some of the graph-based metrics can be slow to calculate (anything
