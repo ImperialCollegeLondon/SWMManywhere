@@ -10,7 +10,7 @@ import pyswmm
 from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
-from swmmanywhere import parameters, preprocessing
+from swmmanywhere import parameters, preprocessing, filepaths
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
@@ -52,7 +52,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     """
     # Create the project structure
     logger.info("Creating project structure.")
-    addresses = preprocessing.create_project_structure(config['bbox'],
+    addresses = filepaths.create_project_structure(config['bbox'],
                                 config['project'],
                                 config['base_dir'],
                                 config.get('model_number',None)

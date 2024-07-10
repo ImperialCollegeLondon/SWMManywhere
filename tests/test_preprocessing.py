@@ -4,7 +4,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from swmmanywhere.parameters import FilePaths, filepaths_from_yaml
+from swmmanywhere.filepaths import FilePaths, filepaths_from_yaml
 
 
 def test_getattr():

@@ -16,6 +16,7 @@ import pytest
 from shapely import geometry as sgeom
 
 from swmmanywhere import parameters
+from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import (
     _filter_streets,
     iterate_graphfcns,
@@ -65,7 +66,7 @@ def test_calculate_streetcover(street_network):
     """Test the calculate_streetcover function."""
     G, _ = street_network
     params = parameters.SubcatchmentDerivation()
-    addresses = parameters.FilePaths(base_dir = Path(),
+    addresses = FilePaths(base_dir = Path(),
                                         project_name = '',
                                         bbox_number = '',
                                         model_number = '',
@@ -93,7 +94,7 @@ def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = temp_path, 
+        addresses = FilePaths(base_dir = temp_path, 
                             project_name = 'test', 
                             bbox_number = 1,
                             extension = 'json',
@@ -129,7 +130,7 @@ def test_set_elevation_and_slope(street_network):
     G, _ = street_network
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = temp_path, 
+        addresses = FilePaths(base_dir = temp_path, 
                                 project_name = 'test', 
                                 bbox_number = 1,
                                 extension = 'json',
@@ -206,7 +207,7 @@ def test_identify_outlets_no_river(street_network):
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    addresses = parameters.FilePaths(base_dir = Path(),
+    addresses = FilePaths(base_dir = Path(),
                                     project_name = '',
                                     bbox_number = '',
                                     model_number = '')
@@ -226,7 +227,7 @@ def test_identify_outlets_sg(street_network):
     
     G = gu.assign_id(G)
     G = gu.double_directed(G)
-    addresses = parameters.FilePaths(base_dir = Path(),
+    addresses = FilePaths(base_dir = Path(),
                                     project_name = '',
                                     bbox_number = '',
                                     model_number = '')
@@ -477,7 +478,7 @@ def test_iterate_graphfcns():
     params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = Path(),
+        addresses = FilePaths(base_dir = Path(),
                                         project_name = '',
                                         bbox_number = '',
                                         model_number = '')
@@ -512,7 +513,7 @@ def test_iterate_graphfcns_noedges():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = Path(),
+        addresses = FilePaths(base_dir = Path(),
                                         project_name = '',
                                         bbox_number = '',
                                         model_number = '')
@@ -568,7 +569,7 @@ def test_clip_to_catchments(street_network):
         
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
         temp_path = Path(temp_dir)
-        addresses = parameters.FilePaths(base_dir = temp_path,
+        addresses = FilePaths(base_dir = temp_path,
                                         project_name = 'test',
                                         bbox_number = 0,
                                         model_number = 0)

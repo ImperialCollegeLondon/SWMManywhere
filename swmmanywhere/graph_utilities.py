@@ -24,6 +24,7 @@ from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters, shortest_path_utils
+from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger, verbose
 
 
@@ -162,7 +163,7 @@ def get_osmid_id(data: dict) -> Hashable:
 def iterate_graphfcns(G: nx.Graph, 
                       graphfcn_list: list[str], 
                       params: dict,
-                      addresses: parameters.FilePaths) -> nx.Graph:
+                      addresses: FilePaths) -> nx.Graph:
     """Iterate a list of graph functions over a graph.
 
     Args:
@@ -170,7 +171,7 @@ def iterate_graphfcns(G: nx.Graph,
         graphfcn_list (list[str]): A list of graph functions to iterate.
         params (dict): A dictionary of parameters to pass to the graph
             functions.
-        addresses (parameters.FilePaths): A FilePaths parameter object
+        addresses (FilePaths): A FilePaths parameter object
 
     Returns:
         nx.Graph: The graph after the graph functions have been applied.
@@ -319,7 +320,7 @@ class calculate_streetcover(BaseGraphFunction,
     def __call__(self,
                  G: nx.Graph, 
                 subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                addresses: parameters.FilePaths,
+                addresses: FilePaths,
                 **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
@@ -331,7 +332,7 @@ class calculate_streetcover(BaseGraphFunction,
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.FilePaths): A FilePaths parameter object
+            addresses (FilePaths): A FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -603,7 +604,7 @@ class clip_to_catchments(BaseGraphFunction,
     """clip_to_catchments class."""
     def __call__(self, 
                  G: nx.Graph,
-                addresses: parameters.FilePaths,
+                addresses: FilePaths,
                 subcatchment_derivation: parameters.SubcatchmentDerivation,
                 **kwargs) -> nx.Graph:
         """Clip the graph to the subcatchments.
@@ -629,7 +630,7 @@ class clip_to_catchments(BaseGraphFunction,
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.FilePaths): A FilePaths parameter object
+            addresses (FilePaths): A FilePaths parameter object
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
             **kwargs: Additional keyword arguments are ignored.
@@ -772,7 +773,7 @@ class calculate_contributing_area(BaseGraphFunction,
     
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
-                         addresses: parameters.FilePaths,
+                         addresses: FilePaths,
                          **kwargs) -> nx.Graph:
         """Calculate the contributing area for each edge.
         
@@ -789,7 +790,7 @@ class calculate_contributing_area(BaseGraphFunction,
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.FilePaths): An FilePaths parameter object
+            addresses (FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -850,7 +851,7 @@ class set_elevation(BaseGraphFunction,
     """set_elevation class."""
     
     def __call__(self, G: nx.Graph, 
-                  addresses: parameters.FilePaths,
+                  addresses: FilePaths,
                   **kwargs) -> nx.Graph:
         """Set the elevation for each node.
 
@@ -859,7 +860,7 @@ class set_elevation(BaseGraphFunction,
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.FilePaths): An FilePaths parameter object
+            addresses (FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:

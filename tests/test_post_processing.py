@@ -11,8 +11,8 @@ import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
-from swmmanywhere import parameters
 from swmmanywhere import post_processing as stt
+from swmmanywhere.filepaths import FilePaths
 
 fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
           'basic_drainage_all_bits.inp'
@@ -134,7 +134,7 @@ def test_synthetic_write():
     data_dict = generate_data_dict()    
     with tempfile.TemporaryDirectory() as model_dir:
         model_dir = Path(model_dir)
-        addresses = parameters.FilePaths(base_dir = model_dir,
+        addresses = FilePaths(base_dir = model_dir,
                                         project_name = 'test',
                                         bbox_number = 1,
                                         extension = 'json',
