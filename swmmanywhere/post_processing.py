@@ -35,13 +35,13 @@ def synthetic_write(addresses: FilePaths):
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(addresses.nodes)
-    edges = gpd.read_file(addresses.edges)
+    nodes = gpd.read_file(addresses.model_paths.nodes)
+    edges = gpd.read_file(addresses.model_paths.edges)
 
-    if addresses.subcatchments.suffix == '.geoparquet':
-        subs = gpd.read_parquet(addresses.subcatchments)
+    if addresses.model_paths.subcatchments.suffix == '.geoparquet':
+        subs = gpd.read_parquet(addresses.model_paths.subcatchments)
     else:
-        subs = gpd.read_file(addresses.subcatchments)
+        subs = gpd.read_file(addresses.model_paths.subcatchments)
     subs = subs.loc[subs.id.isin(nodes.id)]
 
     # Extract SWMM relevant data
@@ -105,7 +105,7 @@ def synthetic_write(addresses: FilePaths):
     event = {'name' : '1',
              'unit' : 'mm',
              'interval' : '00:05', # hh:mm
-             'fid' : str(addresses.precipitation)
+             'fid' : str(addresses.bbox_paths.precipitation)
                                  }
 
     # Locate raingage(s) on the map
@@ -127,7 +127,7 @@ def synthetic_write(addresses: FilePaths):
                                     symbol)
     
     # Write new input file
-    data_dict_to_inp(data_dict, existing_input_file, addresses.inp)
+    data_dict_to_inp(data_dict, existing_input_file, addresses.model_paths.inp)
 
 
 def overwrite_section(data: np.ndarray,

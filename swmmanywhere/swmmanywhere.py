@@ -56,22 +56,19 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                                     config['project'],
                                     config['bbox'],
                                     config.get('bbox_number',None),
-                                    config.get('model_number',None)
+                                    config.get('model_number',None),
+                                    **config.get('address_overrides',{}),
                                     )
     
-    logger.info(f"Project structure created at {addresses.base_dir}")
+    logger.info(f"Project structure created at {addresses.project_paths.base_dir}")
     logger.info(f"Project name: {config['project']}")
-    logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_number}")
-    logger.info(f"Model number: {addresses.model_number}")
-
-    for key, val in config.get('address_overrides', {}).items():
-        logger.info(f"Setting {key} to {val}")
-        setattr(addresses, key, val)
+    logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_paths.bbox_number}")
+    logger.info(f"Model number: {addresses.model_paths.model_number}")
     
     # Check for defaults
     config = _check_defaults(config)
-    if not addresses.precipitation.exists():
-        addresses.precipitation = Path(__file__).parent / 'defs' / 'storm.dat'
+    if not addresses.bbox_paths.precipitation.exists():
+        addresses.bbox_paths.precipitation = Path(__file__).parent / 'defs' / 'storm.dat'
 
     # Load the parameters and perform any manual overrides
     logger.info("Loading and setting parameters.")
@@ -83,7 +80,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
             
     # Save config file
     if verbose():
-        save_config(config, addresses.model / 'config.yml')
+        save_config(config, addresses.model_paths.model / 'config.yml')
 
     # Run downloads
     logger.info("Running downloads.")
@@ -117,28 +114,28 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     # Save the final graph
     logger.info("Saving final graph and writing inp file.")
     go.graph_to_geojson(G, 
-                        addresses.nodes,
-                        addresses.edges,
+                        addresses.model_paths.nodes,
+                        addresses.model_paths.edges,
                         G.graph['crs']
                         )
-    save_graph(G, addresses.graph)
+    save_graph(G, addresses.model_paths.graph)
 
     # Check any edges
     if len(G.edges) == 0:
         logger.warning("No edges in graph, returning graph file.")
-        return addresses.graph, None
+        return addresses.model_paths.graph, None
     
     # Write to .inp
     synthetic_write(addresses)
 
     # Run the model
     logger.info("Running the synthetic model.")
-    synthetic_results = run(addresses.inp, 
+    synthetic_results = run(addresses.model_paths.inp, 
                             **config['run_settings'])
     logger.info("Writing synthetic results.")
     if verbose():
-        synthetic_results.to_parquet(addresses.model /\
-                                      f'results.{addresses.extension}')
+        synthetic_results.to_parquet(addresses.model_paths.model /\
+                                      f'results.parquet')
 
     # Get the real results
     if config.get('real', {}).get('results',None):
@@ -150,17 +147,17 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                            **config['run_settings'])
         if verbose():
             real_results.to_parquet(config['real']['inp'].parent /\
-                                     f'real_results.{addresses.extension}')
+                                     f'real_results.parquet')
     else:
         logger.info("No real network provided, returning SWMM .inp file.")
-        return addresses.inp, None
+        return addresses.model_paths.inp, None
 
     # Iterate the metrics
     logger.info("Iterating metrics.")
-    if addresses.subcatchments.suffix == '.geoparquet':
-        subs = gpd.read_parquet(addresses.subcatchments)
+    if addresses.model_paths.subcatchments.suffix == '.geoparquet':
+        subs = gpd.read_parquet(addresses.model_paths.subcatchments)
     else:
-        subs = gpd.read_file(addresses.subcatchments)
+        subs = gpd.read_file(addresses.model_paths.subcatchments)
 
     if config['real']['subcatchments'].suffix == '.geoparquet':
         real_subs = gpd.read_parquet(config['real']['subcatchments'])
@@ -175,7 +172,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
                               config['metric_list'],
                               params['metric_evaluation'])
     logger.info("Metrics complete")
-    return addresses.inp, metrics
+    return addresses.model_paths.inp, metrics
 
 def check_top_level_paths(config: dict):
     """Check the top level paths (`base_dir`) in the config.
