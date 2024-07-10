@@ -19,6 +19,7 @@ from swmmanywhere import prepare_data
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
 
+
 def write_df(df: pd.DataFrame | gpd.GeoDataFrame, 
              fid: Path):
     """Write a DataFrame to a file.

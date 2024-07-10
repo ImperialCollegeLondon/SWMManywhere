@@ -10,7 +10,7 @@ import pyswmm
 from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
-from swmmanywhere import parameters, preprocessing, filepaths
+from swmmanywhere import filepaths, parameters, preprocessing
 from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics

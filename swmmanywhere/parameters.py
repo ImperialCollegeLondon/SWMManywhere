@@ -4,6 +4,7 @@ from __future__ import annotations
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
+
 def get_full_parameters():
     """Get the full set of parameters."""
     return {

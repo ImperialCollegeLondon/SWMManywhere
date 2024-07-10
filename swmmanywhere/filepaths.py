@@ -1,9 +1,12 @@
 """File paths module for SWMMAnywhere."""
+from __future__ import annotations
+
 import json
 from collections import Counter
 from pathlib import Path
 
 from swmmanywhere.utilities import yaml_dump, yaml_load
+
 
 def next_directory(keyword: str, directory: Path) -> int:
     """Find the next directory number.

@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from swmmanywhere.logging import logger
 from swmmanywhere.filepaths import FilePaths
+from swmmanywhere.logging import logger
 
 
 def synthetic_write(addresses: FilePaths):
