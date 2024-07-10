@@ -163,7 +163,7 @@ latexcodec==3.0.0
     # via pybtex
 lazy-loader==0.3
     # via scikit-image
-llvmlite==0.42.0
+llvmlite>=0.42.0
     # via numba
 loguru==0.7.2
     # via swmmanywhere (pyproject.toml)
@@ -263,7 +263,7 @@ networkx==3.2.1
     #   swmmanywhere (pyproject.toml)
 numba==0.60.0
     # via pysheds
-numpy==2.0.0
+numpy<2.0.0
     # via
     #   cftime
     #   contourpy
