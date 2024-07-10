@@ -5,6 +5,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_dump, yaml_load
 
 
@@ -317,7 +318,7 @@ class FilePaths:
         for p, value in kwargs.items():
             value = Path(value)
             if not value.exists():
-                raise ValueError(f"Override path for {p}, {value} does not exist.")
+                logger.warning(f"Override path for {p}, {value} does not yet exist.")
             kwargs[p] = value
 
         # Create project paths and apply overrides

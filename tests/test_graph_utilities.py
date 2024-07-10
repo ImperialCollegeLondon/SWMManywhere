@@ -66,17 +66,16 @@ def test_calculate_streetcover(street_network):
     """Test the calculate_streetcover function."""
     G, _ = street_network
     params = parameters.SubcatchmentDerivation()
-    addresses = FilePaths(base_dir = Path(),
-                                        project_name = '',
-                                        bbox_number = '',
-                                        model_number = '',
-                                        extension = 'json')
     with tempfile.TemporaryDirectory() as temp_dir:
-        addresses.streetcover = Path(temp_dir) / 'streetcover.geojson'
+        addresses = FilePaths(base_dir = Path(temp_dir),
+                              bbox_bounds = [0,1,0,1],
+                              project_name = '',
+                              extension = 'json',
+                              streetcover = Path(temp_dir) / 'streetcover.geojson')
         _ = gu.calculate_streetcover(G, params, addresses)
         # TODO test that G hasn't changed? or is that a waste of time?
-        assert addresses.streetcover.exists()
-        gdf = gpd.read_file(addresses.streetcover)
+        assert addresses.model_paths.streetcover.exists()
+        gdf = gpd.read_file(addresses.model_paths.streetcover)
         assert len(gdf) == len(G.edges)
         assert gdf.geometry.area.sum() > 0
 
@@ -94,15 +93,14 @@ def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = FilePaths(base_dir = temp_path, 
-                            project_name = 'test', 
-                            bbox_number = 1,
-                            extension = 'json',
-                            model_number = 1)
-        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
-        addresses.building = temp_path / 'building.geojson'
-        addresses.streetcover = temp_path / 'building.geojson'
-        addresses.subcatchments = temp_path / 'subcatchments.geojson'
+        addresses = FilePaths(base_dir = Path(temp_dir),
+            bbox_bounds = [0,1,0,1],
+            project_name = 'test',
+            extension = 'json',
+            elevation = Path(__file__).parent / 'test_data' / 'elevation.tif',
+            building = temp_path / 'building.geojson',
+            streetcover = temp_path / 'building.geojson',
+            subcatchments = temp_path / 'subcatchments.geojson')
         params = parameters.SubcatchmentDerivation()
         G, _ = street_network
         
@@ -114,7 +112,7 @@ def test_derive_subcatchments(street_network):
                        (700291.346,5709928.922)])
         gdf = gpd.GeoDataFrame(geometry = [eg_bldg],
                                crs = G.graph['crs'])
-        gdf.to_file(addresses.building, driver='GeoJSON')
+        gdf.to_file(addresses.bbox_paths.building, driver='GeoJSON')
 
         G = gu.calculate_contributing_area(G, params, addresses)
         for u, v, data in G.edges(data=True):
@@ -129,13 +127,11 @@ def test_set_elevation_and_slope(street_network):
     """Test the set_elevation, set_surface_slope, chahinian_slope function."""
     G, _ = street_network
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        addresses = FilePaths(base_dir = temp_path, 
-                                project_name = 'test', 
-                                bbox_number = 1,
-                                extension = 'json',
-                                model_number = 1)
-        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+        addresses = FilePaths(base_dir = Path(temp_dir),
+            bbox_bounds = [0,1,0,1],
+            project_name = 'test',
+            extension = 'json',
+            elevation = Path(__file__).parent / 'test_data' / 'elevation.tif')
         G = gu.set_elevation(G, addresses)
         for id_, data in G.nodes(data=True):
             assert 'surface_elevation' in data.keys()
@@ -206,20 +202,20 @@ def test_identify_outlets_no_river(street_network):
     G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
-    elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    addresses = FilePaths(base_dir = Path(),
-                                    project_name = '',
-                                    bbox_number = '',
-                                    model_number = '')
-    addresses.elevation = elev_fid
-    G = gu.set_elevation(G, addresses)
-    for ix, (u,v,d) in enumerate(G.edges(data=True)):
-        d['edge_type'] = 'street'
-        d['weight'] = ix
-    params = parameters.OutletDerivation()
-    G = gu.identify_outlets(G, params)
-    outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
-    assert len(outlets) == 1
+    with tempfile.TemporaryDirectory() as temp_dir:
+        addresses = FilePaths(base_dir = Path(temp_dir),
+            bbox_bounds = [0,1,0,1],
+            project_name = 'test',
+            extension = 'json',
+            elevation = Path(__file__).parent / 'test_data' / 'elevation.tif')
+        G = gu.set_elevation(G, addresses)
+        for ix, (u,v,d) in enumerate(G.edges(data=True)):
+            d['edge_type'] = 'street'
+            d['weight'] = ix
+        params = parameters.OutletDerivation()
+        G = gu.identify_outlets(G, params)
+        outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+        assert len(outlets) == 1
 
 def test_identify_outlets_sg(street_network):
     """Test the identify_outlets with subgraphs."""
@@ -227,71 +223,72 @@ def test_identify_outlets_sg(street_network):
     
     G = gu.assign_id(G)
     G = gu.double_directed(G)
-    addresses = FilePaths(base_dir = Path(),
-                                    project_name = '',
-                                    bbox_number = '',
-                                    model_number = '')
     elev_fid = Path(__file__).parent / 'test_data' / 'elevation.tif'
-    addresses.elevation = elev_fid
-    G = gu.set_elevation(G, addresses)
-    for ix, (u,v,d) in enumerate(G.edges(data=True)):
-        d['edge_type'] = 'street'
-        d['weight'] = ix
+    with tempfile.TemporaryDirectory() as temp_dir:
+        addresses = FilePaths(base_dir = Path(temp_dir),
+                                bbox_bounds = [0,1,0,1],
+                                project_name = 'test',
+                                extension = 'json',
+                                elevation = elev_fid)
+        G = gu.set_elevation(G, addresses)
+        for ix, (u,v,d) in enumerate(G.edges(data=True)):
+            d['edge_type'] = 'street'
+            d['weight'] = ix
 
-    params = parameters.OutletDerivation(river_buffer_distance = 200,
-                                         outlet_length = 10,
-                                         method = 'withtopo')
-    dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
-                                    (699932.546,5709882.575)])
-    dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
-                                    (700011.524,5710060.636)])
-    dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
-                                    (700103.427,5710169.052)])
-    
-    G.add_edge('river1', 'river2', **{'length' :  10,
-                                    'edge_type' : 'river',
-                                    'id' : 'river1-to-river2',
-                                    'geometry' :  dummy_river1})
-    G.add_edge('river2', 'river3', **{'length' :  10,
-                                    'edge_type' : 'river',
-                                    'id' : 'river2-to-river3',
-                                    'geometry' :  dummy_river2})
-    
-    G.add_edge('river3', 'river4', **{'length' :  10,
-                                    'edge_type' : 'river',
-                                    'id' : 'river3-to-river4',
-                                    'geometry' :  dummy_river3})
+        params = parameters.OutletDerivation(river_buffer_distance = 200,
+                                            outlet_length = 10,
+                                            method = 'withtopo')
+        dummy_river1 = sgeom.LineString([(699913.878,5709769.851), 
+                                        (699932.546,5709882.575)])
+        dummy_river2 = sgeom.LineString([(699932.546,5709882.575),    
+                                        (700011.524,5710060.636)])
+        dummy_river3 = sgeom.LineString([(700011.524,5710060.636),
+                                        (700103.427,5710169.052)])
+        
+        G.add_edge('river1', 'river2', **{'length' :  10,
+                                        'edge_type' : 'river',
+                                        'id' : 'river1-to-river2',
+                                        'geometry' :  dummy_river1})
+        G.add_edge('river2', 'river3', **{'length' :  10,
+                                        'edge_type' : 'river',
+                                        'id' : 'river2-to-river3',
+                                        'geometry' :  dummy_river2})
+        
+        G.add_edge('river3', 'river4', **{'length' :  10,
+                                        'edge_type' : 'river',
+                                        'id' : 'river3-to-river4',
+                                        'geometry' :  dummy_river3})
 
-    G.nodes['river1']['x'] = 699913.878
-    G.nodes['river1']['y'] = 5709769.851
-    G.nodes['river2']['x'] = 699932.546
-    G.nodes['river2']['y'] = 5709882.575
-    G.nodes['river3']['x'] = 700011.524
-    G.nodes['river3']['y'] = 5710060.636
-    G.nodes['river4']['x'] = 700103.427
-    G.nodes['river4']['y'] = 5710169.052
+        G.nodes['river1']['x'] = 699913.878
+        G.nodes['river1']['y'] = 5709769.851
+        G.nodes['river2']['x'] = 699932.546
+        G.nodes['river2']['y'] = 5709882.575
+        G.nodes['river3']['x'] = 700011.524
+        G.nodes['river3']['y'] = 5710060.636
+        G.nodes['river4']['x'] = 700103.427
+        G.nodes['river4']['y'] = 5710169.052
 
-    # Cut into subgraphs
-    G.remove_edge(12354833, 25472373)
-    G.remove_edge(25472373, 12354833)
-    G.remove_edge(109753, 25472854)
-    G.remove_edge(25472854, 109753)
+        # Cut into subgraphs
+        G.remove_edge(12354833, 25472373)
+        G.remove_edge(25472373, 12354833)
+        G.remove_edge(109753, 25472854)
+        G.remove_edge(25472854, 109753)
 
-    # Test outlet derivation
-    G_ = G.copy()
-    G_ = gu.identify_outlets(G_, params)
+        # Test outlet derivation
+        G_ = G.copy()
+        G_ = gu.identify_outlets(G_, params)
 
-    # Two subgraphs = two routes to waste
-    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
-               if d['edge_type'] == 'waste-outlet']
-    assert len(outlets) == 2
+        # Two subgraphs = two routes to waste
+        outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+                if d['edge_type'] == 'waste-outlet']
+        assert len(outlets) == 2
 
-    # With buffer distance 300, the subgraph near the river will have an outlet
-    # between the nearest street node to each river node (there are 3 potential
-    # links in 150m). The subgraph further from the river is too far to be linked 
-    # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
-    outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
-    assert len(outlets) == 3
+        # With buffer distance 300, the subgraph near the river will have an outlet
+        # between the nearest street node to each river node (there are 3 potential
+        # links in 150m). The subgraph further from the river is too far to be linked 
+        # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
+        outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+        assert len(outlets) == 3
 
 def test_identify_outlets_and_derive_topology(street_network):
     """Test the identify_outlets and derive_topology functions."""
@@ -478,12 +475,12 @@ def test_iterate_graphfcns():
     params['topology_derivation'].omit_edges = ['primary', 'bridge']
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = FilePaths(base_dir = Path(),
-                                        project_name = '',
-                                        bbox_number = '',
-                                        model_number = '')
+        addresses = FilePaths(base_dir = temp_path,
+                                bbox_bounds = [0,1,0,1],
+                                project_name = 'test',
+                                extension = 'json',
+                                model = temp_path)
 
-        addresses.model = temp_path
         G = iterate_graphfcns(G, 
                                 ['assign_id',
                                 'remove_non_pipe_allowable_links'],
@@ -513,12 +510,12 @@ def test_iterate_graphfcns_noedges():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        addresses = FilePaths(base_dir = Path(),
-                                        project_name = '',
-                                        bbox_number = '',
-                                        model_number = '')
+        addresses = FilePaths(base_dir = temp_path,
+                                bbox_bounds = [0,1,0,1],
+                                project_name = 'test',
+                                extension = 'json',
+                                model = temp_path)
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
-        addresses.model = temp_path
         original_function = gu['remove_non_pipe_allowable_links']
         gu['remove_non_pipe_allowable_links'] = _remove_edges
         G = iterate_graphfcns(G, 
@@ -528,8 +525,8 @@ def test_iterate_graphfcns_noedges():
                                 addresses)
         gu['remove_non_pipe_allowable_links'] = original_function
         os.environ['SWMMANYWHERE_VERBOSE'] = 'false'
-        assert (addresses.model / 'assign_id_graph.json').exists()
-        assert not (addresses.model /\
+        assert (addresses.model_paths.model / 'assign_id_graph.json').exists()
+        assert not (addresses.model_paths.model /\
                      'remove_non_pipe_allowable_links_graph.json').exists()
 
 def test_fix_geometries():
@@ -570,11 +567,11 @@ def test_clip_to_catchments(street_network):
         os.environ['SWMMANYWHERE_VERBOSE'] = 'true'
         temp_path = Path(temp_dir)
         addresses = FilePaths(base_dir = temp_path,
-                                        project_name = 'test',
-                                        bbox_number = 0,
-                                        model_number = 0)
-        addresses.nodes = addresses.base_dir / 'nodes.geojson'
-        addresses.elevation = Path(__file__).parent / 'test_data' / 'elevation.tif'
+                bbox_bounds = [0,1,0,1],
+                project_name = 'test',
+                extension = 'json',
+                nodes = temp_path / 'nodes.geojson',
+                elevation = Path(__file__).parent / 'test_data' / 'elevation.tif')
 
         # Test default clipping
         subcatchment_derivation = parameters.SubcatchmentDerivation()
@@ -654,7 +651,7 @@ def test_clip_to_catchments(street_network):
             assert """WARNING""" in ftext
             logger.remove()
             os.environ['SWMMANYWHERE_VERBOSE'] = 'false'
-        assert (addresses.nodes.parent / 'subbasins.geojson').exists()
+        assert (addresses.model_paths.nodes.parent / 'subbasins.geojson').exists()
             
 def test_filter_streets():
     """Test the _filter_streets function."""
