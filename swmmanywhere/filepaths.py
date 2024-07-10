@@ -79,58 +79,6 @@ def get_next_bbox_number(bbox: tuple[float, float, float, float],
         return next_directory('bbox', data_dir)
     return bbox_number
 
-def create_project_structure(bbox: tuple[float, float, float, float],
-                             project: str,
-                             base_dir: Path,
-                             model_number: int | None = None):
-    """Create the project directory structure.
-
-    Create the project, bbox, national, model and download directories within 
-    the base directory.
-
-    Args:
-        bbox (tuple[float, float, float, float]): Bounding box coordinates in 
-            the format (minx, miny, maxx, maxy).
-        project (str): Name of the project.
-        base_dir (Path): Path to the base directory.
-        model_number (int | None): Model number, if not provided it will use a
-            number that is one higher than the highest number that exists for
-            that bbox.
-
-    Returns:
-        Addresses: Class containing the addresses of the directories.
-    """
-    addresses = FilePaths(base_dir = base_dir,
-                                        project_name = project,
-                                        bbox_number = 0,
-                                        model_number = 0,
-                                        extension = 'parquet')
-    
-    # Create project and national directories
-    addresses.national.mkdir(parents=True, exist_ok=True)
-
-    # Create bounding box directory
-    bbox_number = get_next_bbox_number(bbox, addresses.project)
-    addresses.bbox_number = bbox_number
-    addresses.bbox.mkdir(parents=True, exist_ok=True)
-    bounding_box_info = {"bbox": bbox, "project": project}
-    if not (addresses.bbox / 'bounding_box_info.json').exists():
-        with open(addresses.bbox / 'bounding_box_info.json', 'w') as info_file:
-            json.dump(bounding_box_info, info_file, indent=2)
-
-    # Create downloads directory
-    addresses.download.mkdir(parents=True, exist_ok=True)
-
-    # Create model directory
-    if not model_number:
-        addresses.model_number = next_directory('model', addresses.bbox)
-    else:
-        addresses.model_number = model_number
-
-    addresses.model.mkdir(parents=True, exist_ok=True)
-
-    return addresses
-
 class ProjectPaths:
     """Paths for the project folder (within base_dir)."""
     def __init__(self, 
@@ -301,12 +249,17 @@ class FilePaths:
         Args:
             base_dir (Path): The base directory.
             project_name (str): The name of the project.
-            bbox_number (int): The bounding box number.
-            model_number (int): The model number.
+            bbox_bounds (tuple[float, float, float, float]): Bounding box 
+                coordinates in the format (minx, miny, maxx, maxy).
+            bbox_number (int, optional): The bounding box number. Defaults to 
+                None, in which case if the existing bounding box has already
+                been created it will be found, otherwise the next number will
+                be used.
+            model_number (int, optional): The model number. Defaults to None, 
+                in which case the next number in the bbox directory will be used.
             extension (str): The extension for the files.
             **kwargs: Additional file paths.
         """
-        
         self.project_paths = ProjectPaths(base_dir, project_name, extension)
 
         if not bbox_number:
@@ -315,8 +268,9 @@ class FilePaths:
         self.bbox_paths = BBoxPaths(self.project_paths, bbox_number, extension)
         bounding_box_info = {"bbox": bbox_bounds, 
                              "project": self.project_paths.project_name}
-        if not (self.bbox_paths.bbox / 'bounding_box_info.json').exists():
-            with open(self.bbox_paths.bbox / 'bounding_box_info.json', 'w') as info_file:
+        bbox_info_file = self.bbox_paths.bbox / 'bounding_box_info.json'
+        if not bbox_info_file.exists():
+            with bbox_info_file.open('w') as info_file:
                 json.dump(bounding_box_info, info_file, indent=2)
                 
         if not model_number:
