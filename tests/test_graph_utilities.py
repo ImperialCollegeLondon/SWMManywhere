@@ -214,7 +214,8 @@ def test_identify_outlets_no_river(street_network):
             d['weight'] = ix
         params = parameters.OutletDerivation()
         G = gu.identify_outlets(G, params)
-        outlets = [(u,v,d) for u,v,d in G.edges(data=True) if d['edge_type'] == 'outlet']
+        outlets = [(u,v,d) for u,v,d in G.edges(data=True) 
+                   if d['edge_type'] == 'outlet']
         assert len(outlets) == 1
 
 def test_identify_outlets_sg(street_network):
@@ -287,7 +288,8 @@ def test_identify_outlets_sg(street_network):
         # between the nearest street node to each river node (there are 3 potential
         # links in 150m). The subgraph further from the river is too far to be linked 
         # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
-        outlets = [(u,v,d) for u,v,d in G_.edges(data=True) if d['edge_type'] == 'outlet']
+        outlets = [(u,v,d) for u,v,d in G_.edges(data=True) 
+                   if d['edge_type'] == 'outlet']
         assert len(outlets) == 3
 
 def test_identify_outlets_and_derive_topology(street_network):

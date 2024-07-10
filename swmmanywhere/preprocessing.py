@@ -79,7 +79,8 @@ def prepare_building(bbox: tuple[float, float, float, float],
         return
     
     if not addresses.project_paths.national_building.exists():  
-        logger.info(f'downloading buildings to {addresses.project_paths.national_building}')
+        logger.info(f"""downloading buildings to 
+                    {addresses.project_paths.national_building}""")
         prepare_data.download_buildings(addresses.project_paths.national_building, 
                                         bbox[0],
                                         bbox[1])

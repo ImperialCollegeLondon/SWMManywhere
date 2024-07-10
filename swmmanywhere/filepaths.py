@@ -105,7 +105,7 @@ class ProjectPaths:
         self.project_name = project_name
         self.extension = extension
         self.base_dir = base_dir
-        self.overrides = {}
+        self.overrides: dict[str, Path] = {}
 
         self.project.mkdir(exist_ok=True)
         self.national.mkdir(exist_ok=True)
@@ -157,7 +157,7 @@ class BBoxPaths:
         self.bbox_number = bbox_number
         self.extension = extension
         self.bbox_bounds = bbox_bounds
-        self.overrides = {}
+        self.overrides: dict[str, Path] = {}
 
         self.bbox.mkdir(exist_ok=True)
         self.download.mkdir(exist_ok=True)
@@ -233,7 +233,7 @@ class ModelPaths:
         self.base_dir = bbox_paths.bbox
         self.model_number = model_number
         self.extension = extension
-        self.overrides = {}
+        self.overrides: dict[str, Path] = {}
 
         self.model.mkdir(exist_ok=True)
 
@@ -346,52 +346,17 @@ class FilePaths:
         yaml_dump(address_dict, f.open('w'))
 
     def get_path(self, name: str) -> Path:
+        """Get a path from _overrides."""
         path = self._overrides.get(name, None)
         if not path:
-            raise f"No file found for `{name}` attribute."
+            raise FileExistsError(f"No file found for `{name}` attribute.")
         return path
     
     def set_bbox_number(self, number):
+        """Set the bounding box number."""
         self.bbox_paths.bbox_number = number
         self.model_paths.base_dir = self.bbox_paths.bbox
     
     def set_model_number(self, number):
+        """Set the model number."""
         self.model_paths.model_number = number
-    # def __getattr__(self, name: str):
-    #     """Get an attribute.
-        
-    #     Check if the attribute is in the overrides, then check the project, bbox 
-    #     and model paths.
-
-    #     Args:
-    #         name (str): The attribute name.
-    #     """
-    #     if name in self._overrides:
-    #         return self._overrides[name]
-    #     for paths in [self.project_paths, self.bbox_paths, self.model_paths]:
-    #         if hasattr(paths, name):
-    #             return getattr(paths, name)
-    #     raise AttributeError(f"""'{self.__class__.__name__}' object has no 
-    #                          attribute '{name}'""")
-
-    # def __setattr__(self, name, value):
-    #     """Set an attribute.
-
-    #     Set the attribute. Updating the base attributes, otherwise store in
-    #     the overrides.
-
-    #     Args:
-    #         name (str): The attribute name.
-    #         value (Any): The attribute value.
-    #     """
-    #     if name in ['project_paths', 'bbox_paths', 'model_paths','_overrides']:
-    #         super().__setattr__(name, value)
-    #     elif name == 'model_number':
-    #         self.model_paths.model_number = value
-    #     elif name == 'bbox_number':
-    #         self.bbox_paths.bbox_number = value
-    #         self.model_paths.base_dir = self.bbox_paths.bbox
-    #     else:
-    #         self._overrides[name] = Path(value)
-
-

@@ -17,14 +17,22 @@ def test_getattr():
         assert addresses.model_paths.model_number == 1
         assert addresses.project_paths.base_dir == filepath
         assert addresses.project_paths.project == filepath / 'test'
-        assert addresses.project_paths.national == addresses.project_paths.project / 'national'
-        assert addresses.bbox_paths.bbox == addresses.project_paths.project / 'bbox_1'
-        assert addresses.bbox_paths.download == addresses.bbox_paths.bbox / 'download'
-        assert addresses.bbox_paths.elevation == addresses.bbox_paths.download / 'elevation.tif'
-        assert addresses.bbox_paths.building == addresses.bbox_paths.download / 'building.geoparquet'
-        assert addresses.model_paths.model == addresses.bbox_paths.bbox / 'model_1'
-        assert addresses.model_paths.subcatchments == addresses.model_paths.model / 'subcatchments.geoparquet'
-        assert addresses.bbox_paths.precipitation == addresses.bbox_paths.download / 'precipitation.parquet'
+        assert addresses.project_paths.national == \
+            addresses.project_paths.project / 'national'
+        assert addresses.bbox_paths.bbox == \
+            addresses.project_paths.project / 'bbox_1'
+        assert addresses.bbox_paths.download == \
+            addresses.bbox_paths.bbox / 'download'
+        assert addresses.bbox_paths.elevation == \
+            addresses.bbox_paths.download / 'elevation.tif'
+        assert addresses.bbox_paths.building == \
+            addresses.bbox_paths.download / 'building.geoparquet'
+        assert addresses.model_paths.model == \
+            addresses.bbox_paths.bbox / 'model_1'
+        assert addresses.model_paths.subcatchments == \
+            addresses.model_paths.model / 'subcatchments.geoparquet'
+        assert addresses.bbox_paths.precipitation == \
+            addresses.bbox_paths.download / 'precipitation.parquet'
 
         assert addresses.model_paths.model.exists()
         assert addresses.bbox_paths.download.exists()

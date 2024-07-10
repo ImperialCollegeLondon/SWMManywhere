@@ -191,10 +191,10 @@ def iterate_graphfcns(G: nx.Graph,
         if verbose():
             save_graph(G, addresses.model_paths.model / f"{function}_graph.json")
             go.graph_to_geojson(graphfcns.fix_geometries(G),
-                                addresses.model_paths.model / f"{function}_nodes.geojson",
-                                addresses.model_paths.model / f"{function}_edges.geojson",
-                                G.graph['crs']
-                                )
+                addresses.model_paths.model / f"{function}_nodes.geojson",
+                addresses.model_paths.model / f"{function}_edges.geojson",
+                G.graph['crs']
+                )
     return G
 
 @register_graphfcn

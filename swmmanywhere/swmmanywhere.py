@@ -50,6 +50,24 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     Returns:
         tuple[Path, dict | None]: The address of generated .inp and metrics.
     """
+    # Check for defaults
+    config = _check_defaults(config)
+
+    # Currently precipitation must be provided via address_overrides, otherwise
+    # the default storm.dat file will be used
+    if not Path(config.get('address_overrides',{}).get('precipitation','')).exists():
+        config['address_overrides'] = config.get('address_overrides',{})
+        config['address_overrides']['precipitation'] = \
+            Path(__file__).parent / 'defs' / 'storm.dat'
+
+    # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides', {}).items():
+        for key, val in overrides.items():
+            logger.info(f"Setting {category} {key} to {val}")
+            setattr(params[category], key, val)
+            
     # Create the project structure
     logger.info("Creating project structure.")
     addresses = filepaths.FilePaths(config['base_dir'],
@@ -62,22 +80,10 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     
     logger.info(f"Project structure created at {addresses.project_paths.base_dir}")
     logger.info(f"Project name: {config['project']}")
-    logger.info(f"Bounding box: {config['bbox']}, number: {addresses.bbox_paths.bbox_number}")
+    logger.info(f"""Bounding box: {config['bbox']}, 
+                number: {addresses.bbox_paths.bbox_number}""")
     logger.info(f"Model number: {addresses.model_paths.model_number}")
-    
-    # Check for defaults
-    config = _check_defaults(config)
-    if not addresses.bbox_paths.precipitation.exists():
-        addresses.bbox_paths.precipitation = Path(__file__).parent / 'defs' / 'storm.dat'
 
-    # Load the parameters and perform any manual overrides
-    logger.info("Loading and setting parameters.")
-    params = parameters.get_full_parameters()
-    for category, overrides in config.get('parameter_overrides', {}).items():
-        for key, val in overrides.items():
-            logger.info(f"Setting {category} {key} to {val}")
-            setattr(params[category], key, val)
-            
     # Save config file
     if verbose():
         save_config(config, addresses.model_paths.model / 'config.yml')
