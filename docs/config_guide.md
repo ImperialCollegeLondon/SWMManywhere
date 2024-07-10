@@ -76,13 +76,29 @@ exist in unusual locations, then you can provide the address to a custom graph
 with the `starting_graph` entry in the `config` file. Note, for information on the
 format that this graph should take, see
 [`save_graph`](../reference-graph-utilities/#swmmanywhere.graph_utilities.save_graph).
+If the default workflow is missing something that isn't to do with parameters,
+functionality, or the starting graph, then it is possible you will require additional
+data sources beyond those that are provided by default...
+
+### Use your own data
+
+A user may want to change some of the key data files that underpin SWMManywhere, such
+as the base `elevation` file (i.e., a DEM from NASADEM) if you have higher resolution
+data for your region. You can explore the default file structure of a SWMManywhere
+project in [link to filepaths page], but a user may provide their own file paths
+via the config file through the `address_overrides` entry, for example:
+
+```yml
+address_overrides:
+  elevation: /new/path/to/elevation.tif
+```
 
 ## Evaluating your synthetic UDM
 
 If you are lucky enough to have a pre-existing UDM for your region, then you may
 instead be using SWMManywhere to explore uncertainties. If this is the case then
 it is likely that you will be evaluating how the synthesised UDM compare to the
-pre-existing ones. To do this, you will need to specify the pre-existing (or 'real') 
+pre-existing ones. To do this, you will need to specify the pre-existing (or 'real')
 UDM file paths in the `config` file, and the performance metrics to be calculated.
 
 ### Specifying the 'real' UDM
@@ -98,7 +114,7 @@ following the fixing of
 [this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
 The user can then provide either an `inp` path to the SWMM `.inp`
 model file, or if the file has already been run, directly to the `results` file. If
-a `results` file is provided this will always be used for metric calcualtion. If
+a `results` file is provided this will always be used for metric calculation. If
 `results` is not provided but `inp` is, then SWMManywhere will run the `inp` model
 file provided. Currently the user must ensure precipitation timeseries are aligned
 and comparable for both the real and synthetic networks. Once you have some real
