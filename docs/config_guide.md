@@ -30,7 +30,7 @@ something about a UDM synthesised by SWMManywhere. There are three key tools
 inside the SWMManywhere `config` file that can be helpful to do this, described
 in this section.
 
-### 1. Changing parameters
+### Changing parameters
 
 Changing parameter values is by far the easiest way to change your derived
 network. You can view available [parameters](../reference-parameters) and determine
@@ -54,7 +54,7 @@ demonstrates, you can capture an enormously wide range of UDM behaviours through
 changing parameters. However, if your system is particularly unusual, or you are
 testing out new behaviours then you may need to...
 
-### 2. Customise `graphfcns`
+### Customise `graphfcns`
 
 Graph functions are the way that operations are applied to create a synthetic UDM
 in SWMManywhere. You can read more about them [here], but a primary feature of
@@ -65,7 +65,7 @@ your own `graphfcn_list`, this is essential if you plan to [add a `graphfcn`].
 Sometimes, it doesn't matter how clever your functionality is, because your
 initial graph is missing something, in which case you will need to...
 
-### 3. Change `starting_graph`
+### Change `starting_graph`
 
 By default SWMManywhere uses Open Street Map (OSM) data to create a starting graph,
 to which subsequent `graphfcns` are applied to. A key limitation of SWMManywhere is
@@ -76,3 +76,44 @@ exist in unusual locations, then you can provide the address to a custom graph
 with the `starting_graph` entry in the `config` file. Note, for information on the
 format that this graph should take, see
 [`save_graph`](../reference-graph-utilities/#swmmanywhere.graph_utilities.save_graph).
+
+## Evaluating your synthetic UDM
+
+If you are lucky enough to have a pre-existing UDM for your region, then you may
+instead be using SWMManywhere to explore uncertainties. If this is the case then
+it is likely that you will be evaluating how the synthesised UDM compare to the
+pre-existing ones. To do this, you will need to specify the pre-existing (or 'real') 
+UDM file paths in the `config` file, and the performance metrics to be calculated.
+
+### Specifying the 'real' UDM
+
+In SWMManywhere, a pre-existing UDM is referred to as the 'real' model (although
+if you are using SWMManywhere you are presumably aware that describing any UDM
+as real is tenuous). To enable SWMManywhere to compare against a real model, we
+use the `real` entry of the `config` file. The path to a `subcatchments` geometry
+file, and a `graph` file (see
+[`save_graph`](../reference-graph-utilities/#swmmanywhere.graph_utilities.save_graph)
+for format) must be provided - however this is temporary and will be unnecessary
+following the fixing of
+[this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
+The user can then provide either an `inp` path to the SWMM `.inp`
+model file, or if the file has already been run, directly to the `results` file. If
+a `results` file is provided this will always be used for metric calcualtion. If
+`results` is not provided but `inp` is, then SWMManywhere will run the `inp` model
+file provided. Currently the user must ensure precipitation timeseries are aligned
+and comparable for both the real and synthetic networks. Once you have some real
+simulations to compare against your synthetic ones, you must specify how to evaluate
+the synthetic model...
+
+### Performance metrics
+
+The SWMManywhere package comes with a wide variety of performance
+metrics that can be used to make this comparison, explained [here]. In the `config`
+file you can specify which metrics should be calculated under the `metric_list`
+entry. The [`demo_config.yml`](../reference-defs/#demo-configuration-file)
+`metric_list` contains all metrics that come with SWMManywhere, although you may
+want to choose a subselection of these if you have a very large network (say >5000
+nodes) because some of the graph-based metrics can be slow to calculate (anything
+starting with `nc` or containing `betweenness`). You may also be unsatisfied with
+the built in metrics, in which case you can [add your own], although these must be
+specified under `metric_list` for them to be calculated.
