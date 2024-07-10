@@ -9,31 +9,31 @@ from swmmanywhere.filepaths import FilePaths, filepaths_from_yaml
 
 def test_getattr():
     """Test the __getattr__ method."""
-    filepath = Path(__file__).parent
-    addresses = FilePaths(base_dir=filepath,
-                          project_name='test',
-                          bbox_number=1,
-                          model_number=1,
-                          extension = 'parquet')
-    assert addresses.model_number == 1
-    assert addresses.base_dir == filepath
-    assert addresses.project == filepath / 'test'
-    assert addresses.national == addresses.project / 'national'
-    assert addresses.bbox == addresses.project / 'bbox_1'
-    assert addresses.download == addresses.bbox / 'download'
-    assert addresses.elevation == addresses.download / 'elevation.tif'
-    assert addresses.building == addresses.download / 'building.geoparquet'
-    assert addresses.model == addresses.bbox / 'model_1'
-    assert addresses.subcatchments == addresses.model / 'subcatchments.geoparquet'
-    assert addresses.precipitation == addresses.download / 'precipitation.parquet'
+    with tempfile.TemporaryDirectory() as temp_dir:
+        filepath = Path(temp_dir)
+        addresses = FilePaths(base_dir=filepath,
+                            bbox_bounds=[0,1,0,1],
+                            project_name='test')
+        assert addresses.model_paths.model_number == 1
+        assert addresses.project_paths.base_dir == filepath
+        assert addresses.project_paths.project == filepath / 'test'
+        assert addresses.project_paths.national == addresses.project_paths.project / 'national'
+        assert addresses.bbox_paths.bbox == addresses.project_paths.project / 'bbox_1'
+        assert addresses.bbox_paths.download == addresses.bbox_paths.bbox / 'download'
+        assert addresses.bbox_paths.elevation == addresses.bbox_paths.download / 'elevation.tif'
+        assert addresses.bbox_paths.building == addresses.bbox_paths.download / 'building.geoparquet'
+        assert addresses.model_paths.model == addresses.bbox_paths.bbox / 'model_1'
+        assert addresses.model_paths.subcatchments == addresses.model_paths.model / 'subcatchments.geoparquet'
+        assert addresses.bbox_paths.precipitation == addresses.bbox_paths.download / 'precipitation.parquet'
 
-    addresses.elevation = filepath
-    assert addresses.elevation == filepath
+        assert addresses.model_paths.model.exists()
+        assert addresses.bbox_paths.download.exists()
+        assert addresses.project_paths.national.exists()
 
-    addresses.bbox_number = 2
-    assert addresses.bbox == addresses.project / 'bbox_2'
-    assert addresses.download == addresses.project / 'bbox_2' / 'download'
-    assert addresses.model == addresses.project / 'bbox_2' / 'model_1'
+        addresses.set_bbox_number(2)
+        assert addresses.bbox_paths.bbox == addresses.project_paths.project / 'bbox_2'
+        assert addresses.bbox_paths.download == addresses.bbox_paths.bbox / 'download'
+        assert addresses.model_paths.model == addresses.bbox_paths.bbox / 'model_1'
 
 
 def test_to_yaml_normal():
@@ -42,42 +42,52 @@ def test_to_yaml_normal():
         base_dir = Path(temp_dir)
         addresses = FilePaths(base_dir,
                                 'test',
-                                1,
-                                1,
-                                'parquet')
+                                [0,1,0,1])
+        
+        # Write and read
         addresses.to_yaml(base_dir / 'test.yaml')
-
         addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
 
-        paths_ = ["base_dir","project","national","bbox","download","building",
-                "model","subcatchments","precipitation","elevation","streetcover",
-                "river","street","edges","nodes","graph","inp","national_building"]
-        for key in paths_:
-            assert getattr(addresses, key) == getattr(addresses_, key)
+        # Check
+        paths_ = {
+            "project_paths": ["base_dir","project","national","national_building"],
+            "bbox_paths" : ["bbox","download","building","precipitation",
+                            "elevation","river","street"],
+            "model_paths" : ["model","subcatchments","streetcover","edges","nodes",
+                             "graph","inp"]}
+        for cat, keys in paths_.items():
+            for key in keys:
+                assert getattr(getattr(addresses, cat),key) == \
+                    getattr(getattr(addresses_, cat),key)
 
 def test_to_yaml_normal_with_overrides():
     """Test the to_yaml and from_yaml methods."""
     with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
+        dummy_file = base_dir / 'dummy.txt'
+        dummy_file.touch()
         addresses = FilePaths(base_dir,
                                 'test',
-                                1,
-                                1,
-                                'parquet')
+                                [0,1,0,1],
+                                elevation=dummy_file,
+                                inp = dummy_file)
         
         # Model number override
-        addresses.model_number = 2
+        addresses.model_paths.model_number = 2
 
-        # File override (to something that exists for validation)
-        addresses.elevation = base_dir / 'test.yaml' 
-
+        # Write and read
         addresses.to_yaml(base_dir / 'test.yaml')
-
         addresses_ = filepaths_from_yaml(base_dir / 'test.yaml')
 
-        paths_ = ["base_dir","project","national","bbox","download","building",
-                "model","subcatchments","precipitation","elevation","streetcover",
-                "river","street","edges","nodes","graph","inp","national_building"]
-        for key in paths_:
-            assert getattr(addresses, key) == getattr(addresses_, key)
-
+        # Check
+        paths_ = {
+            "project_paths": ["base_dir","project","national","national_building"],
+            "bbox_paths" : ["bbox","download","building","precipitation",
+                            "elevation","river","street"],
+            "model_paths" : ["model","subcatchments","streetcover","edges","nodes",
+                             "graph","inp"]}
+        for cat, keys in paths_.items():
+            for key in keys:
+                assert getattr(getattr(addresses, cat),key) == \
+                    getattr(getattr(addresses_, cat),key)
+                
