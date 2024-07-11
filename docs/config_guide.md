@@ -13,7 +13,7 @@ The minimum requirements for a user to provide are simply:
 
 - a base directory,
 - a project name,
-- a bounding box that specifies the latitude and longitude (EPSG:4326) of the bottom left and upper right corners of the region within which to create the UDM.
+- a bounding box that specifies the latitude and longitude (EPSG:4326) of the bottom left and upper right corners of the region within which to create the Urban Drainage Model (UDM).
 
 We can define a simple configuration `.yml` file here:
 
@@ -35,7 +35,7 @@ in this section.
 Changing parameter values is by far the easiest way to change your derived
 network. You can view available [parameters](reference-parameters.md and determine
 which ones may help to fix what you are unhappy with, for example, if you feel that
-there are too many manholes, then you may want to reduce `max_street_length` (see
+there are too many manholes, then you may want to increase `max_street_length` (see
 source code of
 [`SubcatchmentDerivation`](reference-parameters.md#swmmanywhere.parameters.SubcatchmentDerivation)).
 
