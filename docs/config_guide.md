@@ -33,7 +33,7 @@ in this section.
 ### Changing parameters
 
 Changing parameter values is by far the easiest way to change your derived
-network. You can view available [parameters](reference-parameters.md and determine
+network. You can view available [parameters](reference-parameters.md) and determine
 which ones may help to fix what you are unhappy with, for example, if you feel that
 there are too many manholes, then you may want to increase `max_street_length` (see
 source code of
@@ -118,7 +118,9 @@ model file, or if the file has already been run, directly to the `results` file.
 a `results` file is provided this will always be used for metric calculation. If
 `results` is not provided but `inp` is, then SWMManywhere will run the `inp` model
 file provided. Currently the user must ensure precipitation timeseries are aligned
-and comparable for both the real and synthetic networks. Once you have some real
+and comparable for both the real and synthetic networks.
+
+Once you have some real
 simulations to compare against your synthetic ones, you must specify how to evaluate
 the synthetic model...
 
