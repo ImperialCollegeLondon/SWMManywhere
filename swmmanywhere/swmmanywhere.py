@@ -55,7 +55,8 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Currently precipitation must be provided via address_overrides, otherwise
     # the default storm.dat file will be used
-    if not Path(config.get('address_overrides',{}).get('precipitation',Path())).exists():
+    if not Path(config.get('address_overrides',{})
+                .get('precipitation',Path())).exists():
         config['address_overrides'] = config.get('address_overrides',{})
         config['address_overrides']['precipitation'] = \
             Path(__file__).parent / 'defs' / 'storm.dat'
