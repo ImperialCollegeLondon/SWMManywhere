@@ -30,6 +30,8 @@ beautifulsoup4==4.12.3
     # via nbconvert
 bleach==6.1.0
     # via nbconvert
+bracex==2.4
+    # via wcmatch
 cads-api-client==1.1.0
     # via cdsapi
 cdsapi==0.7.0
@@ -196,6 +198,7 @@ mkdocs==1.6.0
     # via
     #   mkdocs-autorefs
     #   mkdocs-coverage
+    #   mkdocs-include-markdown-plugin
     #   mkdocs-jupyter
     #   mkdocs-material
     #   mkdocstrings
@@ -206,6 +209,8 @@ mkdocs-coverage==1.1.0
     # via swmmanywhere (pyproject.toml)
 mkdocs-get-deps==0.2.0
     # via mkdocs
+mkdocs-include-markdown-plugin==6.2.1
+    # via swmmanywhere (pyproject.toml)
 mkdocs-jupyter==0.24.8
     # via swmmanywhere (pyproject.toml)
 mkdocs-material==9.5.28
@@ -489,6 +494,8 @@ urllib3==2.2.2
     # via requests
 watchdog==4.0.1
     # via mkdocs
+wcmatch==8.5.2
+    # via mkdocs-include-markdown-plugin
 wcwidth==0.2.13
     # via prompt-toolkit
 webencodings==0.5.1
