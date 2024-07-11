@@ -55,19 +55,11 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Currently precipitation must be provided via address_overrides, otherwise
     # the default storm.dat file will be used
-    if not Path(config.get('address_overrides',{}).get('precipitation','')).exists():
+    if not Path(config.get('address_overrides',{}).get('precipitation',Path())).exists():
         config['address_overrides'] = config.get('address_overrides',{})
         config['address_overrides']['precipitation'] = \
             Path(__file__).parent / 'defs' / 'storm.dat'
 
-    # Load the parameters and perform any manual overrides
-    logger.info("Loading and setting parameters.")
-    params = parameters.get_full_parameters()
-    for category, overrides in config.get('parameter_overrides', {}).items():
-        for key, val in overrides.items():
-            logger.info(f"Setting {category} {key} to {val}")
-            setattr(params[category], key, val)
-            
     # Create the project structure
     logger.info("Creating project structure.")
     addresses = filepaths.FilePaths(config['base_dir'],
@@ -88,6 +80,14 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     if verbose():
         save_config(config, addresses.model_paths.model / 'config.yml')
 
+    # Load the parameters and perform any manual overrides
+    logger.info("Loading and setting parameters.")
+    params = parameters.get_full_parameters()
+    for category, overrides in config.get('parameter_overrides', {}).items():
+        for key, val in overrides.items():
+            logger.info(f"Setting {category} {key} to {val}")
+            setattr(params[category], key, val)
+
     # Run downloads
     logger.info("Running downloads.")
     preprocessing.run_downloads(config['bbox'],
@@ -101,14 +101,6 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         G = load_graph(config['starting_graph'])
     else:
         G = preprocessing.create_starting_graph(addresses)
-
-    # Load the parameters and perform any manual overrides
-    logger.info("Loading and setting parameters.")
-    params = parameters.get_full_parameters()
-    for category, overrides in config.get('parameter_overrides', {}).items():
-        for key, val in overrides.items():
-            logger.info(f"Setting {category} {key} to {val}")
-            setattr(params[category], key, val)
 
     # Iterate the graph functions
     logger.info("Iterating graph functions.")
