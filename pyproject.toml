@@ -67,16 +67,12 @@ dev = [
 ]
 doc = [
   "mkdocs",
-  "mkdocs-autorefs",
-  "mkdocs-bibtex",
   "mkdocs-coverage",
-  "mkdocs-gen-files",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
-  "pypandoc",
 ]
 
 [tool.mypy]
