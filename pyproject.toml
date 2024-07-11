@@ -36,7 +36,7 @@ dependencies = [
   "netcdf4",
   "netcomp@ git+https://github.com/barneydobson/NetComp.git",
   "networkx>=3",
-  "numpy",
+  "numpy<2.0.0",
   "osmnx",
   "pandas",
   "planetary_computer",
@@ -67,15 +67,11 @@ dev = [
 ]
 doc = [
   "mkdocs",
-  "mkdocs-autorefs",
-  "mkdocs-bibtex",
   "mkdocs-coverage",
-  "mkdocs-gen-files",
   "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
-  "pypandoc",
 ]
 
 [tool.mypy]
