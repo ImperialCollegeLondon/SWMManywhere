@@ -227,7 +227,7 @@ class ModelPaths:
                 which case the next number in the bbox directory will be used.
             extension (str): The extension for the files.
         """
-        if not model_number:
+        if model_number is None:
             model_number = next_directory('model', bbox_paths.bbox)
 
         self.base_dir = bbox_paths.bbox
