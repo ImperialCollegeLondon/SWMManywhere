@@ -25,14 +25,15 @@ attrs==23.2.0
     #   referencing
 build==1.2.1
     # via pip-tools
-cads-api-client==1.0.3
+cads-api-client==1.1.0
     # via cdsapi
 cdsapi==0.7.0
     # via swmmanywhere (pyproject.toml)
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   fiona
     #   netcdf4
+    #   pyogrio
     #   pyproj
     #   rasterio
     #   requests
@@ -65,7 +66,7 @@ colorama==0.4.6
     #   loguru
     #   pytest
     #   tqdm
-coverage[toml]==7.5.3
+coverage[toml]==7.5.4
     # via pytest-cov
 cramjam==2.8.3
     # via fastparquet
@@ -75,21 +76,19 @@ distlib==0.3.8
     # via virtualenv
 fastparquet==2024.5.0
     # via swmmanywhere (pyproject.toml)
-filelock==3.14.0
+filelock==3.15.4
     # via
     #   pytest-mypy
     #   virtualenv
 fiona==1.9.6
-    # via
-    #   geopandas
-    #   swmmanywhere (pyproject.toml)
-fsspec==2024.6.0
+    # via swmmanywhere (pyproject.toml)
+fsspec==2024.6.1
     # via fastparquet
 geographiclib==2.0
     # via geopy
 geojson==3.1.0
     # via pysheds
-geopandas==0.14.4
+geopandas==1.0.1
     # via
     #   osmnx
     #   swmmanywhere (pyproject.toml)
@@ -99,17 +98,17 @@ gitdb==4.0.11
     # via gitpython
 gitpython==3.1.43
     # via swmmanywhere (pyproject.toml)
-identify==2.5.36
+identify==2.6.0
     # via pre-commit
 idna==3.7
     # via requests
-imageio==2.34.1
+imageio==2.34.2
     # via scikit-image
 iniconfig==2.0.0
     # via pytest
 joblib==1.4.2
     # via swmmanywhere (pyproject.toml)
-jsonschema==4.22.0
+jsonschema==4.23.0
     # via
     #   pystac
     #   swmmanywhere (pyproject.toml)
@@ -119,19 +118,19 @@ julian==0.14
     # via pyswmm
 lazy-loader==0.4
     # via scikit-image
-llvmlite==0.42.0
+llvmlite==0.43.0
     # via numba
 loguru==0.7.2
     # via swmmanywhere (pyproject.toml)
 multiurl==0.3.1
     # via cads-api-client
-mypy==1.10.0
+mypy==1.10.1
     # via
     #   pytest-mypy
     #   swmmanywhere (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
-netcdf4==1.6.5
+netcdf4==1.7.1.post1
     # via swmmanywhere (pyproject.toml)
 netcomp @ git+https://github.com/barneydobson/NetComp.git
     # via swmmanywhere (pyproject.toml)
@@ -147,7 +146,7 @@ numba==0.60.0
     # via
     #   pyflwdir
     #   pysheds
-numpy==2.0.0
+numpy==1.26.4
     # via
     #   cftime
     #   fastparquet
@@ -160,6 +159,7 @@ numpy==2.0.0
     #   pandas
     #   pyarrow
     #   pyflwdir
+    #   pyogrio
     #   pysheds
     #   rasterio
     #   rioxarray
@@ -179,6 +179,7 @@ packaging==24.1
     #   geopandas
     #   lazy-loader
     #   planetary-computer
+    #   pyogrio
     #   pyswmm
     #   pytest
     #   rioxarray
@@ -192,7 +193,7 @@ pandas==2.2.2
     #   pysheds
     #   swmmanywhere (pyproject.toml)
     #   xarray
-pillow==10.3.0
+pillow==10.4.0
     # via
     #   imageio
     #   scikit-image
@@ -208,14 +209,16 @@ pre-commit==3.7.1
     # via swmmanywhere (pyproject.toml)
 pyarrow==16.1.0
     # via swmmanywhere (pyproject.toml)
-pydantic==2.7.3
+pydantic==2.8.2
     # via
     #   planetary-computer
     #   swmmanywhere (pyproject.toml)
-pydantic-core==2.18.4
+pydantic-core==2.20.1
     # via pydantic
 pyflwdir==0.5.8
     # via swmmanywhere (pyproject.toml)
+pyogrio==0.9.0
+    # via geopandas
 pyparsing==3.1.2
     # via snuggs
 pyproj==3.6.1
@@ -285,17 +288,17 @@ requests==2.32.3
     #   osmnx
     #   planetary-computer
     #   pystac-client
-rioxarray==0.15.5
+rioxarray==0.16.0
     # via swmmanywhere (pyproject.toml)
-rpds-py==0.18.1
+rpds-py==0.19.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.5.0
+ruff==0.5.1
     # via swmmanywhere (pyproject.toml)
-scikit-image==0.23.2
+scikit-image==0.24.0
     # via pysheds
-scipy==1.13.1
+scipy==1.14.0
     # via
     #   netcomp
     #   pyflwdir
@@ -317,7 +320,7 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5
     # via pyswmm
-tifffile==2024.5.22
+tifffile==2024.7.2
     # via scikit-image
 toolz==0.12.1
     # via cytoolz
@@ -334,15 +337,15 @@ typing-extensions==4.12.2
     #   pydantic-core
 tzdata==2024.1
     # via pandas
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
-virtualenv==20.26.2
+virtualenv==20.26.3
     # via pre-commit
 wheel==0.43.0
     # via pip-tools
 win32-setctime==1.1.0
     # via loguru
-xarray==2024.5.0
+xarray==2024.6.0
     # via
     #   rioxarray
     #   swmmanywhere (pyproject.toml)
