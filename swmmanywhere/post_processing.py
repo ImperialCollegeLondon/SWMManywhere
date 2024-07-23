@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
-from swmmanywhere.parameters import FilePaths
 
 
 def synthetic_write(addresses: FilePaths):
@@ -35,9 +35,13 @@ def synthetic_write(addresses: FilePaths):
     """
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
-    nodes = gpd.read_file(addresses.nodes)
-    edges = gpd.read_file(addresses.edges)
-    subs = gpd.read_file(addresses.subcatchments)
+    nodes = gpd.read_file(addresses.model_paths.nodes)
+    edges = gpd.read_file(addresses.model_paths.edges)
+
+    if addresses.model_paths.subcatchments.suffix == '.geoparquet':
+        subs = gpd.read_parquet(addresses.model_paths.subcatchments)
+    else:
+        subs = gpd.read_file(addresses.model_paths.subcatchments)
     subs = subs.loc[subs.id.isin(nodes.id)]
 
     # Extract SWMM relevant data
@@ -101,7 +105,7 @@ def synthetic_write(addresses: FilePaths):
     event = {'name' : '1',
              'unit' : 'mm',
              'interval' : '00:05', # hh:mm
-             'fid' : str(addresses.precipitation)
+             'fid' : str(addresses.bbox_paths.precipitation)
                                  }
 
     # Locate raingage(s) on the map
@@ -123,7 +127,7 @@ def synthetic_write(addresses: FilePaths):
                                     symbol)
     
     # Write new input file
-    data_dict_to_inp(data_dict, existing_input_file, addresses.inp)
+    data_dict_to_inp(data_dict, existing_input_file, addresses.model_paths.inp)
 
 
 def overwrite_section(data: np.ndarray,

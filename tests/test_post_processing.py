@@ -11,8 +11,8 @@ import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
-from swmmanywhere import parameters
 from swmmanywhere import post_processing as stt
+from swmmanywhere.filepaths import FilePaths
 
 fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
           'basic_drainage_all_bits.inp'
@@ -134,30 +134,28 @@ def test_synthetic_write():
     data_dict = generate_data_dict()    
     with tempfile.TemporaryDirectory() as model_dir:
         model_dir = Path(model_dir)
-        addresses = parameters.FilePaths(base_dir = model_dir,
-                                        project_name = 'test',
-                                        bbox_number = 1,
-                                        extension = 'json',
-                                        model_number = 0)
-        addresses.model.mkdir(parents=True, exist_ok=True)
-        addresses.precipitation = 'storm.dat'
+        addresses = FilePaths(base_dir = model_dir,
+                            bbox_bounds = [0,1,0,1],
+                            project_name = 'test',
+                            extension = 'json',
+                            precipitation = 'storm.dat')
         # Write the model with synthetic_write
         nodes = gpd.GeoDataFrame(data_dict['nodes'])
         nodes.geometry = gpd.points_from_xy(nodes.x, nodes.y)
-        nodes.to_file(addresses.nodes)
+        nodes.to_file(addresses.model_paths.nodes)
         nodes = nodes.set_index('id')
         edges = gpd.GeoDataFrame(pd.DataFrame(data_dict['conduits']).iloc[[0]])
         edges.geometry = [sgeom.LineString([nodes.loc[u,'geometry'],
                                             nodes.loc[v,'geometry']]) 
                           for u,v in zip(edges.u, edges.v)]
-        edges.to_file(addresses.edges)
+        edges.to_file(addresses.model_paths.edges)
         subs = data_dict['subs'].copy()
         subs['subcatchment'] = ['node1']
-        subs.to_file(addresses.subcatchments)
+        subs.to_file(addresses.model_paths.subcatchments)
         stt.synthetic_write(addresses)
 
         # Write the model with data_dict_to_inp
-        comparison_file = addresses.model / "model_base.inp"
+        comparison_file = addresses.model_paths.model / "model_base.inp"
         template_fid = Path(__file__).parent.parent / 'swmmanywhere' / 'defs' /\
             'basic_drainage_all_bits.inp'
         
@@ -170,7 +168,7 @@ def test_synthetic_write():
                              comparison_file)
         
         # Compare
-        new_input_file = addresses.inp
+        new_input_file = addresses.model_paths.inp
         are_files_identical = filecmp.cmp(new_input_file,
                                            comparison_file, 
                                            shallow=False)
@@ -188,7 +186,7 @@ def test_synthetic_write():
 
         # Test that it doesn't break there are more outfalls than links
         nodes.loc['new_node'] = nodes.iloc[0].copy()
-        nodes.reset_index().to_file(addresses.nodes)
+        nodes.reset_index().to_file(addresses.model_paths.nodes)
 
         # Check that there will be more outfalls than edges
         assert sum(~nodes.index.astype(str).isin(edges.u.astype(str))) > edges.shape[0]

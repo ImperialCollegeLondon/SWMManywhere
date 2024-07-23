@@ -24,6 +24,7 @@ from tqdm.auto import tqdm
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters, shortest_path_utils
+from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger, verbose
 
 
@@ -162,7 +163,7 @@ def get_osmid_id(data: dict) -> Hashable:
 def iterate_graphfcns(G: nx.Graph, 
                       graphfcn_list: list[str], 
                       params: dict,
-                      addresses: parameters.FilePaths) -> nx.Graph:
+                      addresses: FilePaths) -> nx.Graph:
     """Iterate a list of graph functions over a graph.
 
     Args:
@@ -170,7 +171,7 @@ def iterate_graphfcns(G: nx.Graph,
         graphfcn_list (list[str]): A list of graph functions to iterate.
         params (dict): A dictionary of parameters to pass to the graph
             functions.
-        addresses (parameters.FilePaths): A FilePaths parameter object
+        addresses (FilePaths): A FilePaths parameter object
 
     Returns:
         nx.Graph: The graph after the graph functions have been applied.
@@ -188,12 +189,12 @@ def iterate_graphfcns(G: nx.Graph,
             logger.info(f"graphfcn: {function} completed.")
         
         if verbose():
-            save_graph(G, addresses.model / f"{function}_graph.json")
+            save_graph(G, addresses.model_paths.model / f"{function}_graph.json")
             go.graph_to_geojson(graphfcns.fix_geometries(G),
-                                addresses.model / f"{function}_nodes.geojson",
-                                addresses.model / f"{function}_edges.geojson",
-                                G.graph['crs']
-                                )
+                addresses.model_paths.model / f"{function}_nodes.geojson",
+                addresses.model_paths.model / f"{function}_edges.geojson",
+                G.graph['crs']
+                )
     return G
 
 @register_graphfcn
@@ -319,7 +320,7 @@ class calculate_streetcover(BaseGraphFunction,
     def __call__(self,
                  G: nx.Graph, 
                 subcatchment_derivation: parameters.SubcatchmentDerivation, 
-                addresses: parameters.FilePaths,
+                addresses: FilePaths,
                 **kwargs) -> nx.Graph:
         """Format the lanes attribute of each edge and calculates width.
 
@@ -331,7 +332,7 @@ class calculate_streetcover(BaseGraphFunction,
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.FilePaths): A FilePaths parameter object
+            addresses (FilePaths): A FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -360,10 +361,10 @@ class calculate_streetcover(BaseGraphFunction,
         lines_gdf = gpd.GeoDataFrame(lines_df, 
                                     geometry=lines_df.geometry,
                                         crs = G.graph['crs'])
-        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
-            lines_gdf.to_parquet(addresses.streetcover)
+        if addresses.model_paths.streetcover.suffix in ('.geoparquet','.parquet'):
+            lines_gdf.to_parquet(addresses.model_paths.streetcover)
         else:
-            lines_gdf.to_file(addresses.streetcover, driver='GeoJSON')
+            lines_gdf.to_file(addresses.model_paths.streetcover, driver='GeoJSON')
 
         return G
 
@@ -603,7 +604,7 @@ class clip_to_catchments(BaseGraphFunction,
     """clip_to_catchments class."""
     def __call__(self, 
                  G: nx.Graph,
-                addresses: parameters.FilePaths,
+                addresses: FilePaths,
                 subcatchment_derivation: parameters.SubcatchmentDerivation,
                 **kwargs) -> nx.Graph:
         """Clip the graph to the subcatchments.
@@ -629,7 +630,7 @@ class clip_to_catchments(BaseGraphFunction,
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.FilePaths): A FilePaths parameter object
+            addresses (FilePaths): A FilePaths parameter object
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
             **kwargs: Additional keyword arguments are ignored.
@@ -640,14 +641,14 @@ class clip_to_catchments(BaseGraphFunction,
         G = G.copy()
 
         # Derive subbasins
-        subbasins = go.derive_subbasins_streamorder(addresses.elevation,
+        subbasins = go.derive_subbasins_streamorder(addresses.bbox_paths.elevation,
                         subcatchment_derivation.subbasin_streamorder,
                         x = list(nx.get_node_attributes(G, 'x').values()),
                         y = list(nx.get_node_attributes(G, 'y').values()))
         
         if verbose():
             subbasins.to_file(
-                str(addresses.nodes).replace('nodes','subbasins'), 
+                str(addresses.model_paths.nodes).replace('nodes','subbasins'), 
                 driver='GeoJSON')
 
         # Extract street network
@@ -772,7 +773,7 @@ class calculate_contributing_area(BaseGraphFunction,
     
     def __call__(self, G: nx.Graph, 
                          subcatchment_derivation: parameters.SubcatchmentDerivation,
-                         addresses: parameters.FilePaths,
+                         addresses: FilePaths,
                          **kwargs) -> nx.Graph:
         """Calculate the contributing area for each edge.
         
@@ -780,16 +781,17 @@ class calculate_contributing_area(BaseGraphFunction,
         contributing area is the area of the subcatchment that drains to the
         edge. The contributing area is calculated from the elevation data. 
         Runoff coefficient (RC) for each contributing area is also calculated, 
-        the RC is calculated using `addresses.buildings` and 
-        `addresses.streetcover`.        
+        the RC is calculated using `addresses.bbox_paths.buildings` and 
+        `addresses.model_paths.streetcover`.        
 
-        Also writes the file 'subcatchments.geojson' to addresses.subcatchments.
+        Also writes the file 'subcatchments.geojson' to 
+        addresses.model_paths.subcatchments.
 
         Args:
             G (nx.Graph): A graph
             subcatchment_derivation (parameters.SubcatchmentDerivation): A
                 SubcatchmentDerivation parameter object
-            addresses (parameters.FilePaths): An FilePaths parameter object
+            addresses (FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -804,29 +806,32 @@ class calculate_contributing_area(BaseGraphFunction,
             temp_fid = Path(temp_dir) / "carved.tif"
             go.burn_shape_in_raster([d['geometry'] for u,v,d in G.edges(data=True)],
                     subcatchment_derivation.carve_depth,
-                    addresses.elevation,
+                    addresses.bbox_paths.elevation,
                     temp_fid)
             
             # Derive
             subs_gdf = go.derive_subcatchments(G,temp_fid)
             if verbose():
-                subs_gdf.to_file(addresses.subcatchments, driver='GeoJSON')
+                subs_gdf.to_file(addresses.model_paths.subcatchments, driver='GeoJSON')
 
         # Calculate runoff coefficient (RC)
-        if addresses.building.suffix in ('.geoparquet','.parquet'):
-            buildings = gpd.read_parquet(addresses.building)
+        if addresses.bbox_paths.building.suffix in ('.geoparquet','.parquet'):
+            buildings = gpd.read_parquet(addresses.bbox_paths.building)
         else:
-            buildings = gpd.read_file(addresses.building)
-        if addresses.streetcover.suffix in ('.geoparquet','.parquet'):
-            streetcover = gpd.read_parquet(addresses.streetcover)
+            buildings = gpd.read_file(addresses.bbox_paths.building)
+        if addresses.model_paths.streetcover.suffix in ('.geoparquet','.parquet'):
+            streetcover = gpd.read_parquet(addresses.model_paths.streetcover)
         else:
-            streetcover = gpd.read_file(addresses.streetcover)
+            streetcover = gpd.read_file(addresses.model_paths.streetcover)
 
         subs_rc = go.derive_rc(subs_gdf, buildings, streetcover)
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs
-        subs_rc.to_file(addresses.subcatchments, driver='GeoJSON')
+        if addresses.model_paths.subcatchments.suffix in ('.geoparquet','.parquet'):
+            subs_rc.to_parquet(addresses.model_paths.subcatchments)
+        else:
+            subs_rc.to_file(addresses.model_paths.subcatchments, driver='GeoJSON')
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index('id').impervious_area.to_dict()
@@ -850,7 +855,7 @@ class set_elevation(BaseGraphFunction,
     """set_elevation class."""
     
     def __call__(self, G: nx.Graph, 
-                  addresses: parameters.FilePaths,
+                  addresses: FilePaths,
                   **kwargs) -> nx.Graph:
         """Set the elevation for each node.
 
@@ -859,7 +864,7 @@ class set_elevation(BaseGraphFunction,
 
         Args:
             G (nx.Graph): A graph
-            addresses (parameters.FilePaths): An FilePaths parameter object
+            addresses (FilePaths): An FilePaths parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -870,7 +875,7 @@ class set_elevation(BaseGraphFunction,
         y = [d['y'] for x, d in G.nodes(data=True)]
         elevations = go.interpolate_points_on_raster(x, 
                                                     y, 
-                                                    addresses.elevation)
+                                                    addresses.bbox_paths.elevation)
         elevations_dict = {id_: elev for id_, elev in zip(G.nodes, elevations)}
         nx.set_node_attributes(G, elevations_dict, 'surface_elevation')
         return G
