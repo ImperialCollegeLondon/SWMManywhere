@@ -4,7 +4,9 @@ theme:
   name: "material"
   palette:
     primary: 'cyan'
-  
+  icon:
+    repo: fontawesome/brands/github
+
 extra_css:
   - stylesheets/extra.css
 
@@ -16,7 +18,10 @@ plugins:
   - coverage:
       page_name: coverage  # default
       html_report_dir: htmlcov  # default
-        
+  - include-markdown
+
+repo_url: https://github.com/ImperialCollegeLondon/SWMManywhere
+
 markdown_extensions:
   - footnotes
   - pymdownx.arithmatex:
@@ -30,6 +35,8 @@ extra_javascript:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Guides:
+    - Configuration guide: config_guide.md
   - Contributing: CONTRIBUTING.md
   - API reference:
     - SWMManywhere: reference.md
@@ -40,4 +47,5 @@ nav:
     - Parameters: reference-parameters.md
     - Post processing: reference-post-processing.md
     - Preprocessing: reference-preprocessing.md
+    - Config definitions: reference-defs.md
   - Coverage report: coverage.md
