@@ -112,7 +112,7 @@ file, and a `graph` file (see
 [`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph)
 for format) must be provided - however this is temporary and will be unnecessary
 following the fixing of
-[this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
+[this].
 The user can then provide either an `inp` path to the SWMM `.inp`
 model file, or if the file has already been run, directly to the `results` file. If
 a `results` file is provided this will always be used for metric calculation. If
