@@ -62,7 +62,8 @@ def test_swmmanywhere():
         config['parameter_overrides'] = {'subcatchment_derivation' : 
                                          {'subbasin_streamorder' : 5}}
         config['run_settings']['duration'] = 1000
-        
+        config['model_number'] = 0
+
         # Fill the real dict with unused paths to avoid filevalidation errors
         config['real']['subcatchments'] = str(defs_dir / 'storm.dat')
         config['real']['inp'] = str(defs_dir / 'storm.dat')
@@ -76,9 +77,9 @@ def test_swmmanywhere():
         config = swmmanywhere.load_config(base_dir / 'test_config.yml')
 
         # Set the test config to just use the generated data
-        model_dir = base_dir / 'demo' / 'bbox_1' / 'model_1'
+        model_dir = base_dir / 'demo' / 'bbox_1' / 'model_0'
         config['real']['subcatchments'] = model_dir / 'subcatchments.geoparquet'
-        config['real']['inp'] = model_dir / 'model_1.inp'
+        config['real']['inp'] = model_dir / 'model_0.inp'
         config['real']['graph'] = model_dir / 'graph.parquet'
 
         # Run swmmanywhere
