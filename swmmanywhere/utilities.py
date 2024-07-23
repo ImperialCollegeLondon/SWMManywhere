@@ -17,22 +17,21 @@ else:
     Node = Any
     SafeDumper = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
 
-yaml_load = functools.partial(
-    yaml.load, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader)
-)
-
+yaml_load = functools.partial(yaml.load, 
+                              Loader=getattr(yaml, "CSafeLoader", 
+                                             yaml.SafeLoader))
 
 class PathDumper(SafeDumper):
     """A dumper that can represent pathlib.Path objects as strings."""
-
-    def represent_data(self, data: Any) -> Node:
+    def represent_data(self, data: Any)-> Node:
         """Represent data."""
         if isinstance(data, Path):
-            return self.represent_scalar("tag:yaml.org,2002:str", str(data))
+            return self.represent_scalar('tag:yaml.org,2002:str', str(data))
         return super().represent_data(data)
 
-
-def yaml_dump(o: Any, stream: Any = None, **kwargs: Any) -> str:
+def yaml_dump(o: Any,
+              stream: Any = None,
+              **kwargs: Any) -> str:
     """Dump YAML.
 
     Notes:

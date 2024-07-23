@@ -22,7 +22,9 @@ def test_logger():
     logger.warning("This is a warning message.")
     logger.error("This is an error message.")
     logger.critical("This is a critical message.")
-    with NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+    with NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:
         fid = Path(temp_file.name)
         logger.add(fid)
         logger.test_logger()
@@ -31,10 +33,11 @@ def test_logger():
     fid.unlink()
     os.environ["SWMMANYWHERE_VERBOSE"] = "false"
 
-
-def test_logger_disable():
+def test_logger_disable():    
     """Test the disable function."""
-    with NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+    with NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:
         fid = Path(temp_file.name)
         os.environ["SWMMANYWHERE_VERBOSE"] = "false"
         logger.add(fid)
@@ -43,12 +46,12 @@ def test_logger_disable():
         logger.remove()
     fid.unlink()
 
-
 def test_logger_reimport():
     """Reimport logger to check that changes from disable are persistent."""
     from swmmanywhere.logging import logger
-
-    with NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+    with NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:    
         fid = Path(temp_file.name)
         logger.add(fid)
         logger.test_logger()
@@ -56,11 +59,12 @@ def test_logger_reimport():
         logger.remove()
     fid.unlink()
 
-
 def test_logger_again():
     """Test the logger after these changes to make sure still works."""
     os.environ["SWMMANYWHERE_VERBOSE"] = "true"
-    with NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+    with NamedTemporaryFile(suffix='.log',
+                            mode = 'w+b',
+                            delete=False) as temp_file:    
         fid = Path(temp_file.name)
         logger.add(fid)
         logger.test_logger()
@@ -68,7 +72,6 @@ def test_logger_again():
         logger.remove()
     fid.unlink()
     os.environ["SWMMANYWHERE_VERBOSE"] = "false"
-
 
 def test_verbose():
     """Test the verbose function."""
