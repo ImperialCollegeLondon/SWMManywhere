@@ -78,7 +78,8 @@ def test_to_yaml_normal_with_overrides():
                                 'test',
                                 [0,1,0,1],
                                 elevation=dummy_file,
-                                inp = dummy_file)
+                                inp = dummy_file,
+                                new_file = dummy_file)
         
         # Model number override
         addresses.model_paths.model_number = 2
@@ -98,4 +99,4 @@ def test_to_yaml_normal_with_overrides():
             for key in keys:
                 assert getattr(getattr(addresses, cat),key) == \
                     getattr(getattr(addresses_, cat),key)
-                
+        assert addresses_.get_path('new_file') == dummy_file

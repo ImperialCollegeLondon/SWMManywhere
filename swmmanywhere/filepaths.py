@@ -42,7 +42,7 @@ def check_bboxes(bbox: tuple[float, float, float, float],
         int: Bounding box number if the coordinates match, else False.
     """
     # Find all bounding_box_info.json files
-    info_fids = list(data_dir.glob("*/*bounding_box_info.json"))
+    info_fids = data_dir.glob("*/*bounding_box_info.json")
 
     # Iterate over info files
     for info_fid in info_fids:
@@ -94,18 +94,20 @@ class ProjectPaths:
     def __init__(self, 
                  base_dir: Path, 
                  project_name: str, 
-                 extension: str = 'parquet'):
+                 extension: str = 'parquet',
+                 **kwargs):
         """Initialise the project paths.
         
         Args:
             base_dir (Path): The base directory.
             project_name (str): The name of the project.
             extension (str): The extension for the files.
+            **kwargs: Additional file paths to override.
         """
         self.project_name = project_name
         self.extension = extension
         self.base_dir = base_dir
-        self.overrides: dict[str, Path] = {}
+        self.overrides: dict[str, Path] = get_overrides(ProjectPaths,kwargs)
 
         self.project.mkdir(exist_ok=True)
         self.national.mkdir(exist_ok=True)
@@ -113,19 +115,19 @@ class ProjectPaths:
     @property
     def project(self):
         """The project folder (sits in the base_dir)."""
-        return (self.overrides.get('project') or
+        return self.overrides.get('project',
          self.base_dir / self.project_name)
 
     @property
     def national(self):
         """The national folder (for national scale downloads)."""
-        return (self.overrides.get('national') or
+        return self.overrides.get('national',
          self.project / "national")
 
     @property
     def national_building(self):
         """The national scale building file."""
-        return (self.overrides.get('national_building') or
+        return self.overrides.get('national_building',
          self.national / f"building.{self.extension}")
 
 
@@ -136,7 +138,8 @@ class BBoxPaths:
                  project_paths: ProjectPaths, 
                  bbox_bounds: tuple[float, float, float, float],
                  bbox_number: int | None = None, 
-                 extension: str = 'parquet'):
+                 extension: str = 'parquet',
+                 **kwargs):
         """Initialise the bounding box paths.
 
         Args:
@@ -149,6 +152,7 @@ class BBoxPaths:
                 be used.
             extension (str, optional): The extension for the files. Defaults to
                 'parquet'.
+            **kwargs: Additional file paths to override.
         """
         if not bbox_number:
             bbox_number = get_next_bbox_number(bbox_bounds, project_paths.project)
@@ -157,7 +161,7 @@ class BBoxPaths:
         self.bbox_number = bbox_number
         self.extension = extension
         self.bbox_bounds = bbox_bounds
-        self.overrides: dict[str, Path] = {}
+        self.overrides: dict[str, Path] = get_overrides(BBoxPaths,kwargs)
 
         self.bbox.mkdir(exist_ok=True)
         self.download.mkdir(exist_ok=True)
@@ -173,43 +177,43 @@ class BBoxPaths:
     @property
     def bbox(self):
         """The bounding box folder (specific to a bounding box)."""
-        return (self.overrides.get('bbox') or
+        return self.overrides.get('bbox',
          self.base_dir / f"bbox_{self.bbox_number}")
 
     @property
     def download(self):
         """The download folder (for bbox specific downloaded data)."""
-        return (self.overrides.get('download') or
+        return self.overrides.get('download',
          self.bbox / "download")
 
     @property
     def river(self):
         """The river graph for the bounding box."""
-        return (self.overrides.get('river') or
+        return self.overrides.get('river',
          self.download / f"river.{self.extension}")
 
     @property
     def street(self):
         """The street graph for the bounding box."""
-        return (self.overrides.get('street') or
+        return self.overrides.get('street',
          self.download / f"street.{self.extension}")
 
     @property
     def elevation(self):
         """The elevation file for the bounding box."""
-        return (self.overrides.get('elevation') or
+        return self.overrides.get('elevation',
          self.download / "elevation.tif")
 
     @property
     def building(self):
         """The building file for the bounding box (clipped from national scale)."""
-        return (self.overrides.get('building') or
+        return self.overrides.get('building',
          self.download / f"building.geo{self.extension}")
 
     @property
     def precipitation(self):
         """The precipitation data."""
-        return (self.overrides.get('precipitation') or
+        return self.overrides.get('precipitation',
          self.download / f"precipitation.{self.extension}")
 
 class ModelPaths:
@@ -218,7 +222,8 @@ class ModelPaths:
     def __init__(self, 
                  bbox_paths: BBoxPaths, 
                  model_number: int | None = None,
-                 extension: str = 'parquet'):
+                 extension: str = 'parquet',
+                 **kwargs):
         """Initialise the model paths.
 
         Args:
@@ -226,6 +231,7 @@ class ModelPaths:
             model_number (int, None): The model number. Defaults to None, in
                 which case the next number in the bbox directory will be used.
             extension (str): The extension for the files.
+            **kwargs: Additional file paths to override.
         """
         if model_number is None:
             model_number = next_directory('model', bbox_paths.bbox)
@@ -233,50 +239,50 @@ class ModelPaths:
         self.base_dir = bbox_paths.bbox
         self.model_number = model_number
         self.extension = extension
-        self.overrides: dict[str, Path] = {}
+        self.overrides: dict[str, Path] = get_overrides(ModelPaths,kwargs)
 
         self.model.mkdir(exist_ok=True)
 
     @property
     def model(self):
         """The model folder (one specific synthesised model)."""
-        return (self.overrides.get('model') or
+        return self.overrides.get('model',
          self.base_dir / f"model_{self.model_number}")
 
     @property
     def inp(self):
         """The synthesised SWMM input file for the model."""
-        return (self.overrides.get('inp') or
+        return self.overrides.get('inp',
          self.model / f"model_{self.model_number}.inp")
 
     @property
     def subcatchments(self):
         """The subcatchments file for the model."""
-        return (self.overrides.get('subcatchments') or
+        return self.overrides.get('subcatchments',
          self.model / f"subcatchments.geo{self.extension}")
 
     @property
     def graph(self):
         """The graph file for the model."""
-        return (self.overrides.get('graph') or
+        return self.overrides.get('graph',
          self.model / f"graph.{self.extension}")
 
     @property
     def nodes(self):
         """The nodes file for the model."""
-        return (self.overrides.get('nodes') or
+        return self.overrides.get('nodes',
          self.model / f"nodes.geo{self.extension}")
 
     @property
     def edges(self):
         """The edges file for the model."""
-        return (self.overrides.get('edges') or
+        return self.overrides.get('edges',
          self.model / f"edges.geo{self.extension}")
 
     @property
     def streetcover(self):
         """The street cover file for the model."""
-        return (self.overrides.get('streetcover') or
+        return self.overrides.get('streetcover',
          self.model / f"streetcover.geo{self.extension}")
 
 def filepaths_from_yaml(f: Path):
@@ -322,18 +328,16 @@ class FilePaths:
             kwargs[p] = value
 
         # Create project paths and apply overrides
-        self.project_paths = ProjectPaths(base_dir, project_name, extension)
-        self.project_paths.overrides = get_overrides(ProjectPaths, kwargs)
-
+        self.project_paths = ProjectPaths(base_dir, project_name, extension, **kwargs)
+        
         # Create bbox paths and apply overrides
         self.bbox_paths = BBoxPaths(self.project_paths, 
-                                    bbox_bounds, bbox_number, extension)
-        self.bbox_paths.overrides = get_overrides(BBoxPaths, kwargs)
+                                    bbox_bounds, bbox_number, extension, **kwargs)
         
         # Create model paths and apply overrides
-        self.model_paths = ModelPaths(self.bbox_paths, model_number, extension)
-        self.model_paths.overrides = get_overrides(ModelPaths, kwargs)
-
+        self.model_paths = ModelPaths(self.bbox_paths, 
+                                      model_number, extension, **kwargs)
+        
         self._overrides = kwargs
             
     def to_yaml(self, f: Path):
