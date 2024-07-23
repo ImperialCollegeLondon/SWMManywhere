@@ -8,9 +8,9 @@ from typing import Hashable
 import networkx as nx
 
 
-def tarjans_pq(G: nx.MultiDiGraph, 
-                 root: int | str,
-                 weight_attr: str = 'weight') -> nx.MultiDiGraph:
+def tarjans_pq(
+    G: nx.MultiDiGraph, root: int | str, weight_attr: str = "weight"
+) -> nx.MultiDiGraph:
     """Tarjan's algorithm for a directed minimum spanning tree.
 
     Also known as a minimum spanning arborescence, this algorithm finds the
@@ -29,8 +29,8 @@ def tarjans_pq(G: nx.MultiDiGraph,
     """
     # Copy the graph and relabel the nodes
     G_ = G.copy()
-    new_nodes = {node:i for i,node in enumerate(G.nodes)}
-    node_mapping = {i:node for i,node in enumerate(G.nodes)}
+    new_nodes = {node: i for i, node in enumerate(G.nodes)}
+    node_mapping = {i: node for i, node in enumerate(G.nodes)}
     G_ = nx.relabel_nodes(G_, new_nodes)
 
     # Extract the new root label, edges and weights
@@ -61,13 +61,13 @@ def tarjans_pq(G: nx.MultiDiGraph,
             parent[u] = v
             mst_edges.append((u, v))
             mst_weight += weight
-            
+
             if v in outlets:
                 outlets[u] = outlets[v]
 
-            elif G_.get_edge_data(u,v)[0]['edge_type'] == 'outlet':
+            elif G_.get_edge_data(u, v)[0]["edge_type"] == "outlet":
                 outlets[u] = node_mapping[u]
-            
+
             # Add incoming edges to v to the priority queue
             for w, weight_new in graph[u]:
                 heapq.heappush(in_edge_pq, (weight_new, w, u))
@@ -77,22 +77,23 @@ def tarjans_pq(G: nx.MultiDiGraph,
         raise ValueError("Graph is not connected or has multiple roots.")
 
     new_graph = nx.MultiDiGraph()
-    
-    for u,v in mst_edges:
-        d= G_.get_edge_data(u,v)[0]
-        new_graph.add_edge(u,v,**d)
-    
+
+    for u, v in mst_edges:
+        d = G_.get_edge_data(u, v)[0]
+        new_graph.add_edge(u, v, **d)
+
     for u, d in G_.nodes(data=True):
         new_graph.nodes[u].update(d)
 
-    nx.set_node_attributes(new_graph, outlets, 'outlet')
+    nx.set_node_attributes(new_graph, outlets, "outlet")
     new_graph = nx.relabel_nodes(new_graph, node_mapping)
     new_graph.graph = G.graph.copy()
     return new_graph
 
-def dijkstra_pq(G: nx.MultiDiGraph, 
-                outlets: list,
-                weight_attr: str = 'weight') -> nx.MultiDiGraph:
+
+def dijkstra_pq(
+    G: nx.MultiDiGraph, outlets: list, weight_attr: str = "weight"
+) -> nx.MultiDiGraph:
     """Dijkstra's algorithm for shortest paths to outlets.
 
     This function calculates the shortest paths from each node in the graph to
@@ -110,10 +111,10 @@ def dijkstra_pq(G: nx.MultiDiGraph,
     """
     G = G.copy()
     # Initialize the dictionary with infinity for all nodes
-    shortest_paths = {node: float('inf') for node in G.nodes}
+    shortest_paths = {node: float("inf") for node in G.nodes}
 
     # Initialize the dictionary to store the paths
-    paths: dict[Hashable,list] = {node: [] for node in G.nodes}
+    paths: dict[Hashable, list] = {node: [] for node in G.nodes}
 
     # Set the shortest path length to 0 for outlets
     for outlet in outlets:
@@ -134,14 +135,14 @@ def dijkstra_pq(G: nx.MultiDiGraph,
 
             if alt_dist >= shortest_paths[neighbor]:
                 continue
-            
+
             # Update the shortest path length
             shortest_paths[neighbor] = alt_dist
             # Update the path
             paths[neighbor] = paths[node] + [neighbor]
             # Push the neighbor to the heap
             heapq.heappush(heap, (alt_dist, neighbor))
-    
+
     # Remove nodes with no path to an outlet
     for node in [node for node, path in paths.items() if not path]:
         G.remove_node(node)
@@ -156,16 +157,16 @@ def dijkstra_pq(G: nx.MultiDiGraph,
         # Assign outlet
         outlet = path[0]
         for node in path:
-            G.nodes[node]['outlet'] = outlet
-            G.nodes[node]['shortest_path'] = shortest_paths[node]
+            G.nodes[node]["outlet"] = outlet
+            G.nodes[node]["shortest_path"] = shortest_paths[node]
 
         # Store path
         edges_to_keep.update(zip(path[1:], path[:-1]))
-        
+
     # Remove edges not on paths
     new_graph = G.copy()
-    for u,v in G.edges():
-        if (u,v) not in edges_to_keep:
-            new_graph.remove_edge(u,v)
+    for u, v in G.edges():
+        if (u, v) not in edges_to_keep:
+            new_graph.remove_edge(u, v)
 
     return new_graph
