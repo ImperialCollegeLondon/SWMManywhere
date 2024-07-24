@@ -33,17 +33,20 @@ from tqdm.auto import tqdm
 
 from swmmanywhere.logging import logger, verbose
 
-os.environ['NUMBA_NUM_THREADS'] = '1'
+os.environ["NUMBA_NUM_THREADS"] = "1"
 import pyflwdir  # noqa: E402
 import pysheds  # noqa: E402
 from pysheds import grid as pgrid  # noqa: E402
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
-def get_utm_epsg(x: float, 
-                y: float, 
-                crs: str | int | pyproj.CRS = 'EPSG:4326', 
-                datum_name: str = "WGS 84") -> str:
+
+def get_utm_epsg(
+    x: float,
+    y: float,
+    crs: str | int | pyproj.CRS = "EPSG:4326",
+    datum_name: str = "WGS 84",
+) -> str:
     """Get the UTM CRS code for a given coordinate.
 
     Note, this function is taken from GeoPandas and modified to use
@@ -52,13 +55,13 @@ def get_utm_epsg(x: float,
     Args:
         x (float): Longitude in crs
         y (float): Latitude in crs
-        crs (str | int | pyproj.CRS, optional): The CRS of the input 
+        crs (str | int | pyproj.CRS, optional): The CRS of the input
             coordinates. Defaults to 'EPSG:4326'.
         datum_name (str, optional): The datum name to use for the UTM CRS
 
     Returns:
         str: Formatted EPSG code for the UTM zone.
-    
+
     Example:
         >>> get_utm_epsg(-0.1276, 51.5074)
         'EPSG:32630'
@@ -90,15 +93,17 @@ def get_utm_epsg(x: float,
     return f"{utm_crs_list[0].auth_name}:{utm_crs_list[0].code}"
 
 
-def interp_with_nans(xy: tuple[float,float], 
-                interp: RegularGridInterpolator, 
-                grid: np.ndarray, 
-                values: list[float]) -> float:
+def interp_with_nans(
+    xy: tuple[float, float],
+    interp: RegularGridInterpolator,
+    grid: np.ndarray,
+    values: list[float],
+) -> float:
     """Wrap the interpolation function to handle NaNs.
 
     Picks the nearest non NaN grid point if the interpolated value is NaN,
     otherwise returns the interpolated value.
-    
+
     Args:
         xy (tuple): Coordinate of interest
         interp (RegularGridInterpolator): The interpolator object.
@@ -123,19 +128,20 @@ def interp_with_nans(xy: tuple[float,float],
                 return values[index]
     else:
         return val
-    
+
     raise ValueError("No non NaN values found in grid.")
 
-def interpolate_points_on_raster(x: list[float], 
-                                 y: list[float], 
-                                 elevation_fid: Path) -> list[float ]:
+
+def interpolate_points_on_raster(
+    x: list[float], y: list[float], elevation_fid: Path
+) -> list[float]:
     """Interpolate points on a raster.
 
     Args:
         x (list): X coordinates.
         y (list): Y coordinates.
         elevation_fid (Path): Filepath to elevation raster.
-        
+
     Returns:
         elevation (float): Elevation at point.
     """
@@ -154,40 +160,44 @@ def interpolate_points_on_raster(x: list[float],
         values = data.ravel()
 
         # Define interpolator
-        interp = RegularGridInterpolator((y_grid,x_grid), 
-                                        np.flipud(data), 
-                                        method='linear', 
-                                        bounds_error=False, 
-                                        fill_value=None)
+        interp = RegularGridInterpolator(
+            (y_grid, x_grid),
+            np.flipud(data),
+            method="linear",
+            bounds_error=False,
+            fill_value=None,
+        )
         # Interpolate for x,y
-        return [interp_with_nans((y_, x_), interp, grid, values) for x_, y_ in zip(x,y)]
-    
-def reproject_raster(target_crs: str, 
-                     fid: Path, 
-                     new_fid: Optional[Path] = None) -> None:
+        return [
+            interp_with_nans((y_, x_), interp, grid, values) for x_, y_ in zip(x, y)
+        ]
+
+
+def reproject_raster(
+    target_crs: str, fid: Path, new_fid: Optional[Path] = None
+) -> None:
     """Reproject a raster to a new CRS.
 
     Args:
         target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
         fid (Path): Filepath to the raster to reproject.
-        new_fid (Path, optional): Filepath to save the reprojected raster. 
+        new_fid (Path, optional): Filepath to save the reprojected raster.
             Defaults to None, which will just use fid with '_reprojected'.
     """
-     # Open the raster
+    # Open the raster
     with rioxarray.open_rasterio(fid) as raster:
-
         # Reproject the raster
         reprojected = raster.rio.reproject(target_crs)
 
         # Define the output filepath
         if new_fid is None:
-            new_fid = Path(str(fid.with_suffix('')) + '_reprojected.tif')
+            new_fid = Path(str(fid.with_suffix("")) + "_reprojected.tif")
 
         # Save the reprojected raster
         reprojected.rio.to_raster(new_fid)
 
-def get_transformer(source_crs: str, 
-                    target_crs: str) -> pyproj.Transformer:
+
+def get_transformer(source_crs: str, target_crs: str) -> pyproj.Transformer:
     """Get a transformer object for reprojection.
 
     Args:
@@ -196,20 +206,17 @@ def get_transformer(source_crs: str,
 
     Returns:
         pyproj.Transformer: Transformer object for reprojection.
-    
+
     Example:
         >>> transformer = get_transformer('EPSG:4326', 'EPSG:32630')
         >>> x, y = transformer.transform(-0.1276, 51.5074)
         >>> print(f"{x:.6f}, {y:.6f}")
         699330.110690, 5710164.303007
     """
-    return pyproj.Transformer.from_crs(source_crs, 
-                                       target_crs, 
-                                       always_xy=True)
+    return pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
 
-def reproject_df(df: pd.DataFrame, 
-                 source_crs: str, 
-                 target_crs: str) -> pd.DataFrame:
+
+def reproject_df(df: pd.DataFrame, source_crs: str, target_crs: str) -> pd.DataFrame:
     """Reproject the coordinates in a DataFrame.
 
     Args:
@@ -218,17 +225,16 @@ def reproject_df(df: pd.DataFrame,
         target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
     """
     # Function to transform coordinates
-    pts = gpd.points_from_xy(df["longitude"], 
-                             df["latitude"], 
-                             crs=source_crs).to_crs(target_crs)
+    pts = gpd.points_from_xy(df["longitude"], df["latitude"], crs=source_crs).to_crs(
+        target_crs
+    )
     df = df.copy()
-    df['x'] = pts.x
-    df['y'] = pts.y
+    df["x"] = pts.x
+    df["y"] = pts.y
     return df
 
-def reproject_graph(G: nx.Graph, 
-                    source_crs: str, 
-                    target_crs: str) -> nx.Graph:
+
+def reproject_graph(G: nx.Graph, source_crs: str, target_crs: str) -> nx.Graph:
     """Reproject the coordinates in a graph.
 
     osmnx.projection.project_graph might be suitable if some other behaviour
@@ -239,7 +245,7 @@ def reproject_graph(G: nx.Graph,
         G (nx.Graph): Graph with nodes containing 'x' and 'y' properties.
         source_crs (str): Source CRS in EPSG format (e.g., EPSG:4326).
         target_crs (str): Target CRS in EPSG format (e.g., EPSG:32630).
-    
+
     Returns:
         nx.Graph: Graph with nodes containing 'x' and 'y' properties.
     """
@@ -251,73 +257,75 @@ def reproject_graph(G: nx.Graph,
 
     # Convert and add nodes with 'x', 'y' properties
     for node, data in G_new.nodes(data=True):
-        x, y = transformer.transform(data['x'], data['y'])
-        data['x'] = x
-        data['y'] = y
+        x, y = transformer.transform(data["x"], data["y"])
+        data["x"] = x
+        data["y"] = y
 
     # Convert and add edges with 'geometry' property
     for u, v, data in G_new.edges(data=True):
-        if 'geometry' in data.keys():
-            data['geometry'] = sgeom.LineString(
-                itertools.starmap(transformer.transform,
-                                  data['geometry'].coords))
+        if "geometry" in data.keys():
+            data["geometry"] = sgeom.LineString(
+                itertools.starmap(transformer.transform, data["geometry"].coords)
+            )
         else:
-            data['geometry'] = sgeom.LineString([[G_new.nodes[u]['x'],
-                                        G_new.nodes[u]['y']],
-                                       [G_new.nodes[v]['x'],
-                                        G_new.nodes[v]['y']]])
-    G_new.graph['crs'] = target_crs
+            data["geometry"] = sgeom.LineString(
+                [
+                    [G_new.nodes[u]["x"], G_new.nodes[u]["y"]],
+                    [G_new.nodes[v]["x"], G_new.nodes[v]["y"]],
+                ]
+            )
+    G_new.graph["crs"] = target_crs
     return G_new
 
 
-def nearest_node_buffer(points1: dict[str, sgeom.Point], 
-                        points2: dict[str, sgeom.Point], 
-                        threshold: float) -> dict:
+def nearest_node_buffer(
+    points1: dict[str, sgeom.Point], points2: dict[str, sgeom.Point], threshold: float
+) -> dict:
     """Find the nearest node within a given buffer threshold.
 
     Args:
-        points1 (dict): A dictionary where keys are labels and values are 
+        points1 (dict): A dictionary where keys are labels and values are
             Shapely points geometries.
-        points2 (dict): A dictionary where keys are labels and values are 
+        points2 (dict): A dictionary where keys are labels and values are
             Shapely points geometries.
-        threshold (float): The maximum distance for a node to be considered 
-            'nearest'. If no nodes are within this distance, the node is not 
+        threshold (float): The maximum distance for a node to be considered
+            'nearest'. If no nodes are within this distance, the node is not
             included in the output.
 
     Returns:
-        dict: A dictionary where keys are labels from points1 and values are 
+        dict: A dictionary where keys are labels from points1 and values are
             labels from points2 of the nearest nodes within the threshold.
     """
     if not points1 or not points2:
         return {}
-    
+
     # Convert the keys of points2 to a list
     labels2 = list(points2.keys())
-    
+
     # Create a spatial index
     tree = STRtree(list(points2.values()))
-    
+
     # Initialize an empty dictionary to store the matching nodes
     matching = {}
-    
+
     # Iterate over points1
     for key, geom in points1.items():
         # Find the nearest node in the spatial index to the current geometry
         nearest = tree.nearest(geom)
         nearest_geom = points2[labels2[nearest]]
-        
-        # If the nearest node is within the threshold, add it to the 
+
+        # If the nearest node is within the threshold, add it to the
         # matching dictionary
         if geom.buffer(threshold).intersects(nearest_geom):
             matching[key] = labels2[nearest]
-    
+
     # Return the matching dictionary
     return matching
 
-def burn_shape_in_raster(geoms: list[sgeom.LineString], 
-          depth: float,
-          raster_fid: Path, 
-          new_raster_fid: Path) -> None:
+
+def burn_shape_in_raster(
+    geoms: list[sgeom.LineString], depth: float, raster_fid: Path, new_raster_fid: Path
+) -> None:
     """Burn a depth into a raster along a list of shapely geometries.
 
     Args:
@@ -334,29 +342,35 @@ def burn_shape_in_raster(geoms: list[sgeom.LineString],
         bool_mask = np.zeros(data.shape, dtype=bool)
         for geom in geoms:
             # Create a mask for the line
-            mask = features.geometry_mask([sgeom.mapping(geom)], 
-                                        out_shape=src.shape, 
-                                        transform=src.transform, 
-                                        invert=True)
+            mask = features.geometry_mask(
+                [sgeom.mapping(geom)],
+                out_shape=src.shape,
+                transform=src.transform,
+                invert=True,
+            )
             # modify masked data
             bool_mask[mask] = True  # Adjust this multiplier as needed
-        #modify data
+        # modify data
         data[bool_mask & data_mask] -= depth
         # Create a new GeoTIFF with modified values
-        with rst.open(new_raster_fid, 
-                      'w', 
-                      driver='GTiff', 
-                      height=src.height, 
-                      width=src.width, 
-                      count=1,
-                      dtype=data.dtype, 
-                      crs=src.crs, 
-                      transform=src.transform, 
-                      nodata = src.nodata) as dest:
+        with rst.open(
+            new_raster_fid,
+            "w",
+            driver="GTiff",
+            height=src.height,
+            width=src.width,
+            count=1,
+            dtype=data.dtype,
+            crs=src.crs,
+            transform=src.transform,
+            nodata=src.nodata,
+        ) as dest:
             dest.write(data, 1)
 
-def condition_dem(grid: pysheds.sgrid.sGrid, 
-                  dem: pysheds.sview.Raster) -> pysheds.sview.Raster:
+
+def condition_dem(
+    grid: pysheds.sgrid.sGrid, dem: pysheds.sview.Raster
+) -> pysheds.sview.Raster:
     """Condition a DEM with pysheds.
 
     Args:
@@ -373,9 +387,10 @@ def condition_dem(grid: pysheds.sgrid.sGrid,
 
     return inflated_dem
 
-def compute_flow_directions(grid: pysheds.sgrid.sGrid, 
-                            inflated_dem: pysheds.sview.Raster) \
-                            -> tuple[pysheds.sview.Raster, tuple]:
+
+def compute_flow_directions(
+    grid: pysheds.sgrid.sGrid, inflated_dem: pysheds.sview.Raster
+) -> tuple[pysheds.sview.Raster, tuple]:
     """Compute flow directions.
 
     Args:
@@ -390,9 +405,10 @@ def compute_flow_directions(grid: pysheds.sgrid.sGrid,
     flow_dir = grid.flowdir(inflated_dem, dirmap=dirmap)
     return flow_dir, dirmap
 
-def calculate_flow_accumulation(grid: pysheds.sgrid.sGrid, 
-                                flow_dir: pysheds.sview.Raster, 
-                                dirmap: tuple) -> pysheds.sview.Raster:
+
+def calculate_flow_accumulation(
+    grid: pysheds.sgrid.sGrid, flow_dir: pysheds.sview.Raster, dirmap: tuple
+) -> pysheds.sview.Raster:
     """Calculate flow accumulation.
 
     Args:
@@ -406,11 +422,14 @@ def calculate_flow_accumulation(grid: pysheds.sgrid.sGrid,
     flow_acc = grid.accumulation(flow_dir, dirmap=dirmap)
     return flow_acc
 
-def delineate_catchment(grid: pysheds.sgrid.sGrid,
-                        flow_acc: pysheds.sview.Raster,
-                        flow_dir: pysheds.sview.Raster,
-                        dirmap: tuple,
-                        G: nx.Graph) -> gpd.GeoDataFrame:
+
+def delineate_catchment(
+    grid: pysheds.sgrid.sGrid,
+    flow_acc: pysheds.sview.Raster,
+    flow_dir: pysheds.sview.Raster,
+    dirmap: tuple,
+    G: nx.Graph,
+) -> gpd.GeoDataFrame:
     """Delineate catchments.
 
     Args:
@@ -419,45 +438,46 @@ def delineate_catchment(grid: pysheds.sgrid.sGrid,
         flow_dir (pysheds.sview.Raster): Flow directions.
         dirmap (tuple): Direction mapping.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
-    
+
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', and 'id'. Sorted by area in descending order.
     """
     polys = []
     # Iterate over the nodes in the graph
-    for id, data in tqdm(G.nodes(data=True), 
-                         total=len(G.nodes),
-                         disable = not verbose()):
+    for id, data in tqdm(G.nodes(data=True), total=len(G.nodes), disable=not verbose()):
         # Snap the node to the nearest grid cell
-        x, y = data['x'], data['y']
+        x, y = data["x"], data["y"]
         grid_ = deepcopy(grid)
         x_snap, y_snap = grid_.snap_to_mask(flow_acc >= 0, (x, y))
-        
+
         # Delineate the catchment
-        catch = grid_.catchment(x=x_snap, 
-                                y=y_snap, 
-                                fdir=flow_dir, 
-                                dirmap=dirmap, 
-                                xytype='coordinate',
-                                algorithm = 'recursive'
-                                )
-        # n.b. recursive algorithm is not recommended, but crashes with a seg 
+        catch = grid_.catchment(
+            x=x_snap,
+            y=y_snap,
+            fdir=flow_dir,
+            dirmap=dirmap,
+            xytype="coordinate",
+            algorithm="recursive",
+        )
+        # n.b. recursive algorithm is not recommended, but crashes with a seg
         # fault occasionally otherwise.
 
         grid_.clip_to(catch)
 
         # Polygonize the catchment
         shapes = grid_.polygonize()
-        catchment_polygon = sops.unary_union([sgeom.shape(shape) for shape, 
-                                              value in shapes])
-        
+        catchment_polygon = sops.unary_union(
+            [sgeom.shape(shape) for shape, value in shapes]
+        )
+
         # Add the catchment to the list
-        polys.append({'id': id, 
-                      'geometry': catchment_polygon,
-                      'area': catchment_polygon.area})
+        polys.append(
+            {"id": id, "geometry": catchment_polygon, "area": catchment_polygon.area}
+        )
     polys.sort(key=operator.itemgetter("area"), reverse=True)
-    return gpd.GeoDataFrame(polys, crs = grid.crs)
+    return gpd.GeoDataFrame(polys, crs=grid.crs)
+
 
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Remove intersections from a GeoDataFrame of polygons.
@@ -467,58 +487,58 @@ def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     from the larger ones.
 
     Args:
-        polys (gpd.GeoDataFrame): A GeoDataFrame containing polygons with 
+        polys (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
             columns: 'geometry', 'area', and 'id'.
 
     Returns:
-        gpd.GeoDataFrame: A GeoDataFrame containing polygons with no 
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with no
             intersections.
     """
     result_polygons = polys.copy()
-    
+
     # Sort the polygons by area (smallest first)
     result_polygons = (
         result_polygons.assign(area=result_polygons.geometry.area)
-        .sort_values('area', ascending=True)
+        .sort_values("area", ascending=True)
         .reset_index(drop=True)
     )
 
     # Store the area of 'trimmed' polygons into a combined geometry, starting
     # with the smallest area polygon
-    minimal_geom = result_polygons.iloc[0]['geometry']
-    for idx, row in tqdm(result_polygons.iloc[1:].iterrows(), 
-                         total=result_polygons.shape[0] - 1,
-                         disable = not verbose()):
-        
+    minimal_geom = result_polygons.iloc[0]["geometry"]
+    for idx, row in tqdm(
+        result_polygons.iloc[1:].iterrows(),
+        total=result_polygons.shape[0] - 1,
+        disable=not verbose(),
+    ):
         # Trim the polygon by the combined geometry
-        result_polygons.at[idx, 'geometry'] = row['geometry'].difference(
-            minimal_geom)
+        result_polygons.at[idx, "geometry"] = row["geometry"].difference(minimal_geom)
 
         # Update the combined geometry with the new polygon
-        minimal_geom = minimal_geom.union(row['geometry'])
-    
+        minimal_geom = minimal_geom.union(row["geometry"])
+
     # Sort the polygons by area (largest first) - this is just to conform to
     # the unit test and is not strictly essential
-    result_polygons = (
-        result_polygons.sort_values('area', ascending=False)
-        .drop('area', axis=1)
+    result_polygons = result_polygons.sort_values("area", ascending=False).drop(
+        "area", axis=1
     )
 
     return result_polygons
 
-def remove_zero_area_subareas(mp: sgeom.MultiPolygon,
-                              removed_subareas: List[sgeom.Polygon]) \
-                                -> sgeom.MultiPolygon:
+
+def remove_zero_area_subareas(
+    mp: sgeom.MultiPolygon, removed_subareas: List[sgeom.Polygon]
+) -> sgeom.MultiPolygon:
     """Remove subareas with zero area from a multipolygon.
 
     Args:
         mp (sgeom.MultiPolygon): A multipolygon.
         removed_subareas (List[sgeom.Polygon]): A list of removed subareas.
-    
+
     Returns:
         sgeom.MultiPolygon: A multipolygon with zero area subareas removed.
     """
-    if not hasattr(mp, 'geoms'):
+    if not hasattr(mp, "geoms"):
         return mp
 
     largest = max(mp.geoms, key=lambda x: x.area)
@@ -526,17 +546,18 @@ def remove_zero_area_subareas(mp: sgeom.MultiPolygon,
     removed_subareas.extend(removed)
     return largest
 
-def attach_unconnected_subareas(polys_gdf: gpd.GeoDataFrame, 
-                                unconnected_subareas: List[sgeom.Polygon]) \
-                                    -> gpd.GeoDataFrame:
+
+def attach_unconnected_subareas(
+    polys_gdf: gpd.GeoDataFrame, unconnected_subareas: List[sgeom.Polygon]
+) -> gpd.GeoDataFrame:
     """Attach unconnected subareas to the nearest polygon.
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
-            columns: 'geometry', 'area', and 'id'. 
-        unconnected_subareas (List[sgeom.Polygon]): A list of subareas that are 
+            columns: 'geometry', 'area', and 'id'.
+        unconnected_subareas (List[sgeom.Polygon]): A list of subareas that are
             not attached to others.
-    
+
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons.
     """
@@ -544,44 +565,47 @@ def attach_unconnected_subareas(polys_gdf: gpd.GeoDataFrame,
     for subarea in unconnected_subareas:
         nearest_poly = tree.nearest(subarea)
         ind = polys_gdf.index[nearest_poly]
-        new_poly = polys_gdf.loc[ind, 'geometry'].union(subarea)
-        if hasattr(new_poly, 'geoms'):
+        new_poly = polys_gdf.loc[ind, "geometry"].union(subarea)
+        if hasattr(new_poly, "geoms"):
             new_poly = max(new_poly.geoms, key=lambda x: x.area)
-        polys_gdf.at[ind, 'geometry'] = new_poly
+        polys_gdf.at[ind, "geometry"] = new_poly
     return polys_gdf
 
-def calculate_slope(polys_gdf: gpd.GeoDataFrame, 
-                    grid: pysheds.sgrid.sGrid, 
-                    cell_slopes: np.ndarray) -> gpd.GeoDataFrame:
+
+def calculate_slope(
+    polys_gdf: gpd.GeoDataFrame, grid: pysheds.sgrid.sGrid, cell_slopes: np.ndarray
+) -> gpd.GeoDataFrame:
     """Calculate the average slope of each polygon.
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
-            columns: 'geometry', 'area', and 'id'. 
+            columns: 'geometry', 'area', and 'id'.
         grid (pysheds.sgrid.sGrid): The grid object.
         cell_slopes (np.ndarray): The slopes of each cell in the grid.
-    
+
     Returns:
-        gpd.GeoDataFrame: A GeoDataFrame containing polygons with an added 
+        gpd.GeoDataFrame: A GeoDataFrame containing polygons with an added
             'slope' column.
     """
-    polys_gdf['slope'] = None
+    polys_gdf["slope"] = None
     for idx, row in polys_gdf.iterrows():
-        mask = features.geometry_mask([row.geometry], 
-                                      grid.shape, 
-                                      grid.affine, 
-                                      invert=True)
+        mask = features.geometry_mask(
+            [row.geometry], grid.shape, grid.affine, invert=True
+        )
         average_slope = cell_slopes[mask].mean().mean()
-        polys_gdf.loc[idx, 'slope'] = max(float(average_slope), 0)
+        polys_gdf.loc[idx, "slope"] = max(float(average_slope), 0)
     return polys_gdf
 
-def vectorize(data: np.ndarray, 
-              nodata: float, 
-              transform: rst.Affine, 
-              crs: int, 
-              name: str = "value")->gpd.GeoDataFrame:
+
+def vectorize(
+    data: np.ndarray,
+    nodata: float,
+    transform: rst.Affine,
+    crs: int,
+    name: str = "value",
+) -> gpd.GeoDataFrame:
     """Vectorize raster data into a geodataframe.
-    
+
     Args:
         data (np.ndarray): The raster data.
         nodata (float): The nodata value.
@@ -607,9 +631,10 @@ def vectorize(data: np.ndarray,
     gdf[name] = gdf[name].astype(data.dtype)
     return gdf
 
-def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
-                        flow_dir: pysheds.sview.Raster,
-                        G: nx.Graph) -> gpd.GeoDataFrame:
+
+def delineate_catchment_pyflwdir(
+    grid: pysheds.sgrid.sGrid, flow_dir: pysheds.sview.Raster, G: nx.Graph
+) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Uses the pyflwdir catchment delineation functionality. About a magnitude
@@ -619,38 +644,41 @@ def delineate_catchment_pyflwdir(grid: pysheds.sgrid.sGrid,
         grid (pysheds.sgrid.Grid): The grid object.
         flow_dir (pysheds.sview.Raster): Flow directions.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
-    
+
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
     flw = pyflwdir.from_array(
-            flow_dir,
-            ftype = 'd8',
-            check_ftype = False,
-            transform = grid.affine,
-        )
+        flow_dir,
+        ftype="d8",
+        check_ftype=False,
+        transform=grid.affine,
+    )
     bbox = sgeom.box(*grid.bbox)
-    u, x, y = zip(*[(u, float(p['x']), float(p['y'])) for u, p in G.nodes(data=True)
-                 if sgeom.Point(p['x'], p['y']).within(bbox)])
+    u, x, y = zip(
+        *[
+            (u, float(p["x"]), float(p["y"]))
+            for u, p in G.nodes(data=True)
+            if sgeom.Point(p["x"], p["y"]).within(bbox)
+        ]
+    )
 
     subbasins = flw.basins(xy=(x, y))
-    gdf_bas = vectorize(subbasins.astype(np.int32), 
-                        0, 
-                        flw.transform, 
-                        G.graph['crs'], 
-                        name="basin")
-    gdf_bas['id'] = [u[x-1] for x in gdf_bas['basin']]
+    gdf_bas = vectorize(
+        subbasins.astype(np.int32), 0, flw.transform, G.graph["crs"], name="basin"
+    )
+    gdf_bas["id"] = [u[x - 1] for x in gdf_bas["basin"]]
     return gdf_bas
 
-def derive_subbasins_streamorder(fid: Path,
-                                 streamorder: int | None = None,
-                                 x: list[float] = [],
-                                 y: list[float] = []) -> gpd.GeoDataFrame:
+
+def derive_subbasins_streamorder(
+    fid: Path, streamorder: int | None = None, x: list[float] = [], y: list[float] = []
+) -> gpd.GeoDataFrame:
     """Derive subbasins.
 
-    Use the pyflwdir snap function to find the most downstream points in each 
-    subbasin. If streamorder is provided it will use that instead, although 
+    Use the pyflwdir snap function to find the most downstream points in each
+    subbasin. If streamorder is provided it will use that instead, although
     defaulting to snap if there are no cells of the correct streamorder.
 
     Args:
@@ -666,50 +694,54 @@ def derive_subbasins_streamorder(fid: Path,
     grid, flow_dir, _, _ = load_and_process_dem(fid)
 
     flw = pyflwdir.from_array(
-            flow_dir,
-            ftype = 'd8',
-            check_ftype = False,
-            transform = grid.affine,
-        )
-    xy = [(x_,y_) for x_, y_ in zip(x,y) 
-        if (x_ > grid.bbox[0]) and (x_ < grid.bbox[2]) 
-        and (y_ > grid.bbox[1]) and (y_ < grid.bbox[3])]
+        flow_dir,
+        ftype="d8",
+        check_ftype=False,
+        transform=grid.affine,
+    )
+    xy = [
+        (x_, y_)
+        for x_, y_ in zip(x, y)
+        if (x_ > grid.bbox[0])
+        and (x_ < grid.bbox[2])
+        and (y_ > grid.bbox[1])
+        and (y_ < grid.bbox[3])
+    ]
 
     idxs, _ = flw.snap(xy=list(zip(*xy)))
     subbasins = flw.basins(idxs=np.unique(idxs))
-    
+
     if streamorder is not None:
         # Identify stream order
         subbasins_, _ = flw.subbasins_streamorder(min_sto=streamorder)
-    
+
         if np.unique(subbasins_).shape[0] == 1:
-            logger.warning("""No subbasins found in `derive_subbasins_streamorder`. 
+            logger.warning(
+                """No subbasins found in `derive_subbasins_streamorder`. 
                     Instead subbasins have been selected based on the most downstream 
                     points. But you should inspect `subbasins` and probably check your 
-                    DEM.""")
+                    DEM."""
+            )
         else:
             subbasins = subbasins_
 
-    gdf_bas = vectorize(subbasins.astype(np.int32),
-                            0,
-                            flw.transform,
-                            grid.crs,
-                            name="basin")
-    
-    return gdf_bas
-    
+    gdf_bas = vectorize(
+        subbasins.astype(np.int32), 0, flw.transform, grid.crs, name="basin"
+    )
 
-def load_and_process_dem(fid: Path) -> tuple[pysheds.sgrid.sGrid,
-                                                  pysheds.sview.Raster,
-                                                    tuple,
-                                                  pysheds.sview.Raster]:
+    return gdf_bas
+
+
+def load_and_process_dem(
+    fid: Path,
+) -> tuple[pysheds.sgrid.sGrid, pysheds.sview.Raster, tuple, pysheds.sview.Raster]:
     """Load and condition a DEM.
 
     Args:
         fid (Path): Filepath to the DEM.
 
     Returns:
-        tuple: A tuple containing the grid, flow directions, direction mapping, 
+        tuple: A tuple containing the grid, flow directions, direction mapping,
             and cell slopes.
     """
     # Initialise pysheds grids
@@ -719,37 +751,36 @@ def load_and_process_dem(fid: Path) -> tuple[pysheds.sgrid.sGrid,
     # Condition the DEM
     inflated_dem = condition_dem(grid, dem)
 
-     # Compute flow directions
+    # Compute flow directions
     flow_dir, dirmap = compute_flow_directions(grid, inflated_dem)
 
     # Calculate slopes
     cell_slopes = grid.cell_slopes(dem, flow_dir)
-    
+
     return grid, flow_dir, dirmap, cell_slopes
 
-def derive_subcatchments(G: nx.Graph, 
-                         fid: Path, 
-                         method = 'pyflwdir') -> gpd.GeoDataFrame:
+
+def derive_subcatchments(G: nx.Graph, fid: Path, method="pyflwdir") -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Args:
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
         fid (Path): Filepath to the DEM.
-        method (str, optional): The method to use for delineating catchments. 
-            Defaults to 'pyflwdir'. Can also be `pysheds` to use the old 
+        method (str, optional): The method to use for delineating catchments.
+            Defaults to 'pyflwdir'. Can also be `pysheds` to use the old
             method.
-    
+
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
-    if method not in ['pyflwdir', 'pysheds']:
+    if method not in ["pyflwdir", "pysheds"]:
         raise ValueError("Invalid method. Must be 'pyflwdir' or 'pysheds'.")
-    
+
     # Load and process the DEM
     grid, flow_dir, dirmap, cell_slopes = load_and_process_dem(fid)
 
-    if method == 'pysheds':
+    if method == "pysheds":
         # Calculate flow accumulations
         flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
 
@@ -759,31 +790,37 @@ def derive_subcatchments(G: nx.Graph,
         # Remove intersections
         result_polygons = remove_intersections(polys)
 
-    elif method == 'pyflwdir':
+    elif method == "pyflwdir":
         # Delineate catchments
-        result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)   
+        result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)
 
     # Convert to GeoDataFrame
-    polys_gdf = result_polygons.dropna(subset=['geometry'])
-    polys_gdf = polys_gdf[~polys_gdf['geometry'].is_empty]
+    polys_gdf = result_polygons.dropna(subset=["geometry"])
+    polys_gdf = polys_gdf[~polys_gdf["geometry"].is_empty]
 
     # Remove zero area subareas and attach to nearest polygon
-    removed_subareas: List[sgeom.Polygon] = [] # needed for mypy
-    def remove_(mp): return remove_zero_area_subareas(mp, removed_subareas)
-    polys_gdf['geometry'] = polys_gdf['geometry'].apply(remove_)
+    removed_subareas: List[sgeom.Polygon] = []  # needed for mypy
+
+    def remove_(mp):
+        return remove_zero_area_subareas(mp, removed_subareas)
+
+    polys_gdf["geometry"] = polys_gdf["geometry"].apply(remove_)
     polys_gdf = attach_unconnected_subareas(polys_gdf, removed_subareas)
 
     # Calculate area and slope
-    polys_gdf['area'] = polys_gdf.geometry.area
+    polys_gdf["area"] = polys_gdf.geometry.area
     polys_gdf = calculate_slope(polys_gdf, grid, cell_slopes)
 
     # Calculate width
-    polys_gdf['width'] = polys_gdf['area'].div(np.pi).pow(0.5)
+    polys_gdf["width"] = polys_gdf["area"].div(np.pi).pow(0.5)
     return polys_gdf
 
-def derive_rc(subcatchments: gpd.GeoDataFrame,
-              building_footprints: gpd.GeoDataFrame,
-              streetcover: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+
+def derive_rc(
+    subcatchments: gpd.GeoDataFrame,
+    building_footprints: gpd.GeoDataFrame,
+    streetcover: gpd.GeoDataFrame,
+) -> gpd.GeoDataFrame:
     """Derive the Runoff Coefficient (RC) of each subcatchment.
 
     The runoff coefficient is the ratio of impervious area to total area. The
@@ -793,8 +830,8 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
 
     Args:
         subcatchments (gpd.GeoDataFrame): A GeoDataFrame containing polygons that
-            represent subcatchments with columns: 'geometry', 'area', and 'id'. 
-        building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing 
+            represent subcatchments with columns: 'geometry', 'area', and 'id'.
+        building_footprints (gpd.GeoDataFrame): A GeoDataFrame containing
             building footprints with a 'geometry' column.
         streetcover (gpd.GeoDataFrame): A GeoDataFrame containing street cover
             with a 'geometry' column.
@@ -809,12 +846,10 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     # Map buffered streets and buildings to subcatchments
     subcat_tree = subcatchments.sindex
     impervious = gpd.GeoDataFrame(
-        pd.concat([building_footprints[['geometry']], 
-                   streetcover[['geometry']]]),
-        crs = building_footprints.crs
+        pd.concat([building_footprints[["geometry"]], streetcover[["geometry"]]]),
+        crs=building_footprints.crs,
     )
-    bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry,
-                                         predicate='intersects')
+    bf_pidx, sb_pidx = subcat_tree.query(impervious.geometry, predicate="intersects")
     sb_idx = subcatchments.iloc[sb_pidx].index
 
     # Calculate impervious area and runoff coefficient (rc)
@@ -822,19 +857,21 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
 
     # Calculate all intersection-impervious geometries
     intersection_area = shapely.intersection(
-                subcatchments.iloc[sb_pidx].geometry.to_numpy(), 
-                impervious.iloc[bf_pidx].geometry.to_numpy())
-    
-    # Indicate which catchment each intersection is part of 
-    intersections = pd.DataFrame([{'sb_idx': ix,
-                                  'impervious_geometry': ia}
-                                  for ix, ia in zip(sb_idx, intersection_area)]
-                                  )
-    
+        subcatchments.iloc[sb_pidx].geometry.to_numpy(),
+        impervious.iloc[bf_pidx].geometry.to_numpy(),
+    )
+
+    # Indicate which catchment each intersection is part of
+    intersections = pd.DataFrame(
+        [
+            {"sb_idx": ix, "impervious_geometry": ia}
+            for ix, ia in zip(sb_idx, intersection_area)
+        ]
+    )
+
     # Aggregate by catchment
     areas = (
-        intersections
-        .groupby('sb_idx')
+        intersections.groupby("sb_idx")
         .apply(shapely.ops.unary_union)
         .apply(shapely.area)
     )
@@ -842,16 +879,20 @@ def derive_rc(subcatchments: gpd.GeoDataFrame,
     # Store as impervious area in subcatchments
     subcatchments["impervious_area"] = 0.0
     subcatchments.loc[areas.index, "impervious_area"] = areas
-    subcatchments["rc"] = subcatchments["impervious_area"] / \
-        subcatchments.geometry.area * 100
+    subcatchments["rc"] = (
+        subcatchments["impervious_area"] / subcatchments.geometry.area * 100
+    )
     return subcatchments
 
-def calculate_angle(point1: tuple[float,float], 
-                    point2: tuple[float,float],
-                    point3: tuple[float,float]) -> float:
+
+def calculate_angle(
+    point1: tuple[float, float],
+    point2: tuple[float, float],
+    point3: tuple[float, float],
+) -> float:
     """Calculate the angle between three points.
 
-    Calculate the angle between the vectors formed by (point1, 
+    Calculate the angle between the vectors formed by (point1,
     point2) and (point2, point3)
 
     Args:
@@ -866,12 +907,12 @@ def calculate_angle(point1: tuple[float,float],
     vector2 = (point3[0] - point2[0], point3[1] - point2[1])
 
     dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
-    magnitude1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
-    magnitude2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+    magnitude1 = math.sqrt(vector1[0] ** 2 + vector1[1] ** 2)
+    magnitude2 = math.sqrt(vector2[0] ** 2 + vector2[1] ** 2)
 
     if magnitude1 * magnitude2 == 0:
         # Avoid division by zero
-        return float('inf')
+        return float("inf")
 
     cosine_angle = dot_product / (magnitude1 * magnitude2)
 
@@ -886,6 +927,7 @@ def calculate_angle(point1: tuple[float,float],
 
     return angle_degrees
 
+
 def nodes_to_features(G: nx.Graph):
     """Convert a graph to a GeoJSON node feature collection.
 
@@ -898,12 +940,13 @@ def nodes_to_features(G: nx.Graph):
     features = []
     for node, data in G.nodes(data=True):
         feature = {
-            'type': 'Feature',
-            'geometry': sgeom.mapping(sgeom.Point(data['x'], data['y'])),
-            'properties': {'id': node, **data}
+            "type": "Feature",
+            "geometry": sgeom.mapping(sgeom.Point(data["x"], data["y"])),
+            "properties": {"id": node, **data},
         }
         features.append(feature)
     return features
+
 
 def edges_to_features(G: nx.Graph):
     """Convert a graph to a GeoJSON edge feature collection.
@@ -916,23 +959,21 @@ def edges_to_features(G: nx.Graph):
     """
     features = []
     for u, v, data in G.edges(data=True):
-        if 'geometry' not in data:
+        if "geometry" not in data:
             geom = None
-        else: 
-            geom = sgeom.mapping(data['geometry'])
-            del data['geometry']
+        else:
+            geom = sgeom.mapping(data["geometry"])
+            del data["geometry"]
         feature = {
-            'type': 'Feature',
-            'geometry': geom,
-            'properties': {'u': u, 'v': v, **data}
+            "type": "Feature",
+            "geometry": geom,
+            "properties": {"u": u, "v": v, **data},
         }
         features.append(feature)
     return features
 
-def graph_to_geojson(graph: nx.Graph, 
-                     fid_nodes: Path, 
-                     fid_edges: Path,
-                     crs: str):
+
+def graph_to_geojson(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, crs: str):
     """Write a graph to a GeoJSON file.
 
     Args:
@@ -944,31 +985,30 @@ def graph_to_geojson(graph: nx.Graph,
     graph = graph.copy()
     nodes = nodes_to_features(graph)
     edges = edges_to_features(graph)
-    
-    for iterable, fid in zip([nodes, edges], 
-                             [fid_nodes, fid_edges]):
-        geojson = {
-            'type': 'FeatureCollection',
-            'features' : iterable,
-            'crs' : {
-                'type': 'name',
-                'properties': {
-                    'name': "urn:ogc:def:crs:{0}".format(crs.replace(':', '::'))
-                }
-            }
-            }
 
-        with fid.open('w') as output_file:
+    for iterable, fid in zip([nodes, edges], [fid_nodes, fid_edges]):
+        geojson = {
+            "type": "FeatureCollection",
+            "features": iterable,
+            "crs": {
+                "type": "name",
+                "properties": {
+                    "name": "urn:ogc:def:crs:{0}".format(crs.replace(":", "::"))
+                },
+            },
+        }
+
+        with fid.open("w") as output_file:
             json.dump(geojson, output_file, indent=2)
 
-def merge_points(coordinates: list[tuple[float, float]], 
-                 threshold: float)-> dict:
+
+def merge_points(coordinates: list[tuple[float, float]], threshold: float) -> dict:
     """Merge points that are within a threshold distance.
 
     Args:
         coordinates (list): List of coordinates as tuples.
         threshold(float): The threshold distance for merging points.
-    
+
     Returns:
         dict: A dictionary mapping the original point index to the merged point
             and new coordinate.
@@ -981,15 +1021,16 @@ def merge_points(coordinates: list[tuple[float, float]],
     families: list = []
 
     for pair in pairs:
-        matched_families = [family for family in families 
-                            if pair[0] in family or pair[1] in family]
-        
+        matched_families = [
+            family for family in families if pair[0] in family or pair[1] in family
+        ]
+
         if matched_families:
             # Merge all matched families and add the current pair
             new_family = set(pair)
             for family in matched_families:
                 new_family.update(family)
-            
+
             # Remove the old families and add the newly formed one
             for family in matched_families:
                 families.remove(family)
@@ -1004,6 +1045,5 @@ def merge_points(coordinates: list[tuple[float, float]],
         average_point = np.mean([coordinates[i] for i in family], axis=0)
         family_head = min(list(family))
         for i in family:
-            mapping[i] = {'maps_to' : family_head, 
-                          'coordinate' : tuple(average_point)}
+            mapping[i] = {"maps_to": family_head, "coordinate": tuple(average_point)}
     return mapping
