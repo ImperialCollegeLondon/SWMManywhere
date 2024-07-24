@@ -1,0 +1,3 @@
+# Graph functions guide
+
+A graph function is...

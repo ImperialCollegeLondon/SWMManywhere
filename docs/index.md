@@ -9,6 +9,7 @@ derive a synthetic urban drainage network anywhere in the world.
 - [Quickstart](quickstart.md)
 - Guides:
     - [Configuration file](config_guide.md)
+    - [Graph functions](graphfcns_guide.md)
 - [Contributing](CONTRIBUTING.md)
 - [API reference](reference-overview.md)
     - [SWMManywhere](reference.md)

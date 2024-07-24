@@ -36,7 +36,8 @@ nav:
   - Home: index.md
   - Quickstart: quickstart.md
   - Guides:
-    - Configuration guide: config_guide.md
+    - Configuration file: config_guide.md
+    - Graph functions: graphfcns_guide.md
   - Contributing: CONTRIBUTING.md
   - API reference:
     - SWMManywhere: reference.md
