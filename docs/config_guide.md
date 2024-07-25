@@ -60,7 +60,7 @@ in SWMManywhere. You can read more about them [here], but a primary feature of
 the `config` file is to provide a `graphfcn_list`. By default `graphfcn_list` is
 selected from [`demo_config.yml`](reference-defs.md#demo-configuration-file).
 Although we believe that the default list makes sense, you may instead provide
-your own `graphfcn_list`, this is essential if you plan to [add a `graphfcn`].
+your own `graphfcn_list`, this is essential if you plan to [add a `graphfcn`](graphfcns_guide.md#add-a-new-graph-function).
 
 Sometimes, it doesn't matter how clever your functionality is, because your
 initial graph is missing something, in which case you will need to...
