@@ -23,10 +23,10 @@ that is simply a wrapper for
       show_root_toc_entry: false
 
 We can see that this graph function is a class that can be called with a graph
-and returns a graph. Note that the class has been registered into the `graphfcn`
-with `@register_graphfcn`.
+and returns a graph. Note that the class has been registered with
+`@register_graphfcn`.
 
-### Registering graph functions
+### Registered graph functions
 
 The `GraphFunctionRegistry` is a dictionary called `graphfcns` that contains all
 registered graph functions to be called from one place.
