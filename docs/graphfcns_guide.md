@@ -154,3 +154,14 @@ which specify what, if any, parameters are added to the graph by the graph
 function.
 
 ## Add a new graph function
+
+Adding a custom graph function can be done by changing the following template,
+
+### Write the graph function
+
+```python
+{%
+    include-markdown "../tests/test_data/custom_graphfcn.py"
+    comments=false
+%}
+```
