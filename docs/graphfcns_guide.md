@@ -61,13 +61,13 @@ takes `**kwargs`, which are ignored.
 
 While this graph function does not require any information that is not contained
 within the graph, most require parameters or file path information to be completed.
-A graph function can receive any number of parameter categories or a `FilePaths`
-object, which we will briefly explain below.
+A graph function can receive a `FilePaths` object or any number of parameter
+categories, which we will briefly explain below.
 A full explanation of these is outside scope of this guide, but for now you can
 view the [`parameters`](reference-parameters.md) and
 [`FilePaths`](reference-filepaths.md) APIs.
 
-We will change parameter values with this
+We can see an example of using a parameter category with this
 [graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.remove_non_pipe_allowable_links):
 
 :::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
@@ -81,7 +81,7 @@ We will change parameter values with this
 
 We can see that `remove_non_pipe_allowable_links` uses the `omit_edges` parameter,
 which is contained in the `parameters.TopologyDerivation` object that
-the graph function takes as an argument. Although we recommend exploring parameter
+the graph function takes as an argument. Although we recommend changing parameter
 values in SWMManywhere with the [configuration file](config_guide.md#changing-parameters)
 we will give an example below explain how a parameter can be changed 'manually'
 to better understand what is happening at the graph function level.
@@ -114,15 +114,15 @@ For example:
 ```python
 >>> from swmmanywhere.examples.data import demo_graph as G
 >>> from swmmanywhere.graph_utilities import iterate_graphfcns
->>> print(len(G.nodes))
-24
->>> G = iterate_graphfcns(G, ["assign_id", "merge_street_nodes"])
->>> print(len(G.nodes))
-23
+>>> print(len(G.edges))
+22
+>>> G = iterate_graphfcns(G, ["assign_id", "remove_non_pipe_allowable_links"])
+>>> print(len(G.edges))
+20
 ```
 
 We have applied a list of two graph functions to the graph `G`, which has made
-some changes (in this case checking the edge `id` and merging some nodes).
+some changes (in this case checking the edge `id` and removing links as above).
 
 In the [configuration file](config_guide.md#customise-graphfcns) we can specify
 the list of graph functions to be applied as a `graphfcn_list`.
@@ -130,7 +130,7 @@ the list of graph functions to be applied as a `graphfcn_list`.
 ### Validating graph functions
 
 Furthermore, this `graphfcn_list` also provides opportunities for validation.
-For example, see
+For example, see the
 [following graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.set_surface_slope):
 
 :::swmmanywhere.graph_utilities.set_surface_slope
@@ -150,18 +150,70 @@ does not guarantee that the graph function will behave as intended, if it is
 not provided then the graph function is guaranteed to fail. To check the
 feasibility of a set of graph functions a-priori, the parameter
 `adds_edge_attributes` (not shown above but see also `adds_node_attributes`),
-which specify what, if any, parameters are added to the graph by the graph
-function.
+can be used to specify what, if any, parameters are added to the graph by the
+graph function.
 
 ## Add a new graph function
 
-Adding a custom graph function can be done by changing the following template,
+Adding a custom graph function can be done by creating a graph function in the
+appropriate style, see below for example to create a new graph function and then
+specifying to use it with the [`config` file](config_guide.md).
 
 ### Write the graph function
 
+You create a new module that can contain multiple graph functions. See below
+as a template of that module.
+
 ```python
 {%
-    include-markdown "../tests/test_data/custom_graphfcn.py"
+    include-markdown "../tests/test_data/custom_graphfcns.py"
     comments=false
 %}
 ```
+
+### Adjust config file
+
+We will add the required lines to the
+[minimum viable config](config_guide.md#minimum-viable-configuration) template.
+
+```yml
+{%
+    include-markdown "snippets/minimum_viable_template.yml"
+    comments=false
+%}
+custom_graphfcn_modules: /path/to/custom_graphfcns.py
+graphfcn_list: 
+  - assign_id
+  - fix_geometries
+  - remove_non_pipe_allowable_links
+  - calculate_streetcover
+  - remove_parallel_edges
+  - to_undirected
+  - split_long_edges
+  - merge_street_nodes
+  - assign_id
+  - clip_to_catchments
+  - calculate_contributing_area
+  - set_elevation
+  - double_directed
+  - fix_geometries
+  - set_surface_slope
+  - set_chahinian_slope
+  - set_chahinian_angle
+  - calculate_weights
+  - identify_outlets
+  - derive_topology
+  - pipe_by_pipe
+  - fix_geometries
+  - assign_id
+  - new_graphfcn
+```
+
+We can see that we now provide the `graphfcn_list` with `new_graphfcn` in the
+list. This list (except for `new_graphfcn`) is reproduced from the
+[`demo_config.yml`](reference-defs.md#demo-configuration-file). Any number of
+new graph functions can be inserted at any points in the `graphfcn_list`.
+
+And we provide
+the path to the `custom_graphfcns.py` module that contains our `new_graphfcn`
+under the `custom_graphfcn_module` entry.
