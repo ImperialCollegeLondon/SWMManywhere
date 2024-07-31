@@ -37,6 +37,7 @@ nav:
   - Quickstart: quickstart.md
   - Guides:
     - Configuration guide: config_guide.md
+    - Metrics guide: metrics_guide.md
   - Contributing: CONTRIBUTING.md
   - API reference:
     - SWMManywhere: reference.md
