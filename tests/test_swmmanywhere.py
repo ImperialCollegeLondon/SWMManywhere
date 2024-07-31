@@ -186,40 +186,23 @@ def test_custom_graphfcn():
     """Test adding a custom graphfcn."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Load the config
-        test_data_dir = Path(__file__).parent / "test_data"
-        defs_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
-        with (defs_dir / "demo_config.yml").open("r") as f:
-            config = yaml.safe_load(f)
+        gf_module = str(Path(__file__).parent / "test_data" / "custom_graphfcns.py")
 
-        config["custom_graphfcn_modules"] = [str(test_data_dir / "custom_graphfcns.py")]
+        config = swmmanywhere.load_config(validation=False)
+        config["custom_graphfcn_modules"] = [str(gf_module)]
         config["graphfcn_list"].append("new_function")
 
         # Set some test values
-        base_dir = Path(temp_dir)
-        config["base_dir"] = str(base_dir)
-        config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
-        config["address_overrides"] = {
-            "building": str(test_data_dir / "building.geoparquet"),
-            "precipitation": str(defs_dir / "storm.dat"),
-        }
-        config["parameter_overrides"] = {
-            "subcatchment_derivation": {"subbasin_streamorder": 5}
-        }
-        config["run_settings"]["duration"] = 1000
-
-        config["model_number"] = 0
-
-        # Fill the real dict with unused paths to avoid filevalidation errors
-        config["real"]["subcatchments"] = str(defs_dir / "storm.dat")
-        config["real"]["inp"] = str(defs_dir / "storm.dat")
-        config["real"]["graph"] = str(defs_dir / "storm.dat")
+        config_address = Path(temp_dir) / "test_config.yml"
+        config["base_dir"] = temp_dir
+        config["bbox"] = [0, 1, 0, 1]
+        del config["real"]
 
         # Write the config
-        with open(base_dir / "test_config.yml", "w") as f:
-            yaml.dump(config, f)
+        swmmanywhere.save_config(config, config_address)
 
         # Load and test validation of the config
-        config = swmmanywhere.load_config(base_dir / "test_config.yml")
+        config = swmmanywhere.load_config(config_address)
 
         # Check graphfcn was added
         assert "new_graphfcn" in graphfcns
