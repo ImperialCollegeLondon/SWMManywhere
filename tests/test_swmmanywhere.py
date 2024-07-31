@@ -201,8 +201,7 @@ def test_custom_graphfcn():
         # Write the config
         swmmanywhere.save_config(config, config_address)
 
-        # Not sure how this is happening - but seems to be something with the
-        # testing environment
+        # Import of `custom_graphfcns` by CI testing environment adds `new_graphfcn`
         if "new_graphfcn" in graphfcns:
             del graphfcns["new_graphfcn"]
 
