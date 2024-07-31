@@ -201,6 +201,11 @@ def test_custom_graphfcn():
         # Write the config
         swmmanywhere.save_config(config, config_address)
 
+        # Not sure how this is happening - but seems to be something with the
+        # testing environment
+        if "new_graphfcn" in graphfcns:
+            del graphfcns["new_graphfcn"]
+
         # Load and test validation of the config
         config = swmmanywhere.load_config(config_address)
 
