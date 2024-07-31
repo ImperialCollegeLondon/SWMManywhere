@@ -55,6 +55,7 @@ nav:
     - Metric utilities: reference-metric-utilities.md
     - Logging: reference-logging.md
     - Parameters: reference-parameters.md
+    - FilePaths: reference-filepaths.md
     - Post processing: reference-post-processing.md
     - Preprocessing: reference-preprocessing.md
     - Config definitions: reference-defs.md
