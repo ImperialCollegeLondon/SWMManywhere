@@ -206,3 +206,6 @@ def test_custom_graphfcn():
 
         # Check graphfcn was added
         assert "new_graphfcn" in graphfcns
+
+        # Remove the custom graphfcn for other tests
+        del graphfcns["new_graphfcn"]
