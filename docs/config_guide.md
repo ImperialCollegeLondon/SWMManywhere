@@ -18,9 +18,10 @@ The minimum requirements for a user to provide are simply:
 We can define a simple configuration `.yml` file here:
 
 ```yml
-base_dir: /path/to/base/directory
-project: my_first_swmm
-bbox: [1.52740,42.50524,1.54273,42.51259]
+{%
+    include-markdown "snippets/minimum_viable_template.yml"
+    comments=false
+%}
 ```
 
 ## Customising your synthetic UDM
