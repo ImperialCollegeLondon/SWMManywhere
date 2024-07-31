@@ -65,7 +65,7 @@ A graph function can receive a `FilePaths` object or any number of parameter
 categories, which we will briefly explain below.
 A full explanation of these is outside scope of this guide, but for now you can
 view the [`parameters`](reference-parameters.md) and
-[`FilePaths`] APIs.
+[`FilePaths`](reference-filepaths.md) APIs.
 
 We can see an example of using a parameter category with this
 [graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.remove_non_pipe_allowable_links):
