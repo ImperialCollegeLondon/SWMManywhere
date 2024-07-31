@@ -370,6 +370,8 @@ def load_config(
 ):
     """Load, validate, and convert Paths in a configuration file.
 
+    Note, if using a custom graphfcn, load_config must be called with validation=True.
+
     Args:
         config_path (Path): The path to the configuration file.
         validation (bool, optional): Whether to validate the configuration.
