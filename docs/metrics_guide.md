@@ -81,6 +81,9 @@ For example, see the [following metric](reference-metric-utilities.md#swmmanywhe
       show_source: true
       show_root_toc_entry: false
 
+We can see that this metric also requires the real results (`real_results`) and
+real subcatchments (`real_subs`) to be evaluated.
+
 ## Lists of metrics
 
 ## Generalised behaviour of metrics
