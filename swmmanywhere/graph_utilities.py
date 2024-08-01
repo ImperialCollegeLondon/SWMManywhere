@@ -1140,13 +1140,13 @@ def _pair_rivers(
     river_points: Dict[str, shapely.Point],
     street_points: Dict[str, shapely.Point],
     river_buffer_distance: float,
-    outlet_length: float,
+    outfall_length: float,
 ) -> nx.Graph:
     """Pair river and street nodes.
 
     Pair river and street nodes within a certain distance of each other. If
-    there are no plausible outlets for an entire subgraph, then a dummy river
-    node is created and the lowest elevation node is used as the outlet.
+    there are no plausible outfalls for an entire subgraph, then a dummy river
+    node is created and the lowest elevation node is used as the outfall.
 
     Args:
         G (nx.Graph): A graph
@@ -1154,15 +1154,15 @@ def _pair_rivers(
         street_points (dict): A dictionary of street points
         river_buffer_distance (float): The distance within which a river and
             street node can be paired
-        outlet_length (float): The length of the outlet
+        outfall_length (float): The length of the outfall
 
     Returns:
         G (nx.Graph): A graph
     """
-    matched_outlets = {}
+    matched_outfalls = {}
 
-    # Insert a dummy river node and use lowest elevation node as outlet
-    # for each subgraph with no matched outlets
+    # Insert a dummy river node and use lowest elevation node as outfall
+    # for each subgraph with no matched outfalls
     subgraphs = []
     for sg in nx.weakly_connected_components(G):
         sg = G.subgraph(sg).copy()
@@ -1175,14 +1175,14 @@ def _pair_rivers(
         # Pair up the river and street nodes for each subgraph
         street_points_ = {k: v for k, v in street_points.items() if k in sg.nodes}
 
-        subgraph_outlets = go.nearest_node_buffer(
+        subgraph_outfalls = go.nearest_node_buffer(
             street_points_, river_points, river_buffer_distance
         )
 
-        # Check if there are any matched outlets
-        if subgraph_outlets:
-            # Update all matched outlets
-            matched_outlets.update(subgraph_outlets)
+        # Check if there are any matched outfalls
+        if subgraph_outfalls:
+            # Update all matched outfalls
+            matched_outfalls.update(subgraph_outfalls)
             continue
 
         # In cases of e.g., an area with no rivers to discharge into or too
@@ -1204,30 +1204,30 @@ def _pair_rivers(
         nx.set_node_attributes(sg, {name: dummy_river})
 
         # Update function's dicts
-        matched_outlets[lowest_elevation_node] = name
+        matched_outfalls[lowest_elevation_node] = name
         river_points[name] = shapely.Point(dummy_river["x"], dummy_river["y"])
 
         logger.warning(
-            f"""No outlets found for subgraph containing 
-                        {lowest_elevation_node}, using this node as outlet."""
+            f"""No outfalls found for subgraph containing 
+                        {lowest_elevation_node}, using this node as outfall."""
         )
 
     G = nx.compose_all(subgraphs)
 
     # Add edges between the paired river and street nodes
-    for street_id, river_id in matched_outlets.items():
+    for street_id, river_id in matched_outfalls.items():
         # TODO instead use a weight based on the distance between the two nodes
         G.add_edge(
             street_id,
             river_id,
             **{
-                "length": outlet_length,
-                "weight": outlet_length,
-                "edge_type": "outlet",
+                "length": outfall_length,
+                "weight": outfall_length,
+                "edge_type": "outfall",
                 "geometry": shapely.LineString(
                     [street_points[street_id], river_points[river_id]]
                 ),
-                "id": f"{street_id}-{river_id}-outlet",
+                "id": f"{street_id}-{river_id}-outfall",
             },
         )
 
