@@ -128,7 +128,7 @@ the synthetic model...
 
 The SWMManywhere package comes with a wide variety of performance
 metrics that can be used to make this comparison, explained
-[here](metrics_gudie.md). In the `config`
+[here](metrics_guide.md). In the `config`
 file you can specify which metrics should be calculated under the `metric_list`
 entry. The [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 `metric_list` contains all metrics that come with SWMManywhere, although you may
