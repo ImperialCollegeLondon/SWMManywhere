@@ -109,6 +109,10 @@ the list of metrics to be applied as a `metric_list`.
 
 ## Generalised behaviour of metrics
 
+Because the number of potential metrics that can plausibly be calculated, owing
+to the wide variety of options that might be applied, two key approaches are
+used to streamline metric creation.
+
 ### Restrictions, coefficients and scales
 
 ### Metric factory
