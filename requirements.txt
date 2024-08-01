@@ -22,7 +22,7 @@ attrs==23.2.0
     #   jsonschema
     #   rasterio
     #   referencing
-cads-api-client==1.1.0
+cads-api-client==1.2.0
     # via cdsapi
 cdsapi==0.7.0
     # via swmmanywhere (pyproject.toml)
