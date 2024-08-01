@@ -107,8 +107,9 @@ UDM file paths in the `config` file, and the performance metrics to be calculate
 In SWMManywhere, a pre-existing UDM is referred to as the 'real' model (although
 if you are using SWMManywhere you are presumably aware that describing any UDM
 as real is tenuous). To enable SWMManywhere to compare against a real model, we
-use the `real` entry of the `config` file. The path to a `subcatchments` geometry
-file, and a `graph` file (see
+use the `real` entry of the `config` file, see the `real` entry in
+[`demo_config.yml`](reference-defs.md#demo-configuration-file) for example.
+The path to a `subcatchments` geometry file, and a `graph` file (see
 [`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph)
 for format) must be provided - however this is temporary and will be unnecessary
 following the fixing of
