@@ -22,6 +22,7 @@ from swmmanywhere.graph_utilities import (
     iterate_graphfcns,
     load_graph,
     save_graph,
+    validate_graphfcn_list,
 )
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.logging import logger
@@ -794,3 +795,21 @@ def test_filter_streets():
     G_non_streets_filtered = _filter_streets(G_non_streets)
     assert len(G_non_streets_filtered.nodes) == 0
     assert len(G_non_streets_filtered.edges) == 0
+
+
+def test_validate_graphfcn_list(street_network):
+    """Test the validate_graphfcn_list function."""
+    # Test case 1: Valid list
+    validate_graphfcn_list(["assign_id", "double_directed"])
+
+    # Test case 2: Invalid list
+    with pytest.raises(ValueError):
+        validate_graphfcn_list(["assign_id", "not_a_function"])
+
+    # Test case 3: Valid order
+    G, _ = street_network
+    validate_graphfcn_list(["assign_id", "double_directed"], G)
+
+    # Test case 4: Invalid order
+    with pytest.raises(ValueError):
+        validate_graphfcn_list(["double_directed", "assign_id"], G)

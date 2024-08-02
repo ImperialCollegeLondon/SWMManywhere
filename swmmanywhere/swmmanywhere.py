@@ -11,7 +11,12 @@ from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import filepaths, parameters, preprocessing
-from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
+from swmmanywhere.graph_utilities import (
+    iterate_graphfcns,
+    load_graph,
+    save_graph,
+    validate_graphfcn_list,
+)
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
 from swmmanywhere.post_processing import synthetic_write
@@ -109,6 +114,9 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         G = load_graph(config["starting_graph"])
     else:
         G = preprocessing.create_starting_graph(addresses)
+
+    # Validate the graphfcn order
+    validate_graphfcn_list(config["graphfcn_list"], G)
 
     # Iterate the graph functions
     logger.info("Iterating graph functions.")
