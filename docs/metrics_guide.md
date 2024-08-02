@@ -11,7 +11,7 @@ can take a variety of [arguments](#arguments) and returns the metric value.
 Let's look at a [metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.nc_deltacon0)
 that is simply a wrapper for [`netcomp.deltacon0`](https://arxiv.org/pdf/2010.16019):
 
-:::swmmanywhere.metric_utilities.nc_deltacon0
+> :::swmmanywhere.metric_utilities.nc_deltacon0
     handler: python
     options:
       members: no
@@ -51,7 +51,7 @@ registry.
 In the previous example, we saw that, in addition to the synthesised and real
 graphs, the function takes `**kwargs`, which are ignored.
 
-:::swmmanywhere.metric_utilities.nc_deltacon0
+> :::swmmanywhere.metric_utilities.nc_deltacon0
     handler: python
     options:
       members: no
@@ -72,7 +72,7 @@ parameters category.
 
 For example, see the [following metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.outlet_kstest_diameters)
 
-:::swmmanywhere.metric_utilities.outlet_kstest_diameters
+> :::swmmanywhere.metric_utilities.outlet_kstest_diameters
     handler: python
     options:
       members: no
@@ -110,12 +110,16 @@ the list of metrics to be applied as a `metric_list`.
 ## Generalised behaviour of metrics
 
 Because the number of potential metrics that can plausibly be calculated, owing
-to the wide variety of options that might be applied, two key approaches are
-used to streamline metric creation.
+to the wide number of variations that might be applied, a combination of
+approaches are used to streamline metric creation.
 
-### Restrictions, coefficients and scales
+### Coefficients
+
+### Scales
 
 ### Metric factory
+
+### Restrictions
 
 ## Add a new metric
 
