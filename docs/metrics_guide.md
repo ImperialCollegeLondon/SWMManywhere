@@ -28,11 +28,12 @@ that is simply a wrapper for [`netcomp.deltacon0`](https://arxiv.org/pdf/2010.16
 
 We can see that this metric requires the synthesised and real graphs as
 arguments, that is because it is a metric to compare the similarity of two graphs.
-Note that the function has been registered with `@register_metric`.
+Note that the function has been registered with `@metrics.register`.
 
 ### Registered metrics
 
-The `MetricRegistry` is a dictionary subclass called `metrics` that contains all
+The [`MetricRegistry`](reference-metric-utilities.md#swmmanywhere.metric_utilities.MetricRegistry)
+is a dictionary subclass called `metrics` that contains all
 registered metrics to be called from one place.
 
 ``` py
@@ -117,6 +118,9 @@ the [`config` file](config_guide.md)
 
 ### Write the metric
 
+You create a new module that can contain multiple metrics.
+See below as a template of that module.
+
 ```python
 {%
     include-markdown "../tests/test_data/custom_metrics.py"
@@ -125,6 +129,34 @@ the [`config` file](config_guide.md)
 ```
 
 ### Adjust config file
+
+We will add the required lines to the
+[minimum viable config](config_guide.md#minimum-viable-configuration) template.
+
+```yml
+{%
+    include-markdown "snippets/minimum_viable_template.yml"
+    comments=false
+%}
+real:
+  inp: /path/to/real/model.inp
+  graph: /path/to/real/graph.json
+  subcatchments: /path/to/real/subcatchments.geojson
+  results: null
+custom_metric_modules: /path/to/custom_metrics.py
+metric_list: 
+  - new_metric
+```
+
+To enable metrics to be calculated we must provide information on the `real`
+UDM (reproduced from the
+[`demo_config.yml`](reference-defs.md#demo-configuration-file)
+). We can see that we now provide the `metric_list` with `new_metric` in the
+list. Any number of custom metrics may be provided across one or multiple modules.
+
+And we provide
+the path to the `custom_metrics.py` module that contains our `new_metric`
+under the `custom_metric_modules` entry.
 
 ## Generalised behaviour of metrics
 

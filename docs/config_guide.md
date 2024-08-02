@@ -136,5 +136,6 @@ entry. The [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 want to choose a subselection of these if you have a very large network (say >5000
 nodes) because some of the graph-based metrics can be slow to calculate (anything
 starting with `nc` or containing `betweenness`). You may also be unsatisfied with
-the built in metrics, in which case you can [add your own], although these must be
-specified under `metric_list` for them to be calculated.
+the built in metrics, in which case you can
+[add your own](metrics_guide.md#add-a-new-metric),
+although these must be specified under `metric_list` for them to be calculated.
