@@ -90,7 +90,7 @@ real subcatchments (`real_subs`) to be evaluated, which are passed as arguments.
 
 Metrics are intended to be applied as part of a list, `metric_list` with the
 SWMManywhere function
-[`iterate_metrics`](reference-graph-utilities.md#swmmanywhere.metric_utilities.iterate_metrics).
+[`iterate_metrics`](reference-metric-utilities.md#swmmanywhere.metric_utilities.iterate_metrics).
 
 For example:
 
@@ -151,8 +151,12 @@ metric_list:
 To enable metrics to be calculated we must provide information on the `real`
 UDM (reproduced from the
 [`demo_config.yml`](reference-defs.md#demo-configuration-file)
-). We can see that we now provide the `metric_list` with `new_metric` in the
+).
+
+We can see that we now provide the `metric_list` with `new_metric` in the
 list. Any number of custom metrics may be provided across one or multiple modules.
+Only the metrics specified in `metric_list` will be calculated, use the
+[metric registry](#registered-metrics) to identify allowable metrics.
 
 And we provide
 the path to the `custom_metrics.py` module that contains our `new_metric`
@@ -292,7 +296,7 @@ complexity for the function to interpret different argument values.
 Because of the complexity in interpretation, a key element of the `metric_factory`
 is restrictions on certain combinations of scales/coefficients/variables.
 
-For example, conceptually it makes no sense to apply the `nse` coefficient to a
+For example, conceptually it makes no sense to apply the `nse` coefficient to
 the `npipes` variable - as `nse` is used to compare timeseries while `npipes`
 is a description of the designed UDM.
 
