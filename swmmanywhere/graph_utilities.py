@@ -161,6 +161,20 @@ def get_osmid_id(data: dict) -> Hashable:
     return id_
 
 
+def validate_graphfcn_list(graphfcn_list: list[str]) -> None:
+    """Validate that the graph functions are registered.
+
+    Args:
+        graphfcn_list (list[str]): A list of graph functions
+
+    Raises:
+        ValueError: If a graph function is not registered
+    """
+    not_exists = [g for g in graphfcn_list if g not in graphfcns]
+    if not_exists:
+        raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+
+
 with tempfile.TemporaryDirectory() as temp_dir:
     temp_addresses = FilePaths(
         base_dir=Path(temp_dir), bbox_bounds=(0, 1, 0, 1), project_name="temp"
@@ -185,9 +199,8 @@ def iterate_graphfcns(
     Returns:
         nx.Graph: The graph after the graph functions have been applied.
     """
-    not_exists = [g for g in graphfcn_list if g not in graphfcns]
-    if not_exists:
-        raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+    validate_graphfcn_list(graphfcn_list)
+
     for function in graphfcn_list:
         G = graphfcns[function](G, addresses=addresses, **params)
         if len(_filter_streets(G).edges) == 0:

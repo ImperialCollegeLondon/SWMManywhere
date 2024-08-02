@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 from pathlib import Path
 
 import geopandas as gpd
@@ -14,11 +13,10 @@ from tqdm.auto import tqdm
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import filepaths, parameters, preprocessing
 from swmmanywhere.graph_utilities import (
-    BaseGraphFunction,
-    graphfcns,
     iterate_graphfcns,
     load_graph,
     save_graph,
+    validate_graphfcn_list,
 )
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics
@@ -298,22 +296,6 @@ def check_parameter_overrides(config: dict):
     return config
 
 
-def _is_graphfcn(o: object) -> bool:
-    """Check if an object is a subclass of BaseGraphFunction.
-
-    Args:
-        o (object): The object to check.
-
-    Returns:
-        bool: Whether the object is a subclass of BaseGraphFunction.
-    """
-    return (
-        inspect.isclass(o)
-        and issubclass(o, BaseGraphFunction)
-        and (o is not BaseGraphFunction)
-    )
-
-
 def check_and_register_custom_graphfcns(config: dict):
     """Check, register and validate custom graphfcns in the config.
 
@@ -340,15 +322,8 @@ def check_and_register_custom_graphfcns(config: dict):
         custom_graphfcn_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
         spec.loader.exec_module(custom_graphfcn_module)
 
-        # Validate the import
-        for custom_graphfcn_name, custom_graphfcn in inspect.getmembers(
-            custom_graphfcn_module, predicate=_is_graphfcn
-        ):
-            if custom_graphfcn_name not in graphfcns:
-                raise ValueError(
-                    f"""Custom graphfcn {custom_graphfcn[0]} is not a subclass 
-                    of BaseGraphFunction"""
-                )
+    # Validate the import
+    validate_graphfcn_list(config["graphfcn_list"])
 
     return config
 

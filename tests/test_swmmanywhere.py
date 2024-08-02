@@ -190,7 +190,7 @@ def test_custom_graphfcn():
 
         config = swmmanywhere.load_config(validation=False)
         config["custom_graphfcn_modules"] = [str(gf_module)]
-        config["graphfcn_list"].append("new_function")
+        config["graphfcn_list"].append("new_graphfcn")
 
         # Set some test values
         config_address = Path(temp_dir) / "test_config.yml"
