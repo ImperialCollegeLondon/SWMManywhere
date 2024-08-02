@@ -181,7 +181,7 @@ def restriction_on_scale(scale: str, metric: str, variable: str):
 def restriction_on_metric(scale: str, metric: str, variable: str):
     """Restriction on metric.
 
-    Restrict the variable to 'flow' if the metric is 'relerror'.
+    Restrict the design variables to use 'relerror' only.
 
     Args:
         scale (str): The scale of the metric.

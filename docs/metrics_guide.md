@@ -32,8 +32,8 @@ Note that the function has been registered with `@register_metric`.
 
 ### Registered metrics
 
-The `MetricRegistry` is a dictionary called `metrics` that contains all registered
-metrics to be called from one place.
+The `MetricRegistry` is a dictionary subclass called `metrics` that contains all
+registered metrics to be called from one place.
 
 ``` py
 >>> from swmmanywhere.metric_utilities import metrics
@@ -55,7 +55,7 @@ registry.
 ### Arguments
 
 In the [previous example](#using-metrics), we saw that, in addition to the synthesised and real
-graphs, the function takes `**kwargs`, which are ignored. While this metric only requires `real_G` and `synthesised_G` to be calculated,
+graphs, the function takes `**kwargs`, which are ignored. While `nc_deltacon0` only requires `real_G` and `synthesised_G` to be calculated,
 any `metric` has access to a range of arguments for calculation:
 
 - the synthesised and real graphs (`real_G` and `synthesised_G`),
@@ -106,12 +106,19 @@ other arguments besides `metric_list`. We see that the metrics have returned
 `0.0`, because the two graphs are identical.
 
 In the [configuration file](config_guide.md#performance-metrics) we can specify
-the list of metrics to be applied as a `metric_list`.
+the list of metrics to be applied as a `metric_list`. By default this list will
+be populated from [`demo_config.yml`](reference-defs.md#demo-configuration-file).
+
+## Add a new metric
+
+### Write the metric
+
+### Adjust config file
 
 ## Generalised behaviour of metrics
 
-Because the number of potential metrics that can plausibly be calculated, owing
-to the wide number of variations that might be applied, a combination of
+Because of the large number of potential metrics that can plausibly be calculated,
+owing to the wide number of variations that might be applied, a combination of
 approaches are used to streamline metric creation.
 
 ### Metric factory
@@ -134,13 +141,17 @@ us create a metric with `metric_factory`:
 We have created a function that is a valid metric, it calculates the Nash-Sutcliffe
 Efficiency (`nse`) value for `flow` timeseries at `outlet` scale. Note that
 creating the metric with the `metric_factory` does not automatically add it to
-the registry. All valid metrics are registered by default, although a user may
-[add a new metric](#add-a-new-metric).
+the registry.
+
+We do not currently support adding new coefficient or scales via the
+[configuration file](config_guide.md). Thus, the following sections
+[coefficients](#coefficients) and [scales](#scales) will explain how to manually
+accommodate custom behaviour.
 
 ### Coefficients
 
 The coefficient portion of a metric is the equation that is applied to two arrays.
-See flow example the
+See for example the
 [`nse`](reference-metric-utilities.md#swmmanywhere.metric_utilities.nse):
 
 :::swmmanywhere.metric_utilities.nse
@@ -158,12 +169,116 @@ See flow example the
       show_docstring_returns: false
       show_docstring_raises: false
 
+Coefficients are stored in a registry which is a dictionary containing all
+registered coefficients:
+
+``` py
+>>> from swmmanywhere.metric_utilities import coef_registry
+>>> print(coef_registry.keys())
+dict_keys(['relerror', 'nse', 'kge'])
+```
+
+We can see here the registered coefficients. Thus, the `coefficient` portion of a
+string being passed to `metric_factory` must take one of these values.
+
+To register a new coefficient, we can use `register_coef`, and we can then use
+it in `metric_factory` to create a metric. Since this new metric is not included
+in `metrics` we can also register that.
+
+``` py
+>>> from swmmanywhere.metric_utilities import (
+...     register_coef, 
+...     coef_registry,
+...     metric_factory,
+...     metrics
+... )
+>>> import numpy as np
+>>> metric_factory('outlet_rmse_flow') # Try creating the metric
+Traceback (most recent call last):
+    ...
+KeyError: 'rmse'
+>>> def rmse(y: np.array, yhat: np.array): np.sqrt(np.mean(np.pow(y-yhat,2)))
+... 
+>>> register_coef(rmse) # Register new coefficient
+<function rmse at 0x000001DC38ABC540>
+>>> print(coef_registry.keys())
+dict_keys(['relerror', 'nse', 'kge', 'rmse'])
+>>> metrics.register(metric_factory('outlet_rmse_flow')) # Create and register new metric
+<function metric_factory.<locals>.new_metric at 0x00000227D219E020>
+>>> 'outlet_rmse_flow' in metrics # Check that the metric is available for use
+True
+```
+
 ### Scales
+
+SWMManywhere supports a variety of spatial scales for which metrics may be calculated.
+As with coefficients, these are stored in a registry.
+
+``` py
+>>> from swmmanywhere.metric_utilities import scale_registry
+>>> print(scale_registry.keys())
+dict_keys(['subcatchment', 'grid', 'outlet'])
+```
+
+For example, `subcatchment` aligns `real` and `synthesised` subcatchments
+together and calculates the coefficient for each subcatchment (returning the
+median coefficient value over all matched subcatchments).
+
+:::swmmanywhere.metric_utilities.subcatchment
+    handler: python
+    options:
+      members: no
+      show_root_heading: false
+      show_bases: false
+      show_source: true
+      show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
+
+You will have to read the [API](reference-metric-utilities.md) to understand the
+differences between scales. However, custom scales may be created in much the
+same way as custom coefficients, albeit with more arguments required and more
+complexity for the function to interpret different argument values.
 
 ### Restrictions
 
-## Add a new metric
+Because of the complexity in interpretation, a key element of the `metric_factory`
+is restrictions on certain combinations of scales/coefficients/variables.
 
-### Write the metric
+For example, conceptually it makes no sense to apply the `nse` coefficient to a
+the `npipes` variable - as `nse` is used to compare timeseries while `npipes`
+is a description of the designed UDM.
 
-### Adjust config file
+``` py
+>>> from swmmanywhere.metric_utilities import metric_factory
+>>> metric_factory('outlet_nse_npipes')
+Traceback (most recent call last):
+    ... , in restriction_on_metric
+    raise ValueError(f"Variable {variable} only valid with relerror metric")
+ValueError: Variable npipes only valid with relerror metric
+```
+
+Restrictions are stored in a register as with coefficients and scales,
+and we can see that the restriction triggered above was the
+[`restriction_on_metric`](reference-metric-utilities.md#swmmanywhere.metric_utilities.restriction_on_metric):
+
+:::swmmanywhere.metric_utilities.restriction_on_metric
+    handler: python
+    options:
+      members: no
+      show_root_heading: false
+      show_bases: false
+      show_source: true
+      show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
+
+Custom restrictions can be added as with coefficients and scales.
