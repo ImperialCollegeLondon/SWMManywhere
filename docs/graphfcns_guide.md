@@ -13,7 +13,7 @@ Let's look at a [graph function](reference-graph-utilities.md#swmmanywhere.graph
 that is simply a wrapper for
 [`networkx.to_undirected`](https://networkx.org/documentation/stable/reference/classes/generated/networkx.DiGraph.to_undirected.html):
 
-:::swmmanywhere.graph_utilities.to_undirected
+> :::swmmanywhere.graph_utilities.to_undirected
     handler: python
     options:
       members: no
@@ -50,7 +50,7 @@ to the registry.
 In the previous example, we saw that, in addition to a graph, the function
 takes `**kwargs`, which are ignored.
 
-:::swmmanywhere.graph_utilities.to_undirected
+> :::swmmanywhere.graph_utilities.to_undirected
     handler: python
     options:
       members: no
@@ -70,7 +70,7 @@ view the [`parameters`](reference-parameters.md) and
 We can see an example of using a parameter category with this
 [graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.remove_non_pipe_allowable_links):
 
-:::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
+> :::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
     handler: python
     options:
       members: no
@@ -133,7 +133,7 @@ Furthermore, this `graphfcn_list` also provides opportunities for validation.
 For example, see the
 [following graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.set_surface_slope):
 
-:::swmmanywhere.graph_utilities.set_surface_slope
+> :::swmmanywhere.graph_utilities.set_surface_slope
     handler: python
     options:
       members: no
