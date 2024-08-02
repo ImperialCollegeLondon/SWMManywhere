@@ -812,4 +812,4 @@ def test_validate_graphfcn_list(street_network):
 
     # Test case 4: Invalid order
     with pytest.raises(ValueError):
-        validate_graphfcn_list(["double_directed", "assign_id"], G)
+        validate_graphfcn_list(["assign_id", "calculate_weights"], G)
