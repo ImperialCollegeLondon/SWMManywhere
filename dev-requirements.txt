@@ -294,7 +294,7 @@ rpds-py==0.19.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.5.1
+ruff==0.5.5
     # via swmmanywhere (pyproject.toml)
 scikit-image==0.24.0
     # via pysheds
