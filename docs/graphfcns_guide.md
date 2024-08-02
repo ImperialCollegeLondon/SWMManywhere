@@ -13,7 +13,7 @@ Let's look at a [graph function](reference-graph-utilities.md#swmmanywhere.graph
 that is simply a wrapper for
 [`networkx.to_undirected`](https://networkx.org/documentation/stable/reference/classes/generated/networkx.DiGraph.to_undirected.html):
 
-> :::swmmanywhere.graph_utilities.to_undirected
+:::swmmanywhere.graph_utilities.to_undirected
     handler: python
     options:
       members: no
@@ -21,6 +21,12 @@ that is simply a wrapper for
       show_bases: false
       show_source: true
       show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 We can see that this graph function is a class that can be called with a graph
 and returns a graph. Note that the class has been registered with
@@ -60,7 +66,7 @@ view the [`parameters`](reference-parameters.md) and
 We can see an example of using a parameter category with this
 [graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.remove_non_pipe_allowable_links):
 
-> :::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
+:::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
     handler: python
     options:
       members: no
@@ -68,6 +74,12 @@ We can see an example of using a parameter category with this
       show_bases: false
       show_source: true
       show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 We can see that `remove_non_pipe_allowable_links` uses the `omit_edges` parameter,
 which is contained in the `parameters.TopologyDerivation` object that
@@ -123,7 +135,7 @@ Furthermore, this `graphfcn_list` also provides opportunities for validation.
 For example, see the
 [following graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.set_surface_slope):
 
-> :::swmmanywhere.graph_utilities.set_surface_slope
+:::swmmanywhere.graph_utilities.set_surface_slope
     handler: python
     options:
       members: no
@@ -131,6 +143,12 @@ For example, see the
       show_bases: false
       show_source: true
       show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 Critically, we can see that the `set_surface_slope` graph function has a
 parameter `required_node_attributes` (not shown above but see also
