@@ -95,14 +95,14 @@ def validate_metric_list(metric_list: list[str]) -> None:
 
 
 def iterate_metrics(
-    synthetic_results: pd.DataFrame,
-    synthetic_subs: gpd.GeoDataFrame,
-    synthetic_G: nx.Graph,
-    real_results: pd.DataFrame,
-    real_subs: gpd.GeoDataFrame,
-    real_G: nx.Graph,
-    metric_list: list[str],
-    metric_evaluation: MetricEvaluation,
+    synthetic_results: pd.DataFrame = pd.DataFrame(),
+    synthetic_subs: gpd.GeoDataFrame = gpd.GeoDataFrame(),
+    synthetic_G: nx.Graph = nx.Graph(),
+    real_results: pd.DataFrame = pd.DataFrame(),
+    real_subs: gpd.GeoDataFrame = gpd.GeoDataFrame(),
+    real_G: nx.Graph = nx.Graph(),
+    metric_list: list[str] = list(metrics.keys()),
+    metric_evaluation: MetricEvaluation = MetricEvaluation(),
 ) -> dict[str, float]:
     """Iterate a list of metrics over a graph.
 

@@ -97,14 +97,17 @@ For example:
 ```python
 >>> from swmmanywhere.examples.data import demo_graph as G
 >>> from swmmanywhere.metric_utilities import iterate_metrics
->>> iterate_metrics(None,None,G,None,None,G,['nc_deltacon0','nc_resistance_distance'],None)
+>>> iterate_metrics(
+...     real_G = G,
+...     synthetic_G = G, 
+...     metric_list = ['nc_deltacon0','nc_resistance_distance']
+... )
 {'nc_deltacon0': 0.0, 'nc_resistance_distance': 0.0}
 ```
 
 In this example only graph comparison metrics are included in `metric_list`, and
-so we only need to provide `synthesised_G` and `real_G`, placing `None` for all
-other arguments besides `metric_list`. We see that the metrics have returned
-`0.0`, because the two graphs are identical.
+so we only need to provide `synthesised_G`, `real_G` and `metric_list`.
+We see that the metrics have returned `0.0`, because the two graphs are identical.
 
 In the [configuration file](config_guide.md#performance-metrics) we can specify
 the list of metrics to be applied as a `metric_list`. By default this list will
