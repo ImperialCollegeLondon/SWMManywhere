@@ -78,6 +78,22 @@ class MetricRegistry(dict):
 metrics = MetricRegistry()
 
 
+def validate_metric_list(metric_list: list[str]) -> None:
+    """Validate a list of metrics.
+
+    Validate that all metrics in the metric list are registered.
+
+    Args:
+        metric_list (list[str]): A list of metrics to validate.
+
+    Raises:
+        ValueError: If a metric is not registered.
+    """
+    not_exists = [m for m in metric_list if m not in metrics]
+    if not_exists:
+        raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
+
+
 def iterate_metrics(
     synthetic_results: pd.DataFrame,
     synthetic_subs: gpd.GeoDataFrame,
@@ -103,10 +119,7 @@ def iterate_metrics(
     Returns:
         dict[str, float]: The results of the metrics.
     """
-    not_exists = [m for m in metric_list if m not in metrics]
-    if not_exists:
-        raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
-
+    validate_metric_list(metric_list)
     kwargs = {
         "synthetic_results": synthetic_results,
         "synthetic_subs": synthetic_subs,

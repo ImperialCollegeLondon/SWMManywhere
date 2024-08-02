@@ -111,7 +111,18 @@ be populated from [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 
 ## Add a new metric
 
+Adding a custom metric can be done by creating a metric in the appropriate style,
+see below for example to create a new metric and then specifying to use it with
+the [`config` file](config_guide.md)
+
 ### Write the metric
+
+```python
+{%
+    include-markdown "../tests/test_data/custom_metrics.py"
+    comments=false
+%}
+```
 
 ### Adjust config file
 
