@@ -11,7 +11,7 @@ can take a variety of [arguments](#arguments) and returns the metric value.
 Let's look at a [metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.nc_deltacon0)
 that is simply a wrapper for [`netcomp.deltacon0`](https://arxiv.org/pdf/2010.16019):
 
-> :::swmmanywhere.metric_utilities.nc_deltacon0
+:::swmmanywhere.metric_utilities.nc_deltacon0
     handler: python
     options:
       members: no
@@ -19,6 +19,12 @@ that is simply a wrapper for [`netcomp.deltacon0`](https://arxiv.org/pdf/2010.16
       show_bases: false
       show_source: true
       show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 We can see that this metric requires the synthesised and real graphs as
 arguments, that is because it is a metric to compare the similarity of two graphs.
@@ -61,7 +67,7 @@ parameters category.
 
 For example, see the [following metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.outlet_kstest_diameters)
 
-> :::swmmanywhere.metric_utilities.outlet_kstest_diameters
+:::swmmanywhere.metric_utilities.outlet_kstest_diameters
     handler: python
     options:
       members: no
@@ -69,6 +75,12 @@ For example, see the [following metric](reference-metric-utilities.md#swmmanywhe
       show_bases: false
       show_source: true
       show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 We can see that this metric also requires the real results (`real_results`) and
 real subcatchments (`real_subs`) to be evaluated, which are passed as arguments.
@@ -105,11 +117,46 @@ approaches are used to streamline metric creation.
 ### Metric factory
 
 Metrics can be created as self-contained functions, as with the example
-[earlier](#using-metrics).
+[earlier](#using-metrics). However, most metrics are created with the
+[`metric_factory`](reference-metric-utilities.md#swmmanywhere.metric_utilities.metric_factory).
+This is a function that takes a metric as a `str` which contains the metric's
+`<scale>_<coefficient>_<variable>`. [Coefficients](#coefficients) and
+[scales](#scales) are explained below, while the `variable` is simply the name
+of the variable (whether timeseries or graph property) to be calculated. Let
+us create a metric with `metric_factory`:
+
+``` py
+>>> from swmmanywhere.metric_utilities import metric_factory
+>>> metric_factory('outlet_nse_flow')
+<function metric_factory.<locals>.new_metric at 0x000001EECEA7C220>
+```
+
+We have created a function that is a valid metric, it calculates the Nash-Sutcliffe
+Efficiency (`nse`) value for `flow` timeseries at `outlet` scale. Note that
+creating the metric with the `metric_factory` does not automatically add it to
+the registry. All valid metrics are registered by default, although a user may
+[add a new metric](#add-a-new-metric).
 
 ### Coefficients
 
-The simples
+The coefficient portion of a metric is the equation that is applied to two arrays.
+See flow example the
+[`nse`](reference-metric-utilities.md#swmmanywhere.metric_utilities.nse):
+
+:::swmmanywhere.metric_utilities.nse
+    handler: python
+    options:
+      members: no
+      show_root_heading: false
+      show_bases: false
+      show_source: true
+      show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
 
 ### Scales
 
