@@ -48,19 +48,8 @@ registry.
 
 ### Arguments
 
-In the previous example, we saw that, in addition to the synthesised and real
-graphs, the function takes `**kwargs`, which are ignored.
-
-> :::swmmanywhere.metric_utilities.nc_deltacon0
-    handler: python
-    options:
-      members: no
-      show_root_heading: false
-      show_bases: false
-      show_source: true
-      show_root_toc_entry: false
-
-While this metric only requires `real_G` and `synthesised_G` to be calculated,
+In the [previous example](#using-metrics), we saw that, in addition to the synthesised and real
+graphs, the function takes `**kwargs`, which are ignored. While this metric only requires `real_G` and `synthesised_G` to be calculated,
 any `metric` has access to a range of arguments for calculation:
 
 - the synthesised and real graphs (`real_G` and `synthesised_G`),
@@ -113,11 +102,16 @@ Because the number of potential metrics that can plausibly be calculated, owing
 to the wide number of variations that might be applied, a combination of
 approaches are used to streamline metric creation.
 
+### Metric factory
+
+Metrics can be created as self-contained functions, as with the example
+[earlier](#using-metrics).
+
 ### Coefficients
 
-### Scales
+The simples
 
-### Metric factory
+### Scales
 
 ### Restrictions
 
