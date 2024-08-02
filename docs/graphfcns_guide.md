@@ -47,18 +47,8 @@ to the registry.
 
 ### Arguments
 
-In the previous example, we saw that, in addition to a graph, the function
+In the [previous example](#using-graph-functions), we saw that, in addition to a graph, the function
 takes `**kwargs`, which are ignored.
-
-> :::swmmanywhere.graph_utilities.to_undirected
-    handler: python
-    options:
-      members: no
-      show_root_heading: false
-      show_bases: false
-      show_source: true
-      show_root_toc_entry: false
-
 While this graph function does not require any information that is not contained
 within the graph, most require parameters or file path information to be completed.
 A graph function can receive a `FilePaths` object or any number of parameter
