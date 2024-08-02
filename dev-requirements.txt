@@ -25,7 +25,7 @@ attrs==23.2.0
     #   referencing
 build==1.2.1
     # via pip-tools
-cads-api-client==1.1.0
+cads-api-client==1.2.0
     # via cdsapi
 cdsapi==0.7.0
     # via swmmanywhere (pyproject.toml)
