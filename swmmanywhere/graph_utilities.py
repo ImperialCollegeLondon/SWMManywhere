@@ -6,6 +6,7 @@ utilities (such as save/load functions).
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 from abc import ABC, abstractmethod
@@ -313,6 +314,24 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         return G
 
 
+def sum_over_delimiter(s):
+    """Sum over a delimiter.
+
+    This function takes a string and sums over the numbers in the string. The
+    numbers are separated by a delimiter. The delimiter is any non-numeric
+    character. If the input is not a string, the function returns the input.
+
+    Args:
+        s (str): A string
+
+    Returns:
+        float: The sum of the numbers in the string
+    """
+    if not isinstance(s, str):
+        return float(s)
+    return float(sum([int(num) for num in re.split(r"\D+", s) if num]))
+
+
 @register_graphfcn
 class calculate_streetcover(
     BaseGraphFunction, required_edge_attributes=["lanes", "geometry"]
@@ -353,9 +372,9 @@ class calculate_streetcover(
             else:
                 lanes = 0
             if isinstance(lanes, list):
-                lanes = sum([float(x) for x in lanes])
+                lanes = sum([sum_over_delimiter(x) for x in lanes])
             else:
-                lanes = float(lanes)
+                lanes = sum_over_delimiter(lanes)
             lines.append(
                 {
                     "geometry": data["geometry"].buffer(
