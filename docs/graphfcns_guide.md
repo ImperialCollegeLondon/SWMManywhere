@@ -131,8 +131,8 @@ the list of graph functions to be applied as a `graphfcn_list`.
 
 In this example we do not provide `parameters.TopologyDerivation` argument,
 even though it is needed by `remove_non_pipe_allowable_links`. If parameters
-are not provided, `iterate_graphfcns` uses the default values for all 
-`parameters`. 
+are not provided, `iterate_graphfcns` uses the default values for all
+`parameters`.
 
 ### Validating graph functions
 
