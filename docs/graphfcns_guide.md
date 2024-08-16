@@ -220,7 +220,9 @@ graphfcn_list:
 We can see that we now provide the `graphfcn_list` with `new_graphfcn` in the
 list. This list (except for `new_graphfcn`) is reproduced from the
 [`demo_config.yml`](reference-defs.md#demo-configuration-file). Any number of
-new graph functions can be inserted at any points in the `graphfcn_list`.
+new graph functions can be inserted at any points in the `graphfcn_list`. If
+deviating from the list in `demo_config.yml`, which provides the default 
+`graphfcn_list`, then an entire (new) list must be provided.
 
 And we provide
 the path to the `custom_graphfcns.py` module that contains our `new_graphfcn`
