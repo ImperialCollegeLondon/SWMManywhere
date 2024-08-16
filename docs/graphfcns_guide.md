@@ -189,7 +189,8 @@ We will add the required lines to the
     include-markdown "snippets/minimum_viable_template.yml"
     comments=false
 %}
-custom_graphfcn_modules: /path/to/custom_graphfcns.py
+custom_graphfcn_modules: 
+  - /path/to/custom_graphfcns.py
 graphfcn_list: 
   - assign_id
   - fix_geometries
