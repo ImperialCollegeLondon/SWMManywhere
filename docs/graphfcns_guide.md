@@ -129,6 +129,11 @@ some changes (in this case checking the edge `id` and removing links as above).
 In the [configuration file](config_guide.md#customise-graphfcns) we can specify
 the list of graph functions to be applied as a `graphfcn_list`.
 
+In this example we do not provide `parameters.TopologyDerivation` argument,
+even though it is needed by `remove_non_pipe_allowable_links`. If parameters
+are not provided, `iterate_graphfcns` uses the default values for all 
+`parameters`. 
+
 ### Validating graph functions
 
 Furthermore, this `graphfcn_list` also provides opportunities for validation.
@@ -222,7 +227,7 @@ We can see that we now provide the `graphfcn_list` with `new_graphfcn` in the
 list. This list (except for `new_graphfcn`) is reproduced from the
 [`demo_config.yml`](reference-defs.md#demo-configuration-file). Any number of
 new graph functions can be inserted at any points in the `graphfcn_list`. If
-deviating from the list in `demo_config.yml`, which provides the default 
+deviating from the list in `demo_config.yml`, which provides the default
 `graphfcn_list`, then an entire (new) list must be provided.
 
 And we provide
