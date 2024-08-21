@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from swmmanywhere import __version__, swmmanywhere
+from swmmanywhere.graph_utilities import graphfcns
 
 
 def test_version():
@@ -179,3 +180,36 @@ def test_minimal_req():
         }
 
         swmmanywhere.swmmanywhere(config)
+
+
+def test_custom_graphfcn():
+    """Test adding a custom graphfcn."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Load the config
+        gf_module = str(Path(__file__).parent / "test_data" / "custom_graphfcns.py")
+
+        config = swmmanywhere.load_config(validation=False)
+        config["custom_graphfcn_modules"] = [str(gf_module)]
+        config["graphfcn_list"].append("new_graphfcn")
+
+        # Set some test values
+        config_address = Path(temp_dir) / "test_config.yml"
+        config["base_dir"] = temp_dir
+        config["bbox"] = [0, 1, 0, 1]
+        del config["real"]
+
+        # Write the config
+        swmmanywhere.save_config(config, config_address)
+
+        # Import of `custom_graphfcns` by CI testing environment adds `new_graphfcn`
+        if "new_graphfcn" in graphfcns:
+            del graphfcns["new_graphfcn"]
+
+        # Load and test validation of the config
+        config = swmmanywhere.load_config(config_address)
+
+        # Check graphfcn was added
+        assert "new_graphfcn" in graphfcns
+
+        # Remove the custom graphfcn for other tests
+        del graphfcns["new_graphfcn"]

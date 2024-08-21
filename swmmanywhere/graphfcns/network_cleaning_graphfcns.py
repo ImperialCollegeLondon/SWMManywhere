@@ -403,7 +403,7 @@ class merge_street_nodes(BaseGraphFunction):
 @register_graphfcn
 class fix_geometries(
     BaseGraphFunction,
-    required_edge_attributes=["geometry"],
+    adds_edge_attributes=["geometry"],
     required_node_attributes=["x", "y"],
 ):
     """fix_geometries class."""

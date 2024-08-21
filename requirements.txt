@@ -22,7 +22,7 @@ attrs==23.2.0
     #   jsonschema
     #   rasterio
     #   referencing
-cads-api-client==1.1.0
+cads-api-client==1.2.0
     # via cdsapi
 cdsapi==0.7.0
     # via swmmanywhere (pyproject.toml)
@@ -234,7 +234,7 @@ requests==2.32.3
     #   pystac-client
 rioxarray==0.16.0
     # via swmmanywhere (pyproject.toml)
-rpds-py==0.19.0
+rpds-py==0.19.1
     # via
     #   jsonschema
     #   referencing
@@ -247,7 +247,7 @@ scipy==1.14.0
     #   pysheds
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-shapely==2.0.4
+shapely==2.0.5
     # via
     #   geopandas
     #   osmnx
