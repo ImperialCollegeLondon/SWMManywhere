@@ -157,14 +157,90 @@ For example, see the
 
 Critically, we can see that the `set_surface_slope` graph function has a
 parameter `required_node_attributes` (not shown above but see also
-`required_edge_attributes`), which specify what parameters in the graph
-are required to perform the graph function. Although providing this information
+`required_edge_attributes`), which specify that the node parameters
+`surface_elevation` are required to perform the graph function.
+Although providing this information
 does not guarantee that the graph function will behave as intended, if it is
 not provided then the graph function is guaranteed to fail. To check the
 feasibility of a set of graph functions a-priori, the parameter
 `adds_edge_attributes` (not shown above but see also `adds_node_attributes`),
 can be used to specify what, if any, parameters are added to the graph by the
 graph function.
+
+Let us inspect the `set_elevation` graph function:
+:::swmmanywhere.graph_utilities.set_elevation
+    handler: python
+    options:
+      members: no
+      show_root_heading: false
+      show_bases: false
+      show_source: true
+      show_root_toc_entry: false
+      show_docstring_attributes: false
+      show_docstring_description: false
+      show_docstring_examples: false
+      show_docstring_parameters: false
+      show_docstring_returns: false
+      show_docstring_raises: false
+
+We can see that `set_elevation` adds the node attribute `surface_elevation`,
+which is required for `set_surface_slope`. The default order of `graphfcn_list`
+has these graph functions in the appropriate order, but we can demonstrate
+the automatic validation in SWMManywhere by switching their order. We will
+copy the [minimum viable config](config_guide.md#minimum-viable-configuration)
+template and `graphfcn_list` from the
+[`demo_config.yml`](reference-defs.md#demo-configuration-file), but move
+`set_surface_slope` before `set_elevation`.
+
+```yml
+{%
+    include-markdown "snippets/minimum_viable_template.yml"
+    comments=false
+%}
+graphfcn_list:
+  - assign_id
+  - fix_geometries
+  - remove_non_pipe_allowable_links
+  - calculate_streetcover
+  - remove_parallel_edges
+  - to_undirected
+  - split_long_edges
+  - merge_street_nodes
+  - assign_id
+  - clip_to_catchments
+  - calculate_contributing_area
+  - set_surface_slope # <- we have moved this up the list
+  - set_elevation
+  - double_directed
+  - fix_geometries
+  - set_chahinian_slope
+  - set_chahinian_angle
+  - calculate_weights
+  - identify_outlets
+  - derive_topology
+  - pipe_by_pipe
+  - fix_geometries
+  - assign_id
+```
+
+If we try to run this with:
+
+```sh
+{%
+    include-markdown "snippets/cli-call.sh"
+    comments=false
+%}
+```
+
+Before any graph functions are executed, we will receive the error message:
+
+```error
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  ...
+ValueError: Graphfcn set_surface_slope requires node attributes
+                ['surface_elevation']
+```
 
 ## Add a new graph function
 
