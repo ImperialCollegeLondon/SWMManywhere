@@ -1,6 +1,7 @@
 """The main SWMManywhere module to generate and run a synthetic network."""
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 import geopandas as gpd
@@ -298,6 +299,38 @@ def check_parameter_overrides(config: dict):
     return config
 
 
+def check_and_register_custom_graphfcns(config: dict):
+    """Check, register and validate custom graphfcns in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a graphfcn module does not exist.
+        ValueError: If a custom graphfcn is not successfully registered.
+    """
+    for custom_graphfcn_module in config.get("custom_graphfcn_modules", []):
+        custom_graphfcn_module = Path(custom_graphfcn_module)
+
+        # Check that the custom graphfcn exists
+        if not custom_graphfcn_module.exists():
+            raise FileNotFoundError(
+                f"Custom graphfcn not found at {custom_graphfcn_module}"
+            )
+
+        # Import the custom graphfcn module
+        spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
+            custom_graphfcn_module.stem, custom_graphfcn_module
+        )
+        custom_graphfcn_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+        spec.loader.exec_module(custom_graphfcn_module)
+
+    # Validate the import
+    validate_graphfcn_list(config["graphfcn_list"])
+
+    return config
+
+
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
 
@@ -314,6 +347,8 @@ def load_config(
     schema_fid: Path | None = None,
 ):
     """Load, validate, and convert Paths in a configuration file.
+
+    Note, if using a custom graphfcn, load_config must be called with validation=True.
 
     Args:
         config_path (Path): The path to the configuration file.
@@ -356,6 +391,9 @@ def load_config(
 
     # Check parameter overrides
     config = check_parameter_overrides(config)
+
+    # Check custom graphfcns
+    config = check_and_register_custom_graphfcns(config)
 
     return config
 

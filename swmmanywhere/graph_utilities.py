@@ -228,8 +228,17 @@ def validate_graphfcn_list(
         )
 
 
+with tempfile.TemporaryDirectory() as temp_dir:
+    temp_addresses = FilePaths(
+        base_dir=Path(temp_dir), bbox_bounds=(0, 1, 0, 1), project_name="temp"
+    )
+
+
 def iterate_graphfcns(
-    G: nx.Graph, graphfcn_list: list[str], params: dict, addresses: FilePaths
+    G: nx.Graph,
+    graphfcn_list: list[str],
+    params: dict = parameters.get_full_parameters(),
+    addresses: FilePaths = temp_addresses,
 ) -> nx.Graph:
     """Iterate a list of graph functions over a graph.
 
@@ -365,6 +374,7 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         Returns:
             G (nx.Graph): A graph
         """
+        G = G.copy()
         edges_to_remove = set()
         for u, v, keys, data in G.edges(data=True, keys=True):
             for omit in topology_derivation.omit_edges:
@@ -1081,8 +1091,6 @@ class set_chahinian_angle(
         Returns:
             G (nx.Graph): A graph
         """
-        # TODO - in a double directed graph, not sure how meaningful this is
-        # TODO could probably refactor
         G = G.copy()
         for u, v, d in G.edges(data=True):
             min_weight = float("inf")
