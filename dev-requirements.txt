@@ -25,7 +25,7 @@ attrs==23.2.0
     #   referencing
 build==1.2.1
     # via pip-tools
-cads-api-client==1.1.0
+cads-api-client==1.2.0
     # via cdsapi
 cdsapi==0.7.0
     # via swmmanywhere (pyproject.toml)
@@ -290,11 +290,11 @@ requests==2.32.3
     #   pystac-client
 rioxarray==0.16.0
     # via swmmanywhere (pyproject.toml)
-rpds-py==0.19.0
+rpds-py==0.19.1
     # via
     #   jsonschema
     #   referencing
-ruff==0.5.1
+ruff==0.5.5
     # via swmmanywhere (pyproject.toml)
 scikit-image==0.24.0
     # via pysheds
@@ -305,7 +305,7 @@ scipy==1.14.0
     #   pysheds
     #   scikit-image
     #   swmmanywhere (pyproject.toml)
-shapely==2.0.4
+shapely==2.0.5
     # via
     #   geopandas
     #   osmnx

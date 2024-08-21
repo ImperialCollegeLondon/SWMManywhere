@@ -12,7 +12,12 @@ from tqdm.auto import tqdm
 
 import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import filepaths, parameters, preprocessing
-from swmmanywhere.graph_utilities import iterate_graphfcns, load_graph, save_graph
+from swmmanywhere.graph_utilities import (
+    iterate_graphfcns,
+    load_graph,
+    save_graph,
+    validate_graphfcn_list,
+)
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics, validate_metric_list
 from swmmanywhere.post_processing import synthetic_write
@@ -291,6 +296,38 @@ def check_parameter_overrides(config: dict):
     return config
 
 
+def check_and_register_custom_graphfcns(config: dict):
+    """Check, register and validate custom graphfcns in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If a graphfcn module does not exist.
+        ValueError: If a custom graphfcn is not successfully registered.
+    """
+    for custom_graphfcn_module in config.get("custom_graphfcn_modules", []):
+        custom_graphfcn_module = Path(custom_graphfcn_module)
+
+        # Check that the custom graphfcn exists
+        if not custom_graphfcn_module.exists():
+            raise FileNotFoundError(
+                f"Custom graphfcn not found at {custom_graphfcn_module}"
+            )
+
+        # Import the custom graphfcn module
+        spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
+            custom_graphfcn_module.stem, custom_graphfcn_module
+        )
+        custom_graphfcn_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+        spec.loader.exec_module(custom_graphfcn_module)
+
+    # Validate the import
+    validate_graphfcn_list(config["graphfcn_list"])
+
+    return config
+
+
 def check_and_register_custom_metrics(config: dict):
     """Check, register and validate custom metrics in the config.
 
@@ -339,6 +376,8 @@ def load_config(
 ):
     """Load, validate, and convert Paths in a configuration file.
 
+    Note, if using a custom graphfcn, load_config must be called with validation=True.
+
     Args:
         config_path (Path): The path to the configuration file.
         validation (bool, optional): Whether to validate the configuration.
@@ -383,6 +422,9 @@ def load_config(
 
     # Check and register custom metrics
     config = check_and_register_custom_metrics(config)
+
+    # Check custom graphfcns
+    config = check_and_register_custom_graphfcns(config)
 
     return config
 

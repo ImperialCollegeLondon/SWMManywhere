@@ -57,7 +57,7 @@ As our SWMManywhere paper [link preprint] demonstrates, you can capture an enorm
 ### Customise `graphfcns`
 
 Graph functions are the way that operations are applied to create a synthetic UDM
-in SWMManywhere. You can read more about them [here], but a primary feature of
+in SWMManywhere. You can read more about them [here](graphfcns_guide.md), but a primary feature of
 the `config` file is to provide a `graphfcn_list`. By default `graphfcn_list` is
 selected from [`demo_config.yml`](reference-defs.md#demo-configuration-file).
 Although we believe that the default list makes sense, you may instead provide
