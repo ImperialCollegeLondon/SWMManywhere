@@ -95,31 +95,35 @@ def validate_metric_list(metric_list: list[str]) -> None:
 
 
 def iterate_metrics(
-    synthetic_results: pd.DataFrame = pd.DataFrame(),
-    synthetic_subs: gpd.GeoDataFrame = gpd.GeoDataFrame(),
-    synthetic_G: nx.Graph = nx.Graph(),
-    real_results: pd.DataFrame = pd.DataFrame(),
-    real_subs: gpd.GeoDataFrame = gpd.GeoDataFrame(),
-    real_G: nx.Graph = nx.Graph(),
-    metric_list: list[str] = list(metrics.keys()),
-    metric_evaluation: MetricEvaluation = MetricEvaluation(),
+    synthetic_results: pd.DataFrame | None = None,
+    synthetic_subs: gpd.GeoDataFrame | None = None,
+    synthetic_G: nx.Graph | None = None,
+    real_results: pd.DataFrame | None = None,
+    real_subs: gpd.GeoDataFrame | None = None,
+    real_G: nx.Graph | None = None,
+    metric_list: list[str] | None = None,
+    metric_evaluation: MetricEvaluation | None = None,
 ) -> dict[str, float]:
     """Iterate a list of metrics over a graph.
 
     Args:
-        synthetic_results (pd.DataFrame): The synthetic results.
-        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
-        synthetic_G (nx.Graph): The synthetic graph.
-        real_results (pd.DataFrame): The real results.
-        real_subs (gpd.GeoDataFrame): The real subcatchments.
-        real_G (nx.Graph): The real graph.
-        metric_list (list[str]): A list of metrics to iterate.
-        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
+        synthetic_results (pd.DataFrame | None): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame | None): The synthetic subcatchments.
+        synthetic_G (nx.Graph | None): The synthetic graph.
+        real_results (pd.DataFrame | None): The real results.
+        real_subs (gpd.GeoDataFrame | None): The real subcatchments.
+        real_G (nx.Graph | None): The real graph.
+        metric_list (list[str] | None): A list of metrics to iterate.
+        metric_evaluation (MetricEvaluation | None): The metric evaluation parameters.
 
     Returns:
         dict[str, float]: The results of the metrics.
     """
+    if metric_list is None:
+        return {}
+
     validate_metric_list(metric_list)
+
     kwargs = {
         "synthetic_results": synthetic_results,
         "synthetic_subs": synthetic_subs,
