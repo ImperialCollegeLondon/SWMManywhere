@@ -30,5 +30,6 @@ properties:
   metric_list: {type: array, items: {type: string}}
   address_overrides: {type: ['object', 'null']}
   parameter_overrides: {type: ['object', 'null']}
+  custom_metric_modules: {type: array, items: {type: string}}
   custom_graphfcn_modules: {type: array, items: {type: string}}
 required: [base_dir, project, bbox]

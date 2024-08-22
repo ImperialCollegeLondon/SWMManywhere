@@ -78,34 +78,51 @@ class MetricRegistry(dict):
 metrics = MetricRegistry()
 
 
-def iterate_metrics(
-    synthetic_results: pd.DataFrame,
-    synthetic_subs: gpd.GeoDataFrame,
-    synthetic_G: nx.Graph,
-    real_results: pd.DataFrame,
-    real_subs: gpd.GeoDataFrame,
-    real_G: nx.Graph,
-    metric_list: list[str],
-    metric_evaluation: MetricEvaluation,
-) -> dict[str, float]:
-    """Iterate a list of metrics over a graph.
+def validate_metric_list(metric_list: list[str]) -> None:
+    """Validate a list of metrics.
+
+    Validate that all metrics in the metric list are registered.
 
     Args:
-        synthetic_results (pd.DataFrame): The synthetic results.
-        synthetic_subs (gpd.GeoDataFrame): The synthetic subcatchments.
-        synthetic_G (nx.Graph): The synthetic graph.
-        real_results (pd.DataFrame): The real results.
-        real_subs (gpd.GeoDataFrame): The real subcatchments.
-        real_G (nx.Graph): The real graph.
-        metric_list (list[str]): A list of metrics to iterate.
-        metric_evaluation (MetricEvaluation): The metric evaluation parameters.
+        metric_list (list[str]): A list of metrics to validate.
 
-    Returns:
-        dict[str, float]: The results of the metrics.
+    Raises:
+        ValueError: If a metric is not registered.
     """
     not_exists = [m for m in metric_list if m not in metrics]
     if not_exists:
         raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
+
+
+def iterate_metrics(
+    synthetic_results: pd.DataFrame | None = None,
+    synthetic_subs: gpd.GeoDataFrame | None = None,
+    synthetic_G: nx.Graph | None = None,
+    real_results: pd.DataFrame | None = None,
+    real_subs: gpd.GeoDataFrame | None = None,
+    real_G: nx.Graph | None = None,
+    metric_list: list[str] | None = None,
+    metric_evaluation: MetricEvaluation | None = None,
+) -> dict[str, float]:
+    """Iterate a list of metrics over a graph.
+
+    Args:
+        synthetic_results (pd.DataFrame | None): The synthetic results.
+        synthetic_subs (gpd.GeoDataFrame | None): The synthetic subcatchments.
+        synthetic_G (nx.Graph | None): The synthetic graph.
+        real_results (pd.DataFrame | None): The real results.
+        real_subs (gpd.GeoDataFrame | None): The real subcatchments.
+        real_G (nx.Graph | None): The real graph.
+        metric_list (list[str] | None): A list of metrics to iterate.
+        metric_evaluation (MetricEvaluation | None): The metric evaluation parameters.
+
+    Returns:
+        dict[str, float]: The results of the metrics.
+    """
+    if metric_list is None:
+        return {}
+
+    validate_metric_list(metric_list)
 
     kwargs = {
         "synthetic_results": synthetic_results,
@@ -181,7 +198,7 @@ def restriction_on_scale(scale: str, metric: str, variable: str):
 def restriction_on_metric(scale: str, metric: str, variable: str):
     """Restriction on metric.
 
-    Restrict the variable to 'flow' if the metric is 'relerror'.
+    Restrict the design variables to use 'relerror' only.
 
     Args:
         scale (str): The scale of the metric.
