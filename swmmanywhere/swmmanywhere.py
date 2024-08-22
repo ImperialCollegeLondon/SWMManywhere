@@ -19,7 +19,7 @@ from swmmanywhere.graph_utilities import (
     validate_graphfcn_list,
 )
 from swmmanywhere.logging import logger, verbose
-from swmmanywhere.metric_utilities import iterate_metrics
+from swmmanywhere.metric_utilities import iterate_metrics, validate_metric_list
 from swmmanywhere.post_processing import synthetic_write
 from swmmanywhere.utilities import yaml_dump, yaml_load
 
@@ -328,6 +328,37 @@ def check_and_register_custom_graphfcns(config: dict):
     return config
 
 
+def check_and_register_custom_metrics(config: dict):
+    """Check, register and validate custom metrics in the config.
+
+    Args:
+        config (dict): The configuration.
+
+    Raises:
+        ValueError: If the custom metrics module does not exist.
+    """
+    for custom_metric_module in config.get("custom_metric_modules", []):
+        custom_metric_module = Path(custom_metric_module)
+
+        # Check that the custom graphfcn exists
+        if not custom_metric_module.exists():
+            raise FileNotFoundError(
+                f"Custom graphfcn not found at {custom_metric_module}"
+            )
+
+        # Import the custom graphfcn module
+        spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
+            custom_metric_module.stem, custom_metric_module
+        )
+        custom_metric_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+        spec.loader.exec_module(custom_metric_module)
+
+    # Validate metric list
+    validate_metric_list(config["metric_list"])
+
+    return config
+
+
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
 
@@ -388,6 +419,9 @@ def load_config(
 
     # Check parameter overrides
     config = check_parameter_overrides(config)
+
+    # Check and register custom metrics
+    config = check_and_register_custom_metrics(config)
 
     # Check custom graphfcns
     config = check_and_register_custom_graphfcns(config)

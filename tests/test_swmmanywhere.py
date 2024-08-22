@@ -11,6 +11,7 @@ import yaml
 
 from swmmanywhere import __version__, swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
+from swmmanywhere.metric_utilities import metrics
 
 
 def test_version():
@@ -180,6 +181,39 @@ def test_minimal_req():
         }
 
         swmmanywhere.swmmanywhere(config)
+
+
+def test_custom_metric():
+    """Test adding a custom metric."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Load the config
+        gf_module = str(Path(__file__).parent / "test_data" / "custom_metrics.py")
+
+        config = swmmanywhere.load_config(validation=False)
+        config["custom_metric_modules"] = [str(gf_module)]
+        config["metric_list"].append("new_metric")
+
+        # Set some test values
+        config_address = Path(temp_dir) / "test_config.yml"
+        config["base_dir"] = temp_dir
+        config["bbox"] = [0, 1, 0, 1]
+        del config["real"]
+
+        # Write the config
+        swmmanywhere.save_config(config, config_address)
+
+        # Import of `custom_metric` by CI testing environment adds `new_metric`
+        if "new_metric" in metrics:
+            del metrics["new_metric"]
+
+        # Load and test validation of the config
+        config = swmmanywhere.load_config(config_address)
+
+        # Check metric was added
+        assert "new_metric" in metrics
+
+        # Remove the custom metric for other tests
+        del metrics["new_metric"]
 
 
 def test_custom_graphfcn():

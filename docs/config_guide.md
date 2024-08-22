@@ -108,8 +108,9 @@ UDM file paths in the `config` file, and the performance metrics to be calculate
 In SWMManywhere, a pre-existing UDM is referred to as the 'real' model (although
 if you are using SWMManywhere you are presumably aware that describing any UDM
 as real is tenuous). To enable SWMManywhere to compare against a real model, we
-use the `real` entry of the `config` file. The path to a `subcatchments` geometry
-file, and a `graph` file (see
+use the `real` entry of the `config` file, see the `real` entry in
+[`demo_config.yml`](reference-defs.md#demo-configuration-file) for example.
+The path to a `subcatchments` geometry file, and a `graph` file (see
 [`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph)
 for format) must be provided - however this is temporary and will be unnecessary
 following the fixing of
@@ -128,12 +129,14 @@ the synthetic model...
 ### Performance metrics
 
 The SWMManywhere package comes with a wide variety of performance
-metrics that can be used to make this comparison, explained [here]. In the `config`
+metrics that can be used to make this comparison, explained
+[here](metrics_guide.md). In the `config`
 file you can specify which metrics should be calculated under the `metric_list`
 entry. The [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 `metric_list` contains all metrics that come with SWMManywhere, although you may
 want to choose a subselection of these if you have a very large network (say >5000
 nodes) because some of the graph-based metrics can be slow to calculate (anything
 starting with `nc` or containing `betweenness`). You may also be unsatisfied with
-the built in metrics, in which case you can [add your own], although these must be
-specified under `metric_list` for them to be calculated.
+the built in metrics, in which case you can
+[add your own](metrics_guide.md#add-a-new-metric),
+although these must be specified under `metric_list` for them to be calculated.
