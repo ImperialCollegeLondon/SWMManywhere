@@ -56,6 +56,7 @@ click==8.1.7
     #   mkdocstrings
     #   planetary-computer
     #   rasterio
+    #   whitebox
 click-plugins==1.1.1
     # via
     #   fiona
@@ -471,6 +472,8 @@ webencodings==0.5.1
     # via
     #   bleach
     #   tinycss2
+whitebox==2.3.5
+    # via swmmanywhere (pyproject.toml)
 win32-setctime==1.1.0
     # via loguru
 xarray==2024.6.0

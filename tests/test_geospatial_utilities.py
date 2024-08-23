@@ -231,8 +231,12 @@ def test_burn_shape_in_raster():
 def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
-    for method in ["pyflwdir"]:
-        polys = go.derive_subcatchments(street_network, elev_fid)
+    methods = {
+        "pyflwdir": {"area": 2498, "slope": 0.1187, "width": 28.202},
+        "whitebox": {"area": 2998, "slope": 0.1102, "width": 30.894},
+    }
+    for method, results in methods.items():
+        polys = go.derive_subcatchments(street_network, elev_fid, method)
         assert "slope" in polys.columns
         assert "area" in polys.columns
         assert "geometry" in polys.columns
@@ -241,13 +245,14 @@ def test_derive_subcatchments(street_network):
         assert polys.dropna().shape == polys.shape
         assert polys.crs == street_network.graph["crs"]
 
-        # Pyflwdir and pysheds catchment derivation aren't absolutely identical
-        assert almost_equal(polys.set_index("id").loc[2623975694, "area"], 1499, tol=1)
         assert almost_equal(
-            polys.set_index("id").loc[2623975694, "slope"], 0.06145, tol=0.001
+            polys.set_index("id").loc[2623975694, "area"], results["area"], tol=1
         )
         assert almost_equal(
-            polys.set_index("id").loc[2623975694, "width"], 21.845, tol=0.001
+            polys.set_index("id").loc[2623975694, "slope"], results["slope"], tol=0.001
+        )
+        assert almost_equal(
+            polys.set_index("id").loc[2623975694, "width"], results["width"], tol=0.001
         )
 
 

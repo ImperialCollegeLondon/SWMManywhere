@@ -50,6 +50,7 @@ click==8.1.7
     #   pip-tools
     #   planetary-computer
     #   rasterio
+    #   whitebox
 click-plugins==1.1.1
     # via
     #   fiona
@@ -312,6 +313,8 @@ virtualenv==20.26.3
     # via pre-commit
 wheel==0.43.0
     # via pip-tools
+whitebox==2.3.5
+    # via swmmanywhere (pyproject.toml)
 win32-setctime==1.1.0
     # via loguru
 xarray==2024.6.0

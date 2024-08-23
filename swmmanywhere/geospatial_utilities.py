@@ -9,6 +9,8 @@ import itertools
 import json
 import math
 import os
+import shutil
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional
@@ -27,6 +29,7 @@ from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
+from whitebox import WhiteboxTools
 
 from swmmanywhere.logging import logger, verbose
 
@@ -616,13 +619,64 @@ def derive_subbasins_streamorder(
     return gdf_bas
 
 
+def flwdir_whitebox(fid: Path) -> np.array:
+    """Calculate flow direction using WhiteboxTools.
+
+    Args:
+        fid (Path): Filepath to the DEM.
+
+    Returns:
+        np.array: Flow directions.
+    """
+    # Initialize WhiteboxTools
+    wbt = WhiteboxTools()
+    wbt.verbose = False
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        # Set the working directory
+        wbt.work_dir = temp_dir
+
+        # Copy raster to working directory
+        dem = str(temp_path / "dem.tif")
+        shutil.copy(fid, dem)
+
+        # Condition
+        breached_dem = str(temp_path / "breached_dem.tif")
+        wbt.breach_depressions(dem, breached_dem)
+
+        # Calculate flow direction using the D inf algorithm
+        fdir = str(temp_path / "flow_direction.tif")
+        wbt.d8_pointer(breached_dem, fdir)
+
+        with rst.open(fdir) as src:
+            flow_dir = src.read(1)
+
+    return flow_dir
+
+
+def whitebox_to_pyflwdir_mapping(x: int) -> int:
+    """Map WhiteboxTools flow directions to pyflwdir flow directions.
+
+    Args:
+        x (int): WhiteboxTools flow direction.
+
+    Returns:
+        int: pyflwdir flow direction.
+    """
+    mapping = {1: 128, 2: 1, 4: 2, 8: 4, 16: 8, 32: 16, 64: 32, 128: 64}
+    return mapping.get(x, x)
+
+
 def load_and_process_dem(
     fid: Path,
+    method: str = "whitebox",
 ) -> tuple[dict, np.array, np.array]:
     """Load and condition a DEM.
 
     Args:
         fid (Path): Filepath to the DEM.
+        method (str, optional): The method to use for conditioning. Defaults to
+            "whitebox".
 
     Returns:
         tuple: A tuple containing the grid, flow directions, and cell slopes.
@@ -633,13 +687,19 @@ def load_and_process_dem(
         transform = src.transform
         crs = src.crs
 
-    flw = pyflwdir.from_dem(
-        data=elevtn,
-        nodata=nodata,
-        transform=transform,
-        latlon=crs.is_geographic,
-    )
-    flow_dir = flw.to_array(ftype="d8").astype(int)
+    if method == "whitebox":
+        flow_dir = flwdir_whitebox(fid)
+        flow_dir = np.vectorize(whitebox_to_pyflwdir_mapping)(flow_dir)
+    elif method == "pyflwdir":
+        flw = pyflwdir.from_dem(
+            data=elevtn,
+            nodata=nodata,
+            transform=transform,
+            latlon=crs.is_geographic,
+        )
+        flow_dir = flw.to_array(ftype="d8").astype(int)
+    else:
+        raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
 
     cell_slopes = pyflwdir.dem.slope(
         elevtn,
@@ -653,19 +713,22 @@ def load_and_process_dem(
     return grid, flow_dir, cell_slopes
 
 
-def derive_subcatchments(G: nx.Graph, fid: Path) -> gpd.GeoDataFrame:
+def derive_subcatchments(
+    G: nx.Graph, fid: Path, method: str = "whitebox"
+) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Args:
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
         fid (Path): Filepath to the DEM.
+        method (str, optional): The method to use for conditioning.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
     # Load and process the DEM
-    grid, flow_dir, cell_slopes = load_and_process_dem(fid)
+    grid, flow_dir, cell_slopes = load_and_process_dem(fid, method)
 
     # Delineate catchments
     result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)
