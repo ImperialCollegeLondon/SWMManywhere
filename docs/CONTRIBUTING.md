@@ -131,7 +131,7 @@ coverage html
 
 ## Changing dependencies
 
-Is as the development process moves forward you find you need to add a new
+As the development process moves forward you find you need to add a new
 dependency, just add it to the relevant section of the `pyproject.toml` file
 and recompile requirements:
 
