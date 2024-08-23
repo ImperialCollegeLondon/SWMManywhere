@@ -13,7 +13,6 @@ import shutil
 import tempfile
 from functools import lru_cache
 from pathlib import Path
-from time import sleep
 from typing import List, Optional
 
 import geopandas as gpd
@@ -620,18 +619,18 @@ def derive_subbasins_streamorder(
     return gdf_bas
 
 
-def flwdir_whitebox(fid: Path) -> np.array:
+def flwdir_whitebox(fid: Path) -> np.array | None:
     """Calculate flow direction using WhiteboxTools.
 
     Args:
         fid (Path): Filepath to the DEM.
 
     Returns:
-        np.array: Flow directions.
+        np.array: Flow directions. Seems to occasionally fail (randomly)
     """
     # Initialize WhiteboxTools
     wbt = WhiteboxTools()
-    wbt.verbose = False
+    wbt.verbose = verbose()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         # Set the working directory
@@ -649,15 +648,13 @@ def flwdir_whitebox(fid: Path) -> np.array:
         fdir = str(temp_path / "flow_direction.tif")
         wbt.d8_pointer(breached_dem, fdir)
 
-        # Give time for filesystem to flush
-        sleep(5)
-
         if not Path(fdir).exists():
-            raise ValueError("Flow direction raster not created.")
+            logger.warning("Flow direction raster not created.")
+            return None
 
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
-
+    flow_dir = np.vectorize(whitebox_to_pyflwdir_mapping)(flow_dir)
     return flow_dir
 
 
@@ -694,10 +691,11 @@ def load_and_process_dem(
         transform = src.transform
         crs = src.crs
 
+    flow_dir = None
     if method == "whitebox":
         flow_dir = flwdir_whitebox(fid)
-        flow_dir = np.vectorize(whitebox_to_pyflwdir_mapping)(flow_dir)
-    elif method == "pyflwdir":
+
+    if (method == "pyflwdir") or (flow_dir is None):
         flw = pyflwdir.from_dem(
             data=elevtn,
             nodata=nodata,
