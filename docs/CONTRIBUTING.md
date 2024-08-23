@@ -133,7 +133,14 @@ coverage html
 
 Is as the development process moves forward you find you need to add a new
 dependency, just add it to the relevant section of the `pyproject.toml` file
-and then run `pip-compile` as required to regenerate the different
-`requirements.txt` files. Read the
+and recompile requirements:
+
+```bash
+pip-compile
+pip-compile --extra dev -o dev-requirements.txt pyproject.toml
+pip-compile --extra doc -o doc-requirements.txt pyproject.toml
+```
+
+Read the
 [`pip-tools` documentation](https://pip-tools.readthedocs.io/en/latest/) for
 more information on the process.
