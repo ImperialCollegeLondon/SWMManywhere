@@ -649,8 +649,9 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
         wbt.d8_pointer(breached_dem, fdir)
 
         if not Path(fdir).exists():
-            logger.warning("Flow direction raster not created.")
-            return None
+            # logger.warning("Flow direction raster not created.")
+            # return None
+            raise ValueError("Flow direction raster not created.")
 
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
