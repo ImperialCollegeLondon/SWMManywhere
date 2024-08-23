@@ -231,8 +231,8 @@ def test_burn_shape_in_raster():
 def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
-    for method in ["pysheds", "pyflwdir"]:
-        polys = go.derive_subcatchments(street_network, elev_fid, method=method)
+    for method in ["pyflwdir"]:
+        polys = go.derive_subcatchments(street_network, elev_fid)
         assert "slope" in polys.columns
         assert "area" in polys.columns
         assert "geometry" in polys.columns

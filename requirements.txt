@@ -11,7 +11,6 @@ aenum==3.1.11
 affine==2.4.0
     # via
     #   pyflwdir
-    #   pysheds
     #   rasterio
 annotated-types==0.7.0
     # via pydantic
@@ -70,8 +69,6 @@ fsspec==2024.6.1
     # via fastparquet
 geographiclib==2.0
     # via geopy
-geojson==3.1.0
-    # via pysheds
 geopandas==1.0.1
     # via
     #   osmnx
@@ -84,8 +81,6 @@ gitpython==3.1.43
     # via swmmanywhere (pyproject.toml)
 idna==3.7
     # via requests
-imageio==2.34.2
-    # via scikit-image
 joblib==1.4.2
     # via swmmanywhere (pyproject.toml)
 jsonschema==4.23.0
@@ -96,8 +91,6 @@ jsonschema-specifications==2023.12.1
     # via jsonschema
 julian==0.14
     # via pyswmm
-lazy-loader==0.4
-    # via scikit-image
 llvmlite==0.43.0
     # via numba
 loguru==0.7.2
@@ -112,18 +105,14 @@ networkx==3.3
     # via
     #   netcomp
     #   osmnx
-    #   scikit-image
     #   swmmanywhere (pyproject.toml)
 numba==0.60.0
-    # via
-    #   pyflwdir
-    #   pysheds
+    # via pyflwdir
 numpy==1.26.4
     # via
     #   cftime
     #   fastparquet
     #   geopandas
-    #   imageio
     #   netcdf4
     #   netcomp
     #   numba
@@ -132,15 +121,12 @@ numpy==1.26.4
     #   pyarrow
     #   pyflwdir
     #   pyogrio
-    #   pysheds
     #   rasterio
     #   rioxarray
-    #   scikit-image
     #   scipy
     #   shapely
     #   snuggs
     #   swmmanywhere (pyproject.toml)
-    #   tifffile
     #   xarray
 osmnx==1.9.3
     # via swmmanywhere (pyproject.toml)
@@ -148,25 +134,18 @@ packaging==24.1
     # via
     #   fastparquet
     #   geopandas
-    #   lazy-loader
     #   planetary-computer
     #   pyogrio
     #   pyswmm
     #   rioxarray
-    #   scikit-image
     #   xarray
 pandas==2.2.2
     # via
     #   fastparquet
     #   geopandas
     #   osmnx
-    #   pysheds
     #   swmmanywhere (pyproject.toml)
     #   xarray
-pillow==10.4.0
-    # via
-    #   imageio
-    #   scikit-image
 planetary-computer==1.0.0
     # via swmmanywhere (pyproject.toml)
 pyarrow==16.1.0
@@ -186,10 +165,7 @@ pyparsing==3.1.2
 pyproj==3.6.1
     # via
     #   geopandas
-    #   pysheds
     #   rioxarray
-pysheds==0.3.5
-    # via swmmanywhere (pyproject.toml)
 pystac[validation]==1.10.1
     # via
     #   planetary-computer
@@ -217,7 +193,6 @@ pyyaml==6.0.1
     # via swmmanywhere (pyproject.toml)
 rasterio==1.3.10
     # via
-    #   pysheds
     #   rioxarray
     #   swmmanywhere (pyproject.toml)
 referencing==0.35.1
@@ -238,14 +213,10 @@ rpds-py==0.19.1
     # via
     #   jsonschema
     #   referencing
-scikit-image==0.24.0
-    # via pysheds
 scipy==1.14.0
     # via
     #   netcomp
     #   pyflwdir
-    #   pysheds
-    #   scikit-image
     #   swmmanywhere (pyproject.toml)
 shapely==2.0.5
     # via
@@ -262,8 +233,6 @@ snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5
     # via pyswmm
-tifffile==2024.7.2
-    # via scikit-image
 toolz==0.12.1
     # via cytoolz
 tqdm==4.66.4

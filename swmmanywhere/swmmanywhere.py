@@ -78,6 +78,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
         config["bbox"],
         config.get("bbox_number", None),
         config.get("model_number", None),
+        config.get("extension", "parquet"),
         **config.get("address_overrides", {}),
     )
 
@@ -323,7 +324,7 @@ def check_and_register_custom_graphfcns(config: dict):
         spec.loader.exec_module(custom_graphfcn_module)
 
     # Validate the import
-    validate_graphfcn_list(config["graphfcn_list"])
+    validate_graphfcn_list(config.get("graphfcn_list", []))
 
     return config
 
@@ -354,7 +355,7 @@ def check_and_register_custom_metrics(config: dict):
         spec.loader.exec_module(custom_metric_module)
 
     # Validate metric list
-    validate_metric_list(config["metric_list"])
+    validate_metric_list(config.get("metric_list", []))
 
     return config
 
