@@ -691,6 +691,9 @@ def load_and_process_dem(
         transform = src.transform
         crs = src.crs
 
+    if method not in ["whitebox", "pyflwdir"]:
+        raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
+
     flow_dir = None
     if method == "whitebox":
         flow_dir = flwdir_whitebox(fid)
@@ -703,8 +706,6 @@ def load_and_process_dem(
             latlon=crs.is_geographic,
         )
         flow_dir = flw.to_array(ftype="d8").astype(int)
-    else:
-        raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
 
     cell_slopes = pyflwdir.dem.slope(
         elevtn,
