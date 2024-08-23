@@ -648,6 +648,12 @@ def flwdir_whitebox(fid: Path) -> np.array:
         fdir = str(temp_path / "flow_direction.tif")
         wbt.d8_pointer(breached_dem, fdir)
 
+        # Force the OS to flush filesystem buffers
+        os.fsync(Path(fdir).open("r"))
+
+        if not Path(fdir).exists():
+            raise ValueError("Flow direction raster not created.")
+
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
 
