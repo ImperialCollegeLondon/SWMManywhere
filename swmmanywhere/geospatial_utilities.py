@@ -649,9 +649,9 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
         wbt.d8_pointer(breached_dem, fdir)
 
         if not Path(fdir).exists():
-            # logger.warning("Flow direction raster not created.")
-            # return None
-            raise ValueError("Flow direction raster not created.")
+            logger.warning("Flow direction raster not created.")
+            return None
+            # raise ValueError("Flow direction raster not created.")
 
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
@@ -692,7 +692,7 @@ def load_and_process_dem(
         transform = src.transform
         crs = src.crs
 
-    if method not in ["whitebox", "pyflwdir"]:
+    if method not in ("whitebox", "pyflwdir"):
         raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
 
     flow_dir = None
