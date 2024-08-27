@@ -188,9 +188,8 @@ which is required for `set_surface_slope`. The default order of `graphfcn_list`
 has these graph functions in the appropriate order, but we can demonstrate
 the automatic validation in SWMManywhere by switching their order. We will
 copy the [minimum viable config](config_guide.md#minimum-viable-configuration)
-template and `graphfcn_list` from the
-[`demo_config.yml`](reference-defs.md#demo-configuration-file), but move
-`set_surface_slope` before `set_elevation`.
+template and use a short `graphfcn_list` that places the
+`set_surface_slope` graph function before `set_elevation`.
 
 ```yml
 {%
@@ -198,29 +197,8 @@ template and `graphfcn_list` from the
     comments=false
 %}
 graphfcn_list:
-  - assign_id
-  - fix_geometries
-  - remove_non_pipe_allowable_links
-  - calculate_streetcover
-  - remove_parallel_edges
-  - to_undirected
-  - split_long_edges
-  - merge_street_nodes
-  - assign_id
-  - clip_to_catchments
-  - calculate_contributing_area
-  - set_surface_slope # <- we have moved this up the list
+  - set_surface_slope
   - set_elevation
-  - double_directed
-  - fix_geometries
-  - set_chahinian_slope
-  - set_chahinian_angle
-  - calculate_weights
-  - identify_outlets
-  - derive_topology
-  - pipe_by_pipe
-  - fix_geometries
-  - assign_id
 ```
 
 If we try to run this with:
