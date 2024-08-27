@@ -11,7 +11,10 @@ the path to a [configuration file](config_guide.md). You can copy the
 and run SWMManywhere with the command below:
 
 ```sh
-python -m swmmanywhere --config_path=/path/to/file.yml
+{%
+    include-markdown "snippets/cli-call.sh"
+    comments=false
+%}
 ```
 
 which will create a SWMM input file (`.inp`) at the file location:
