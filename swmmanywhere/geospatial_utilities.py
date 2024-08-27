@@ -631,7 +631,7 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
     # Initialize WhiteboxTools
     wbt = WhiteboxTools()
     wbt.verbose = verbose()
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=fid.parent) as temp_dir:
         temp_path = Path(temp_dir)
         # Set the working directory
         wbt.work_dir = temp_dir
@@ -649,9 +649,9 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
         wbt.d8_pointer(breached_dem, fdir)
 
         if not Path(fdir).exists():
-            logger.warning("Flow direction raster not created.")
-            return None
-            # raise ValueError("Flow direction raster not created.")
+            # logger.warning("Flow direction raster not created.")
+            # return None
+            raise ValueError("Flow direction raster not created.")
 
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
