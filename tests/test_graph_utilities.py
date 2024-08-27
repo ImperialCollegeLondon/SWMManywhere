@@ -803,13 +803,16 @@ def test_validate_graphfcn_list(street_network):
     validate_graphfcn_list(["assign_id", "double_directed"])
 
     # Test case 2: Invalid list
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         validate_graphfcn_list(["assign_id", "not_a_function"])
+    assert "not_a_function" in str(exc_info.value)
 
     # Test case 3: Valid order
     G, _ = street_network
     validate_graphfcn_list(["assign_id", "double_directed"], G)
 
     # Test case 4: Invalid order
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         validate_graphfcn_list(["assign_id", "calculate_weights"], G)
+    assert "calculate_weights requires edge attributes" in str(exc_info.value)
+    assert "chahinian_angle" in str(exc_info.value)
