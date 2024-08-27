@@ -619,14 +619,14 @@ def derive_subbasins_streamorder(
     return gdf_bas
 
 
-def flwdir_whitebox(fid: Path) -> np.array | None:
+def flwdir_whitebox(fid: Path) -> np.array:
     """Calculate flow direction using WhiteboxTools.
 
     Args:
         fid (Path): Filepath to the DEM.
 
     Returns:
-        np.array: Flow directions. Seems to occasionally fail (randomly)
+        np.array: Flow directions.
     """
     # Initialize WhiteboxTools
     wbt = WhiteboxTools()
@@ -649,27 +649,16 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
         wbt.d8_pointer(breached_dem, fdir)
 
         if not Path(fdir).exists():
-            # logger.warning("Flow direction raster not created.")
-            # return None
             raise ValueError("Flow direction raster not created.")
 
         with rst.open(fdir) as src:
             flow_dir = src.read(1)
-    flow_dir = np.vectorize(whitebox_to_pyflwdir_mapping)(flow_dir)
-    return flow_dir
 
-
-def whitebox_to_pyflwdir_mapping(x: int) -> int:
-    """Map WhiteboxTools flow directions to pyflwdir flow directions.
-
-    Args:
-        x (int): WhiteboxTools flow direction.
-
-    Returns:
-        int: pyflwdir flow direction.
-    """
+    # Adjust mapping from WhiteboxTools to pyflwdir
     mapping = {1: 128, 2: 1, 4: 2, 8: 4, 16: 8, 32: 16, 64: 32, 128: 64}
-    return mapping.get(x, x)
+    get_flow_dir = np.vectorize(mapping.get, excluded=["default"])
+    flow_dir = get_flow_dir(flow_dir, np.nan)
+    return flow_dir
 
 
 class Grid:
@@ -713,11 +702,9 @@ def load_and_process_dem(
     if method not in ("whitebox", "pyflwdir"):
         raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
 
-    flow_dir = None
     if method == "whitebox":
         flow_dir = flwdir_whitebox(fid)
-
-    if (method == "pyflwdir") or (flow_dir is None):
+    elif method == "pyflwdir":
         flw = pyflwdir.from_dem(
             data=elevtn,
             nodata=nodata,
