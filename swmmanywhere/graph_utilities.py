@@ -161,18 +161,71 @@ def get_osmid_id(data: dict) -> Hashable:
     return id_
 
 
-def validate_graphfcn_list(graphfcn_list: list[str]) -> None:
+def validate_graphfcn_list(
+    graphfcn_list: list[str], starting_graph: nx.Graph | None = None
+) -> None:
     """Validate that the graph functions are registered.
+
+    Tests that the graph functions are registered.
+
+    Tests that the graph functions have the required attributes in the graph
+    and updates the attributes that are added to the graph.
+    `required_edge_attributes` and `required_node_attributes` currently only
+    specify that one element in the graph must have the attribute (e.g., if a
+    graphfcn has `required_node_attributes=['id']`, and only one node in the
+    graph has the `id` attribute, then it will be valid).
 
     Args:
         graphfcn_list (list[str]): A list of graph functions
+        starting_graph (nx.Graph, optional): A graph to check the starting
+            attributes of. Defaults to None.
 
     Raises:
         ValueError: If a graph function is not registered
+        ValueError: If a graph function requires an attribute that is not in
+            the graph
     """
+    # Check that the graph functions are registered
     not_exists = [g for g in graphfcn_list if g not in graphfcns]
     if not_exists:
         raise ValueError(f"Graphfcns are not registered:\n{', '.join(not_exists)}")
+
+    if starting_graph is None:
+        return
+
+    # Get starting graph attributes
+    edge_attributes: set = set()
+    for u, v, data in starting_graph.edges(data=True):
+        edge_attributes = edge_attributes.union(data.keys())
+
+    node_attributes: set = set()
+    for node, data in starting_graph.nodes(data=True):
+        node_attributes = node_attributes.union(data.keys())
+
+    # Iterate over graphfcn_list and check that the required attributes are
+    # present in the graph, updating the add attributes
+    for graphfcn in graphfcn_list:
+        if node_attributes.intersection(
+            graphfcns[graphfcn].required_node_attributes
+        ) != set(graphfcns[graphfcn].required_node_attributes):
+            raise ValueError(
+                f"""Graphfcn {graphfcn} requires node attributes 
+                {graphfcns[graphfcn].required_node_attributes}"""
+            )
+        if edge_attributes.intersection(
+            graphfcns[graphfcn].required_edge_attributes
+        ) != set(graphfcns[graphfcn].required_edge_attributes):
+            raise ValueError(
+                f"""Graphfcn {graphfcn} requires edge attributes 
+                {graphfcns[graphfcn].required_edge_attributes}"""
+            )
+
+        edge_attributes = edge_attributes.union(
+            graphfcns[graphfcn].adds_edge_attributes
+        )
+        node_attributes = node_attributes.union(
+            graphfcns[graphfcn].adds_node_attributes
+        )
 
 
 with tempfile.TemporaryDirectory() as temp_dir:
@@ -603,7 +656,7 @@ class merge_street_nodes(BaseGraphFunction):
 @register_graphfcn
 class fix_geometries(
     BaseGraphFunction,
-    required_edge_attributes=["geometry"],
+    adds_edge_attributes=["geometry"],
     required_node_attributes=["x", "y"],
 ):
     """fix_geometries class."""

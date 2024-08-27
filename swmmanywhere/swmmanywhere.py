@@ -116,6 +116,9 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     else:
         G = preprocessing.create_starting_graph(addresses)
 
+    # Validate the graphfcn order
+    validate_graphfcn_list(config["graphfcn_list"], G)
+
     # Iterate the graph functions
     logger.info("Iterating graph functions.")
     G = iterate_graphfcns(G, config["graphfcn_list"], params, addresses)
