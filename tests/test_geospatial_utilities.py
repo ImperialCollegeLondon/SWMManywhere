@@ -228,32 +228,33 @@ def test_burn_shape_in_raster():
         new_raster_fid.unlink(missing_ok=True)
 
 
-def test_derive_subcatchments(street_network):
+@pytest.mark.parametrize("method", ["pyflwdir", "whitebox"])
+def test_derive_subcatchments(street_network, method):
     """Test the derive_subcatchments function."""
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
     methods = {
         "pyflwdir": {"area": 2498, "slope": 0.1187, "width": 28.202},
         "whitebox": {"area": 2998, "slope": 0.1102, "width": 30.894},
     }
-    for method, results in methods.items():
-        polys = go.derive_subcatchments(street_network, elev_fid, method)
-        assert "slope" in polys.columns
-        assert "area" in polys.columns
-        assert "geometry" in polys.columns
-        assert "id" in polys.columns
-        assert polys.shape[0] > 0
-        assert polys.dropna().shape == polys.shape
-        assert polys.crs == street_network.graph["crs"]
+    results = methods[method]
+    polys = go.derive_subcatchments(street_network, elev_fid, method)
+    assert "slope" in polys.columns
+    assert "area" in polys.columns
+    assert "geometry" in polys.columns
+    assert "id" in polys.columns
+    assert polys.shape[0] > 0
+    assert polys.dropna().shape == polys.shape
+    assert polys.crs == street_network.graph["crs"]
 
-        assert almost_equal(
-            polys.set_index("id").loc[2623975694, "area"], results["area"], tol=1
-        )
-        assert almost_equal(
-            polys.set_index("id").loc[2623975694, "slope"], results["slope"], tol=0.001
-        )
-        assert almost_equal(
-            polys.set_index("id").loc[2623975694, "width"], results["width"], tol=0.001
-        )
+    assert almost_equal(
+        polys.set_index("id").loc[2623975694, "area"], results["area"], tol=1
+    )
+    assert almost_equal(
+        polys.set_index("id").loc[2623975694, "slope"], results["slope"], tol=0.001
+    )
+    assert almost_equal(
+        polys.set_index("id").loc[2623975694, "width"], results["width"], tol=0.001
+    )
 
 
 def test_derive_rc(street_network):
