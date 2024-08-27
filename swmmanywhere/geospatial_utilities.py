@@ -460,14 +460,14 @@ def attach_unconnected_subareas(
 
 
 def calculate_slope(
-    polys_gdf: gpd.GeoDataFrame, grid: dict, cell_slopes: np.ndarray
+    polys_gdf: gpd.GeoDataFrame, grid: Grid, cell_slopes: np.ndarray
 ) -> gpd.GeoDataFrame:
     """Calculate the average slope of each polygon.
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
             columns: 'geometry', 'area', and 'id'.
-        grid (dict): Information of the raster (affine, shape, crs, bbox)
+        grid (Grid): Information of the raster (affine, shape, crs, bbox)
         cell_slopes (np.ndarray): The slopes of each cell in the grid.
 
     Returns:
@@ -477,7 +477,7 @@ def calculate_slope(
     polys_gdf["slope"] = None
     for idx, row in polys_gdf.iterrows():
         mask = features.geometry_mask(
-            [row.geometry], grid["shape"], grid["affine"], invert=True
+            [row.geometry], grid.shape, grid.affine, invert=True
         )
         average_slope = cell_slopes[mask].mean().mean()
         polys_gdf.loc[idx, "slope"] = max(float(average_slope), 0)
@@ -520,7 +520,7 @@ def vectorize(
 
 
 def delineate_catchment_pyflwdir(
-    grid: dict, flow_dir: np.array, G: nx.Graph
+    grid: Grid, flow_dir: np.array, G: nx.Graph
 ) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
@@ -528,7 +528,7 @@ def delineate_catchment_pyflwdir(
     faster than delineate_catchment.
 
     Args:
-        grid (dict): Information of the raster (affine, shape, crs, bbox).
+        grid (Grid): Information of the raster (affine, shape, crs, bbox).
         flow_dir (np.array): Flow directions.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
 
@@ -540,9 +540,9 @@ def delineate_catchment_pyflwdir(
         flow_dir,
         ftype="d8",
         check_ftype=False,
-        transform=grid["affine"],
+        transform=grid.affine,
     )
-    bbox = sgeom.box(*grid["bbox"])
+    bbox = sgeom.box(*grid.bbox)
     u, x, y = zip(
         *[
             (u, float(p["x"]), float(p["y"]))
@@ -584,15 +584,15 @@ def derive_subbasins_streamorder(
         flow_dir,
         ftype="d8",
         check_ftype=False,
-        transform=grid["affine"],
+        transform=grid.affine,
     )
     xy = [
         (x_, y_)
         for x_, y_ in zip(x, y)
-        if (x_ > grid["bbox"][0])
-        and (x_ < grid["bbox"][2])
-        and (y_ > grid["bbox"][1])
-        and (y_ < grid["bbox"][3])
+        if (x_ > grid.bbox[0])
+        and (x_ < grid.bbox[2])
+        and (y_ > grid.bbox[1])
+        and (y_ < grid.bbox[3])
     ]
 
     idxs, _ = flw.snap(xy=list(zip(*xy)))
@@ -613,7 +613,7 @@ def derive_subbasins_streamorder(
             subbasins = subbasins_
 
     gdf_bas = vectorize(
-        subbasins.astype(np.int32), 0, flw.transform, grid["crs"], name="basin"
+        subbasins.astype(np.int32), 0, flw.transform, grid.crs, name="basin"
     )
 
     return gdf_bas
@@ -672,10 +672,28 @@ def whitebox_to_pyflwdir_mapping(x: int) -> int:
     return mapping.get(x, x)
 
 
+class Grid:
+    """A class to represent a grid."""
+
+    def __init__(self, affine: rst.Affine, shape: tuple, crs: int, bbox: tuple):
+        """Initialize the Grid class.
+
+        Args:
+            affine (rst.Affine): The affine transformation.
+            shape (tuple): The shape of the grid.
+            crs (int): The CRS of the grid.
+            bbox (tuple): The bounding box of the grid.
+        """
+        self.affine = affine
+        self.shape = shape
+        self.crs = crs
+        self.bbox = bbox
+
+
 def load_and_process_dem(
     fid: Path,
     method: str = "whitebox",
-) -> tuple[dict, np.array, np.array]:
+) -> tuple[Grid, np.array, np.array]:
     """Load and condition a DEM.
 
     Args:
@@ -715,7 +733,7 @@ def load_and_process_dem(
         latlon=crs.is_geographic,
     )
 
-    grid = {"affine": transform, "shape": elevtn.shape, "crs": crs, "bbox": src.bounds}
+    grid = Grid(transform, elevtn.shape, crs, src.bounds)
 
     return grid, flow_dir, cell_slopes
 
