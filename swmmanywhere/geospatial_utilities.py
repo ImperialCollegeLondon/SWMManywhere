@@ -631,7 +631,7 @@ def flwdir_whitebox(fid: Path) -> np.array | None:
     # Initialize WhiteboxTools
     wbt = WhiteboxTools()
     wbt.verbose = verbose()
-    with tempfile.TemporaryDirectory(dir=fid.parent) as temp_dir:
+    with tempfile.TemporaryDirectory(dir=str(fid.parent)) as temp_dir:
         temp_path = Path(temp_dir)
         # Set the working directory
         wbt.work_dir = temp_dir
