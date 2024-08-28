@@ -27,6 +27,19 @@ pip install swmmanywhere
 
 ## Documentation and Quickstart
 
+Once installed, you can simply run SWMManywhere from the command line giving a
+settings file in YAML format as input. As SWMManywhere can download data
+automatically from well known sources, this settings file can often be minimal and
+restricted to indicating the geographical area to be processed:
+
+`python -m swmmanywhere --config_path=\path\to\config.yml`
+
+The result of the calculation will be a model of the sewage system for that area,
+like the following, which can then be further processed or analysed with SWMM, for
+example:
+
+![SWMM Model](images/andorra_swmm_screenshot.png)
+
 <!-- markdown-link-check-disable -->
 Find the our [ReadTheDocs](https://imperialcollegelondon.github.io/swmmanywhere/)
 and [Quickstart](https://imperialcollegelondon.github.io/swmmanywhere/quickstart).
