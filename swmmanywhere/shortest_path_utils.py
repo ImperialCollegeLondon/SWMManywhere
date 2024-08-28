@@ -52,7 +52,7 @@ def tarjans_pq(
 
     mst_edges = []
     mst_weight = 0
-    outlets: dict = {}
+    outfalls: dict = {}
     while in_edge_pq:
         weight, u, v = heapq.heappop(in_edge_pq)
 
@@ -62,11 +62,11 @@ def tarjans_pq(
             mst_edges.append((u, v))
             mst_weight += weight
 
-            if v in outlets:
-                outlets[u] = outlets[v]
+            if v in outfalls:
+                outfalls[u] = outfalls[v]
 
-            elif G_.get_edge_data(u, v)[0]["edge_type"] == "outlet":
-                outlets[u] = node_mapping[u]
+            elif G_.get_edge_data(u, v)[0]["edge_type"] == "outfall":
+                outfalls[u] = node_mapping[u]
 
             # Add incoming edges to v to the priority queue
             for w, weight_new in graph[u]:
@@ -85,29 +85,29 @@ def tarjans_pq(
     for u, d in G_.nodes(data=True):
         new_graph.nodes[u].update(d)
 
-    nx.set_node_attributes(new_graph, outlets, "outlet")
+    nx.set_node_attributes(new_graph, outfalls, "outfall")
     new_graph = nx.relabel_nodes(new_graph, node_mapping)
     new_graph.graph = G.graph.copy()
     return new_graph
 
 
 def dijkstra_pq(
-    G: nx.MultiDiGraph, outlets: list, weight_attr: str = "weight"
+    G: nx.MultiDiGraph, outfalls: list, weight_attr: str = "weight"
 ) -> nx.MultiDiGraph:
-    """Dijkstra's algorithm for shortest paths to outlets.
+    """Dijkstra's algorithm for shortest paths to outfalls.
 
     This function calculates the shortest paths from each node in the graph to
-    the nearest outlet. The graph is modified to include the outlet
+    the nearest outfall. The graph is modified to include the outfall
     and the shortest path length.
 
     Args:
         G (nx.MultiDiGraph): The input graph.
-        outlets (list): A list of outlet nodes.
+        outfalls (list): A list of outfall nodes.
         weight_attr (str): The name of the edge attribute containing the edge
             weights. Defaults to 'weight'.
 
     Returns:
-        nx.MultiDiGraph: The graph with the shortest paths to outlets.
+        nx.MultiDiGraph: The graph with the shortest paths to outfalls.
     """
     G = G.copy()
     # Initialize the dictionary with infinity for all nodes
@@ -116,13 +116,13 @@ def dijkstra_pq(
     # Initialize the dictionary to store the paths
     paths: dict[Hashable, list] = {node: [] for node in G.nodes}
 
-    # Set the shortest path length to 0 for outlets
-    for outlet in outlets:
-        shortest_paths[outlet] = 0
-        paths[outlet] = [outlet]
+    # Set the shortest path length to 0 for outfalls
+    for outfall in outfalls:
+        shortest_paths[outfall] = 0
+        paths[outfall] = [outfall]
 
     # Initialize a min-heap with (distance, node) tuples
-    heap = [(0, outlet) for outlet in outlets]
+    heap = [(0, outfall) for outfall in outfalls]
     while heap:
         # Pop the node with the smallest distance
         dist, node = heapq.heappop(heap)
@@ -143,21 +143,21 @@ def dijkstra_pq(
             # Push the neighbor to the heap
             heapq.heappush(heap, (alt_dist, neighbor))
 
-    # Remove nodes with no path to an outlet
+    # Remove nodes with no path to an outfall
     for node in [node for node, path in paths.items() if not path]:
         G.remove_node(node)
         del paths[node], shortest_paths[node]
 
     if len(G.nodes) == 0:
-        raise ValueError("""No nodes with path to outlet, """)
+        raise ValueError("""No nodes with path to outfall, """)
 
     edges_to_keep: set = set()
 
     for path in paths.values():
-        # Assign outlet
-        outlet = path[0]
+        # Assign outfall
+        outfall = path[0]
         for node in path:
-            G.nodes[node]["outlet"] = outlet
+            G.nodes[node]["outfall"] = outfall
             G.nodes[node]["shortest_path"] = shortest_paths[node]
 
         # Store path
