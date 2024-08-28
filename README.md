@@ -7,7 +7,7 @@
 SWMManywhere is a tool to synthesise urban drainage network models (UDMs) using
 publicly available data such as street network, DEM, and building footprints, across
 the globe. It also provides tools for generating SWMM input files and performing
-simulations for the syhthesised UDMs.
+simulations for the synthesised UDMs.
 
 ## Features
 
