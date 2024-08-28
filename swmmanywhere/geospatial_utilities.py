@@ -630,6 +630,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
     """
     # Initialize WhiteboxTools
     wbt = WhiteboxTools()
+    wbt.set_max_procs(1)
     wbt.verbose = verbose()
     with tempfile.TemporaryDirectory(dir=str(fid.parent)) as temp_dir:
         temp_path = Path(temp_dir)
