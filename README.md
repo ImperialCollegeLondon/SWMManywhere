@@ -31,7 +31,7 @@ pip install swmmanywhere
 ## Documentation and Quickstart
 
 Once installed, you can simply run SWMManywhere from the command line giving a
-settings file in YAML format as input. As SWMManywhere can download data
+configuration file in YAML format as input. As SWMManywhere can download data
 automatically from well known sources, this settings file can often be minimal and
 restricted to indicating the geographical area to be processed:
 
