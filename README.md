@@ -41,7 +41,7 @@ The result of the calculation will be a model of the sewage system for that area
 like the following, which can then be further processed or analysed with SWMM, for
 example:
 
-![SWMM Model](images/andorra_swmm_screenshot.png)
+![SWMM Model](docs/images/andorra_swmm_screenshot.png)
 
 <!-- markdown-link-check-disable -->
 Find the our [ReadTheDocs](https://imperialcollegelondon.github.io/swmmanywhere/)
