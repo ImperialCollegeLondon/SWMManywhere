@@ -45,7 +45,7 @@ example:
 
 <!-- markdown-link-check-disable -->
 Follow the [Quickstart](https://imperialcollegelondon.github.io/swmmanywhere/quickstart)
-for a more detailed initial example and 
+for a more detailed initial example and
 [ReadTheDocs](https://imperialcollegelondon.github.io/swmmanywhere/)
 for full information of SWMManywhere capabilities.
 <!-- markdown-link-check-enable -->
