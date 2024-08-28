@@ -18,10 +18,11 @@ from shapely import geometry as sgeom
 from swmmanywhere import parameters
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import (
-    _filter_streets,
+    filter_streets,
     iterate_graphfcns,
     load_graph,
     save_graph,
+    validate_graphfcn_list,
 )
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.logging import logger
@@ -776,13 +777,13 @@ def test_filter_streets():
     )
 
     # Test case 1: Filter streets
-    G_streets = _filter_streets(G)
+    G_streets = filter_streets(G)
     assert set(G_streets.nodes) == {1, 2, 3}
     assert set(G_streets.edges) == {(1, 2), (2, 3)}
 
     # Test case 2: Empty graph
     G_empty = nx.Graph()
-    G_empty_streets = _filter_streets(G_empty)
+    G_empty_streets = filter_streets(G_empty)
     assert len(G_empty_streets.nodes) == 0
     assert len(G_empty_streets.edges) == 0
 
@@ -791,6 +792,27 @@ def test_filter_streets():
     G_non_streets.add_edges_from(
         [(1, 2, {"edge_type": "non-street"}), (2, 3, {"edge_type": "non-street"})]
     )
-    G_non_streets_filtered = _filter_streets(G_non_streets)
+    G_non_streets_filtered = filter_streets(G_non_streets)
     assert len(G_non_streets_filtered.nodes) == 0
     assert len(G_non_streets_filtered.edges) == 0
+
+
+def test_validate_graphfcn_list(street_network):
+    """Test the validate_graphfcn_list function."""
+    # Test case 1: Valid list
+    validate_graphfcn_list(["assign_id", "double_directed"])
+
+    # Test case 2: Invalid list
+    with pytest.raises(ValueError) as exc_info:
+        validate_graphfcn_list(["assign_id", "not_a_function"])
+    assert "not_a_function" in str(exc_info.value)
+
+    # Test case 3: Valid order
+    G, _ = street_network
+    validate_graphfcn_list(["assign_id", "double_directed"], G)
+
+    # Test case 4: Invalid order
+    with pytest.raises(ValueError) as exc_info:
+        validate_graphfcn_list(["assign_id", "calculate_weights"], G)
+    assert "calculate_weights requires edge attributes" in str(exc_info.value)
+    assert "chahinian_angle" in str(exc_info.value)
