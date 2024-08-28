@@ -15,6 +15,7 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
+from swmmanywhere.logging import set_verbose
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
 
@@ -229,8 +230,11 @@ def test_burn_shape_in_raster():
 
 
 @pytest.mark.parametrize("method", ["pyflwdir", "whitebox"])
-def test_derive_subcatchments(street_network, method):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_derive_subcatchments(street_network, method, verbose):
     """Test the derive_subcatchments function."""
+    set_verbose(verbose)
+
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
     methods = {
         "pyflwdir": {"area": 2498, "slope": 0.1187, "width": 28.202},

@@ -25,6 +25,11 @@ def verbose() -> bool:
     return os.getenv("SWMMANYWHERE_VERBOSE", "false").lower() == "true"
 
 
+def set_verbose(verbose: bool):
+    """Set the verbosity."""
+    os.environ["SWMMANYWHERE_VERBOSE"] = str(verbose).lower()
+
+
 def dynamic_filter(record):
     """A dynamic filter."""
     return verbose()
