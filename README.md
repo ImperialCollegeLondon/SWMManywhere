@@ -4,7 +4,7 @@
 [![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
 <!-- markdown-link-check-enable -->
 
-SWMManywhere is a tool to synthesise urban drainage networks models (UDMs) using
+SWMManywhere is a tool to synthesise urban drainage network models (UDMs) using
 publicly available data such as street network, DEM, and building footprints, across
 the globe. It also provides tools for generating SWMM input files and performing
 simulations for the syhthesised UDMs.
