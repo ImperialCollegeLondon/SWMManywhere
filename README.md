@@ -1,4 +1,4 @@
-# SWMManywhere: Synthesise Urban Drainage Network Anywhere in the World
+# SWMManywhere: Synthesise Urban Drainage Network Models Anywhere in the World
 
 <!-- markdown-link-check-disable -->
 [![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
