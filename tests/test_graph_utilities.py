@@ -86,6 +86,20 @@ def test_calculate_streetcover(street_network):
         assert len(gdf) == len(G.edges)
         assert gdf.geometry.area.sum() > 0
 
+        # Test odd lanes formatting
+        """Test the streetcover function with oddly formatted lanes."""
+        nx.set_edge_attributes(G, "2;1", "lanes")
+        _ = gu.calculate_streetcover(G, params, addresses)
+        assert addresses.model_paths.streetcover.exists()
+        gdf1 = gpd.read_file(addresses.model_paths.streetcover)
+
+        nx.set_edge_attributes(G, 3, "lanes")
+        _ = gu.calculate_streetcover(G, params, addresses)
+        assert addresses.model_paths.streetcover.exists()
+        gdf2 = gpd.read_file(addresses.model_paths.streetcover)
+
+        assert gdf1.geometry.area.sum() == gdf2.geometry.area.sum()
+
 
 def test_split_long_edges(street_network):
     """Test the split_long_edges function."""
