@@ -29,9 +29,9 @@ from scipy.spatial import KDTree
 from shapely import geometry as sgeom
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
-from whitebox import WhiteboxTools
 
 from swmmanywhere.logging import logger, verbose
+from swmmanywhere.whitebox_utils import whitebox_tools
 
 os.environ["NUMBA_NUM_THREADS"] = "1"
 import pyflwdir  # noqa: E402
@@ -629,26 +629,30 @@ def flwdir_whitebox(fid: Path) -> np.array:
         np.array: Flow directions.
     """
     # Initialize WhiteboxTools
-    wbt = WhiteboxTools()
-    wbt.set_max_procs(1)
-    wbt.verbose = verbose()
     with tempfile.TemporaryDirectory(dir=str(fid.parent)) as temp_dir:
         temp_path = Path(temp_dir)
-        # Set the working directory
-        wbt.work_dir = temp_dir
 
         # Copy raster to working directory
-        dem = str(temp_path / "dem.tif")
+        dem = temp_path / "dem.tif"
         shutil.copy(fid, dem)
 
         # Condition
-        breached_dem = str(temp_path / "breached_dem.tif")
-        wbt.breach_depressions(dem, breached_dem)
+        whitebox_tools(
+            "BreachDepressionsLeastCost",
+            ["-i=dem.tif", "-o=dem_corr.tif"],
+            work_dir=temp_path,
+            verbose=verbose(),
+            wbt_root=temp_path / "WBT",
+        )
+        whitebox_tools(
+            "D8Pointer",
+            ["-i=dem_corr.tif", "-o=fdir.tif"],
+            work_dir=temp_path,
+            verbose=verbose(),
+            wbt_root=temp_path / "WBT",
+        )
 
-        # Calculate flow direction using the D inf algorithm
-        fdir = str(temp_path / "flow_direction.tif")
-        wbt.d8_pointer(breached_dem, fdir)
-
+        fdir = temp_path / "fdir.tif"
         if not Path(fdir).exists():
             raise ValueError("Flow direction raster not created.")
 
