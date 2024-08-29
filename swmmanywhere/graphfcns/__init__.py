@@ -5,7 +5,7 @@ from __future__ import annotations
 from . import (
     design_graphfcns,  # noqa: F401
     network_cleaning_graphfcns,  # noqa: F401
-    outlet_graphfcns,  # noqa: F401
+    outfall_graphfcns,  # noqa: F401
     subcatchment_graphfcns,  # noqa: F401
     topology_graphfcns,  # noqa: F401
 )

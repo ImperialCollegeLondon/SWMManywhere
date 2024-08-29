@@ -228,14 +228,14 @@ def test_kstest_edge_betweenness():
     assert_close(val, 0.38995)
 
 
-def test_best_outlet_match(subs):
-    """Test the best_outlet_match and ks_betweenness."""
+def test_best_outfall_match(subs):
+    """Test the best_outfall_match and ks_betweenness."""
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
 
-    sg, outlet = mu.best_outlet_match(synthetic_G=G, real_subs=subs)
-    outlets = nx.get_node_attributes(sg, "outlet")
-    assert len(set(outlets.values())) == 1
-    assert outlet == 12354833
+    sg, outfall = mu.best_outfall_match(synthetic_G=G, real_subs=subs)
+    outfalls = nx.get_node_attributes(sg, "outfall")
+    assert len(set(outfalls.values())) == 1
+    assert outfall == 12354833
 
 
 def test_nse():
@@ -274,8 +274,8 @@ def test_relerror_different_length():
     assert_close(val, (1 - 3.5) / 3.5)
 
 
-def test_outlet_nse_flow(subs):
-    """Test the outlet_nse_flow metric."""
+def test_outfall_nse_flow(subs):
+    """Test the outfall_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
 
@@ -310,7 +310,7 @@ def test_outlet_nse_flow(subs):
     )
 
     # Calculate NSE (perfect results)
-    val = mu.metrics.outlet_nse_flow(
+    val = mu.metrics.outfall_nse_flow(
         synthetic_G=G,
         synthetic_subs=None,
         synthetic_results=results,
@@ -324,7 +324,7 @@ def test_outlet_nse_flow(subs):
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[[0, 2], "value"] = 7.5
-    val = mu.metrics.outlet_nse_flow(
+    val = mu.metrics.outfall_nse_flow(
         synthetic_G=G,
         synthetic_subs=None,
         synthetic_results=results_,
@@ -337,13 +337,13 @@ def test_outlet_nse_flow(subs):
 
     # Change the graph
     G_ = G.copy()
-    new_outlet = list(G_.in_edges(12354833))[0][0]
-    nx.set_node_attributes(G_, new_outlet, "outlet")
+    new_outfall = list(G_.in_edges(12354833))[0][0]
+    nx.set_node_attributes(G_, new_outfall, "outfall")
     G_.remove_node(12354833)
     results_.loc[results_.id == 4253560, "id"] = 725226531
 
     # Calculate NSE (mean results)
-    val = mu.metrics.outlet_nse_flow(
+    val = mu.metrics.outfall_nse_flow(
         synthetic_G=G_,
         synthetic_subs=None,
         synthetic_results=results_,
@@ -357,7 +357,7 @@ def test_outlet_nse_flow(subs):
     # Test time interpolation
     results_.loc[2, "date"] = pd.to_datetime("2021-01-01 00:00:10")
     results_.loc[[0, 2], "value"] = [0, 30]
-    val = mu.metrics.outlet_nse_flow(
+    val = mu.metrics.outfall_nse_flow(
         synthetic_G=G_,
         synthetic_subs=None,
         synthetic_results=results_,
@@ -369,8 +369,8 @@ def test_outlet_nse_flow(subs):
     assert val == -15.0
 
 
-def test_outlet_nse_flooding(subs):
-    """Test the outlet_nse_flow metric."""
+def test_outfall_nse_flooding(subs):
+    """Test the outfall_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
 
@@ -429,7 +429,7 @@ def test_outlet_nse_flooding(subs):
     )
 
     # Calculate NSE (perfect results)
-    val = mu.metrics.outlet_nse_flooding(
+    val = mu.metrics.outfall_nse_flooding(
         synthetic_G=G,
         synthetic_subs=None,
         synthetic_results=results,
@@ -443,7 +443,7 @@ def test_outlet_nse_flooding(subs):
     # Calculate NSE (mean results)
     results_ = results.copy()
     results_.loc[results_.id.isin([770549936, 25472468]), "value"] = [14.5 / 4] * 4
-    val = mu.metrics.outlet_nse_flooding(
+    val = mu.metrics.outfall_nse_flooding(
         synthetic_G=G,
         synthetic_subs=None,
         synthetic_results=results_,
@@ -456,16 +456,16 @@ def test_outlet_nse_flooding(subs):
 
     # Change the graph
     G_ = G.copy()
-    new_outlet = list(G_.in_edges(12354833))[0][0]
+    new_outfall = list(G_.in_edges(12354833))[0][0]
     nx.set_node_attributes(
         G_,
-        {x: new_outlet for x, d in G_.nodes(data=True) if d["outlet"] == 12354833},
-        "outlet",
+        {x: new_outfall for x, d in G_.nodes(data=True) if d["outfall"] == 12354833},
+        "outfall",
     )
     G_.remove_node(12354833)
 
     # Calculate NSE (mean results)
-    val = mu.metrics.outlet_nse_flooding(
+    val = mu.metrics.outfall_nse_flooding(
         synthetic_G=G_,
         synthetic_subs=None,
         synthetic_results=results_,
@@ -481,7 +481,7 @@ def test_outlet_nse_flooding(subs):
         results_.date == pd.to_datetime("2021-01-01 00:00:05"), "date"
     ] = pd.to_datetime("2021-01-01 00:00:10")
 
-    val = mu.metrics.outlet_nse_flooding(
+    val = mu.metrics.outfall_nse_flooding(
         synthetic_G=G_,
         synthetic_results=results_,
         synthetic_subs=None,
@@ -498,7 +498,7 @@ def test_design_params(subs):
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
     nx.set_edge_attributes(G, 0.15, "diameter")
 
-    # Mock results (only needed for dominant outlet)
+    # Mock results (only needed for dominant outfall)
     results = pd.DataFrame(
         [
             {
@@ -518,11 +518,11 @@ def test_design_params(subs):
 
     # Target results
     design_results = {
-        "outlet_kstest_diameters": 0.0625,
-        "outlet_relerror_diameter": 0.0625,
-        "outlet_relerror_length": -0.15088965,
-        "outlet_relerror_nmanholes": -0.05,
-        "outlet_relerror_npipes": -0.15789473,
+        "outfall_kstest_diameters": 0.0625,
+        "outfall_relerror_diameter": 0.0625,
+        "outfall_relerror_length": -0.15088965,
+        "outfall_relerror_nmanholes": -0.05,
+        "outfall_relerror_npipes": -0.15789473,
     }
 
     # Iterate for G = G, i.e., perfect results
@@ -603,7 +603,7 @@ def test_netcomp_iterate():
 
 
 def test_subcatchment_nse_flooding(subs, results):
-    """Test the outlet_nse_flow metric."""
+    """Test the outfall_nse_flow metric."""
     # Load data
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
 
@@ -670,7 +670,7 @@ def test_restirctions():
 
     # Invalid because nmanholes can't be evaluated with nse
     with pytest.raises(ValueError):
-        mu.metric_factory("outlet_nse_nmanholes")
+        mu.metric_factory("outfall_nse_nmanholes")
 
 
 def test_nodes_to_subs(subs):
