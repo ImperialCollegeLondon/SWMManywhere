@@ -183,15 +183,15 @@ def register_restriction(restriction_func: Callable):
 def restriction_on_scale(scale: str, metric: str, variable: str):
     """Restriction on scale.
 
-    Restrict the design variables to the outlet scale if the metric is 'relerror'.
+    Restrict the design variables to the outfall scale if the metric is 'relerror'.
 
     Args:
         scale (str): The scale of the metric.
         metric (str): The metric.
         variable (str): The variable.
     """
-    if variable in ("length", "nmanholes", "npipes") and scale != "outlet":
-        raise ValueError(f"Variable {variable} only supported at the outlet scale")
+    if variable in ("length", "nmanholes", "npipes") and scale != "outfall":
+        raise ValueError(f"Variable {variable} only supported at the outfall scale")
 
 
 @register_restriction
@@ -487,44 +487,44 @@ def nodes_to_subs(G: nx.Graph, subs: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return nodes_joined
 
 
-def best_outlet_match(
+def best_outfall_match(
     synthetic_G: nx.Graph, real_subs: gpd.GeoDataFrame
 ) -> tuple[nx.Graph, int | None]:
-    """Best outlet match.
+    """Best outfall match.
 
-    Identify the outlet with the most nodes within the real_subs and return the
-    subgraph of the synthetic graph of nodes that drain to that outlet.
+    Identify the outfall with the most nodes within the real_subs and return the
+    subgraph of the synthetic graph of nodes that drain to that outfall.
 
     Args:
         synthetic_G (nx.Graph): The synthetic graph.
         real_subs (gpd.GeoDataFrame): The real subcatchments.
 
     Returns:
-        nx.Graph: The subgraph of the synthetic graph for the outlet with the
+        nx.Graph: The subgraph of the synthetic graph for the outfall with the
             most nodes within the real_subs. Empty if no match is made.
-        int: The id of the outlet. None if no outlet is found.
+        int: The id of the outfall. None if no outfall is found.
     """
     nodes_joined = nodes_to_subs(synthetic_G, real_subs)
 
     if nodes_joined.shape[0] == 0:
         return (nx.Graph(), None)
 
-    # Select the most common outlet
-    outlet = nodes_joined.outlet.value_counts().idxmax()
+    # Select the most common outfall
+    outfall = nodes_joined.outfall.value_counts().idxmax()
 
     # Subselect the matching graph
-    outlet_nodes = [
-        n for n, d in synthetic_G.nodes(data=True) if d.get("outlet", None) == outlet
+    outfall_nodes = [
+        n for n, d in synthetic_G.nodes(data=True) if d.get("outfall", None) == outfall
     ]
-    sg = create_subgraph(synthetic_G, outlet_nodes)
-    return sg, outlet
+    sg = create_subgraph(synthetic_G, outfall_nodes)
+    return sg, outfall
 
 
-def dominant_outlet(G: nx.DiGraph, results: pd.DataFrame) -> tuple[nx.DiGraph, int]:
-    """Dominant outlet.
+def dominant_outfall(G: nx.DiGraph, results: pd.DataFrame) -> tuple[nx.DiGraph, int]:
+    """Dominant outfall.
 
-    Identify the outlet with highest flow along it and return the
-    subgraph of the graph of nodes that drain to that outlet.
+    Identify the outfall with highest flow along it and return the
+    subgraph of the graph of nodes that drain to that outfall.
 
     Args:
         G (nx.DiGraph): The graph.
@@ -532,23 +532,23 @@ def dominant_outlet(G: nx.DiGraph, results: pd.DataFrame) -> tuple[nx.DiGraph, i
             column.
 
     Returns:
-        nx.Graph: The subgraph of nodes/arcs that the reach max flow outlet
-        int: The id of the outlet.
+        nx.Graph: The subgraph of nodes/arcs that the reach max flow outfall
+        int: The id of the outfall.
     """
-    # Identify outlets of the graph
-    outlets = [n for n, outdegree in G.out_degree() if outdegree == 0]
-    outlet_arcs = [d["id"] for u, v, d in G.edges(data=True) if v in outlets]
+    # Identify outfalls of the graph
+    outfalls = [n for n, outdegree in G.out_degree() if outdegree == 0]
+    outfall_arcs = [d["id"] for u, v, d in G.edges(data=True) if v in outfalls]
 
-    # Identify the outlet with the highest flow
-    outlet_flows = results.loc[
-        (results.variable == "flow") & (results["id"].isin(outlet_arcs))
+    # Identify the outfall with the highest flow
+    outfall_flows = results.loc[
+        (results.variable == "flow") & (results["id"].isin(outfall_arcs))
     ]
-    max_outlet_arc = outlet_flows.groupby("id").value.median().idxmax()
-    max_outlet = [v for u, v, d in G.edges(data=True) if d["id"] == max_outlet_arc][0]
+    max_outfall_arc = outfall_flows.groupby("id").value.median().idxmax()
+    max_outfall = [v for u, v, d in G.edges(data=True) if d["id"] == max_outfall_arc][0]
 
     # Subselect the matching graph
-    sg = create_subgraph(G, nx.ancestors(G, max_outlet) | {max_outlet})
-    return sg, max_outlet
+    sg = create_subgraph(G, nx.ancestors(G, max_outfall) | {max_outfall})
+    return sg, max_outfall
 
 
 def nc_compare(G1, G2, funcname, **kw):
@@ -828,7 +828,7 @@ def grid(
 
 
 @register_scale
-def outlet(
+def outfall(
     synthetic_results: pd.DataFrame,
     synthetic_subs: gpd.GeoDataFrame,
     synthetic_G: nx.Graph,
@@ -839,12 +839,12 @@ def outlet(
     var: str,
     coef_func: Callable,
 ):
-    """Outlet scale metric.
+    """Outfall scale metric.
 
     Calculate the coefficient of a variable for the subgraph that
-    drains to the dominant outlet node. The dominant outlet node of the 'real'
-    network is calculated by dominant_outlet, while the dominant outlet node of
-    the 'synthetic' network is calculated by best_outlet_match.
+    drains to the dominant outfall node. The dominant outfall node of the 'real'
+    network is calculated by dominant_outfall, while the dominant outfall node of
+    the 'synthetic' network is calculated by best_outfall_match.
 
     Args:
         synthetic_results (pd.DataFrame): The synthetic results.
@@ -860,13 +860,13 @@ def outlet(
     Returns:
         float: The median coef_func value.
     """
-    # Identify synthetic and real arcs that flow into the best outlet node
-    sg_syn, syn_outlet = best_outlet_match(synthetic_G, real_subs)
+    # Identify synthetic and real arcs that flow into the best outfall node
+    sg_syn, syn_outfall = best_outfall_match(synthetic_G, real_subs)
     if len(sg_syn.nodes) == 0:
         # No overlap exists
         return np.inf
 
-    sg_real, real_outlet = dominant_outlet(real_G, real_results)
+    sg_real, real_outfall = dominant_outfall(real_G, real_results)
 
     allowable_var = ["nmanholes", "diameter", "npipes", "length", "flow", "flooding"]
     if var not in allowable_var:
@@ -897,11 +897,11 @@ def outlet(
             np.array(list(nx.get_edge_attributes(sg_syn, var).values())),
         )
     if var == "flow":
-        # Identify synthetic and real arcs that flow into the best outlet node
+        # Identify synthetic and real arcs that flow into the best outfall node
         syn_arc = [
-            d["id"] for u, v, d in synthetic_G.edges(data=True) if v == syn_outlet
+            d["id"] for u, v, d in synthetic_G.edges(data=True) if v == syn_outfall
         ]
-        real_arc = [d["id"] for u, v, d in real_G.edges(data=True) if v == real_outlet]
+        real_arc = [d["id"] for u, v, d in real_G.edges(data=True) if v == real_outfall]
     elif var == "flooding":
         # Use all nodes in the subgraphs
         syn_arc = list(sg_syn.nodes)
@@ -950,18 +950,18 @@ def metric_factory(name: str):
     return new_metric
 
 
-metrics.register(metric_factory("outlet_nse_flow"))
-metrics.register(metric_factory("outlet_kge_flow"))
-metrics.register(metric_factory("outlet_relerror_flow"))
+metrics.register(metric_factory("outfall_nse_flow"))
+metrics.register(metric_factory("outfall_kge_flow"))
+metrics.register(metric_factory("outfall_relerror_flow"))
 
-metrics.register(metric_factory("outlet_relerror_length"))
-metrics.register(metric_factory("outlet_relerror_npipes"))
-metrics.register(metric_factory("outlet_relerror_nmanholes"))
-metrics.register(metric_factory("outlet_relerror_diameter"))
+metrics.register(metric_factory("outfall_relerror_length"))
+metrics.register(metric_factory("outfall_relerror_npipes"))
+metrics.register(metric_factory("outfall_relerror_nmanholes"))
+metrics.register(metric_factory("outfall_relerror_diameter"))
 
-metrics.register(metric_factory("outlet_nse_flooding"))
-metrics.register(metric_factory("outlet_kge_flooding"))
-metrics.register(metric_factory("outlet_relerror_flooding"))
+metrics.register(metric_factory("outfall_nse_flooding"))
+metrics.register(metric_factory("outfall_kge_flooding"))
+metrics.register(metric_factory("outfall_relerror_flooding"))
 
 metrics.register(metric_factory("grid_nse_flooding"))
 metrics.register(metric_factory("grid_kge_flooding"))
@@ -1078,28 +1078,28 @@ def kstest_betweenness(synthetic_G: nx.Graph, real_G: nx.Graph, **kwargs) -> flo
 
 
 @metrics.register
-def outlet_kstest_diameters(
+def outfall_kstest_diameters(
     real_G: nx.Graph,
     synthetic_G: nx.Graph,
     real_results: pd.DataFrame,
     real_subs: gpd.GeoDataFrame,
     **kwargs,
 ) -> float:
-    """Outlet KStest diameters.
+    """Outfall KStest diameters.
 
     Calculate the Kolmogorov-Smirnov statistic of the diameters in the subgraph
-    that drains to the dominant outlet node. The dominant outlet node of the
-    'real' network is calculated by dominant_outlet, while the dominant outlet
-    node of the 'synthetic' network is calculated by best_outlet_match.
+    that drains to the dominant outfall node. The dominant outfall node of the
+    'real' network is calculated by dominant_outfall, while the dominant outfall
+    node of the 'synthetic' network is calculated by best_outfall_match.
     """
-    # Identify synthetic and real outlet arcs
-    sg_syn, _ = best_outlet_match(synthetic_G, real_subs)
+    # Identify synthetic and real outfall arcs
+    sg_syn, _ = best_outfall_match(synthetic_G, real_subs)
 
     if len(sg_syn.nodes) == 0:
         # No overlap exists
         return np.inf
 
-    sg_real, _ = dominant_outlet(real_G, real_results)
+    sg_real, _ = dominant_outfall(real_G, real_results)
 
     # Extract the diameters
     syn_diameters = nx.get_edge_attributes(sg_syn, "diameter")

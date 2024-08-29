@@ -9,7 +9,7 @@ def get_full_parameters():
     """Get the full set of parameters."""
     return {
         "subcatchment_derivation": SubcatchmentDerivation(),
-        "outlet_derivation": OutletDerivation(),
+        "outfall_derivation": OutfallDerivation(),
         "topology_derivation": TopologyDerivation(),
         "hydraulic_design": HydraulicDesign(),
         "metric_evaluation": MetricEvaluation(),
@@ -85,13 +85,13 @@ class SubcatchmentDerivation(BaseModel):
     )
 
 
-class OutletDerivation(BaseModel):
-    """Parameters for outlet derivation."""
+class OutfallDerivation(BaseModel):
+    """Parameters for outfall derivation."""
 
     method: str = Field(
         default="separate",
         unit="-",
-        description="""Method to derive outlet locations, 
+        description="""Method to derive outfall locations, 
             can be 'separate' or 'withtopo'.""",
     )
 
@@ -103,7 +103,7 @@ class OutletDerivation(BaseModel):
         description="Buffer distance to link rivers to streets.",
     )
 
-    outlet_length: float = Field(
+    outfall_length: float = Field(
         default=40.0,
         ge=0.0,
         le=600.0,

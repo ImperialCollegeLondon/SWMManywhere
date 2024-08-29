@@ -13,11 +13,11 @@ def test_simple_graph():
     nx.set_edge_attributes(
         G,
         {
-            (2, 1, 0): {"weight": 1, "edge_type": "outlet"},
+            (2, 1, 0): {"weight": 1, "edge_type": "outfall"},
             (3, 1, 0): {"weight": 2, "edge_type": "street"},
             (4, 2, 0): {"weight": 3, "edge_type": "street"},
             (4, 3, 0): {"weight": 4, "edge_type": "street"},
-            (1, "waste", 0): {"weight": 0, "edge_type": "outlet"},
+            (1, "waste", 0): {"weight": 0, "edge_type": "outfall"},
         },
     )
     root = "waste"

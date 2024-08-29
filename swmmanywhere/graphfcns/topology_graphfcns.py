@@ -243,12 +243,12 @@ class derive_topology(
         "edge_type",  # 'rivers' and 'streets'
         "weight",
     ],
-    adds_node_attributes=["outlet", "shortest_path"],
+    adds_node_attributes=["outfall", "shortest_path"],
 ):
     """derive_topology class."""
 
     def __call__(
-        self, G: nx.Graph, outlet_derivation: parameters.OutletDerivation, **kwargs
+        self, G: nx.Graph, outfall_derivation: parameters.OutfallDerivation, **kwargs
     ) -> nx.Graph:
         """Derive the topology of a graph.
 
@@ -256,23 +256,23 @@ class derive_topology(
         pipe carrying edges in the graph.
 
         Two methods are available:
-        - `separate`: The original and that assumes outlets have already been
+        - `separate`: The original and that assumes outfalls have already been
         narrowed down from the original plausible set. Runs a djiikstra-based
         algorithm to identify the shortest path from each node to its nearest
-        outlet (weighted by the 'weight' edge value). The
+        outfall (weighted by the 'weight' edge value). The
         returned graph is one that only contains the edges that feature  on the
         shortest paths.
         - `withtopo`: The alternative method that assumes no narrowing of plausible
-        outlets has been performed. This method runs a Tarjan's algorithm to
+        outfalls has been performed. This method runs a Tarjan's algorithm to
         identify the spanning forest starting from a `waste` node that all
-        plausible outlets are connected to (whether via a river or directly).
+        plausible outfalls are connected to (whether via a river or directly).
 
-        In both methods, street nodes that have no plausible route to any outlet
+        In both methods, street nodes that have no plausible route to any outfall
         are removed.
 
         Args:
             G (nx.Graph): A graph
-            outlet_derivation (parameters.OutletDerivation): An OutletDerivation
+            outfall_derivation (parameters.OutfallDerivation): An OutfallDerivation
                 parameter object
             **kwargs: Additional keyword arguments are ignored.
 
@@ -285,12 +285,12 @@ class derive_topology(
 
         # Increase recursion limit to allow to iterate over the entire graph
         # Seems to be the quickest way to identify which nodes have a path to
-        # the outlet
+        # the outfall
         original_limit = sys.getrecursionlimit()
         sys.setrecursionlimit(max(original_limit, len(G.nodes)))
 
-        # Identify outlets
-        if outlet_derivation.method == "withtopo":
+        # Identify outfalls
+        if outfall_derivation.method == "withtopo":
             visited = set(nx.ancestors(G, "waste")) | {"waste"}
 
             # Remove nodes not reachable from waste
@@ -301,12 +301,12 @@ class derive_topology(
 
             G = filter_streets(G)
         else:
-            outlets = [
-                u for u, v, d in G.edges(data=True) if d["edge_type"] == "outlet"
+            outfalls = [
+                u for u, v, d in G.edges(data=True) if d["edge_type"] == "outfall"
             ]
-            visited = set(outlets)
-            for outlet in outlets:
-                visited = visited | set(nx.ancestors(G, outlet))
+            visited = set(outfalls)
+            for outfall in outfalls:
+                visited = visited | set(nx.ancestors(G, outfall))
 
             G.remove_nodes_from(set(G.nodes) - visited)
             G = filter_streets(G)
@@ -315,7 +315,7 @@ class derive_topology(
             if nx.negative_edge_cycle(G, weight="weight"):
                 logger.warning("Graph contains negative cycle")
 
-            G = shortest_path_utils.dijkstra_pq(G, outlets)
+            G = shortest_path_utils.dijkstra_pq(G, outfalls)
 
         # Reset recursion limit
         sys.setrecursionlimit(original_limit)

@@ -161,7 +161,7 @@ def filter_streets(G):
     nodes_to_remove = []
     for u, v, d in G.edges(data=True):
         if d["edge_type"] != "street":
-            if d["edge_type"] == "outlet":
+            if d["edge_type"] == "outfall":
                 nodes_to_remove.append(v)
             else:
                 nodes_to_remove.extend((u, v))

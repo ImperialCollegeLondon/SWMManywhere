@@ -16,8 +16,8 @@ import pandas as pd
 from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.metric_utilities import (
     align_by_shape,
-    best_outlet_match,
-    dominant_outlet,
+    best_outfall_match,
+    dominant_outfall,
     extract_var,
     iterate_metrics,
 )
@@ -56,11 +56,11 @@ if __name__ == "main":
         MetricEvaluation(),
     )
 
-    # Check outlet scale
+    # Check outfall scale
     synthetic_results = syn_results.copy()
     real_results_ = real_results.copy()
-    sg_syn, syn_outlet = best_outlet_match(syn_G, real_subcatchments)
-    sg_real, real_outlet = dominant_outlet(real_G, real_results)
+    sg_syn, syn_outfall = best_outfall_match(syn_G, real_subcatchments)
+    sg_real, real_outfall = dominant_outfall(real_G, real_results)
 
     # Check nnodes
     print(f"n syn nodes {len(sg_syn.nodes)}")
@@ -81,10 +81,10 @@ if __name__ == "main":
         real_G=real_G,
     )
 
-    # e.g., outlet
+    # e.g., outfall
     if variable == "flow":
-        syn_ids = [d["id"] for u, v, d in syn_G.edges(data=True) if v == syn_outlet]
-        real_ids = [d["id"] for u, v, d in real_G.edges(data=True) if v == real_outlet]
+        syn_ids = [d["id"] for u, v, d in syn_G.edges(data=True) if v == syn_outfall]
+        real_ids = [d["id"] for u, v, d in real_G.edges(data=True) if v == real_outfall]
     else:
         syn_ids = list(sg_syn.nodes)
         real_ids = list(sg_real.nodes)
