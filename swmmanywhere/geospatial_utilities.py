@@ -638,7 +638,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
 
         # Condition
         whitebox_tools(
-            "BreachDepressionsLeastCost",
+            "BreachDepressions",
             ["-i=dem.tif", "-o=dem_corr.tif"],
             work_dir=temp_path,
             verbose=verbose(),
