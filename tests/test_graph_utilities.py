@@ -224,8 +224,8 @@ def test_calculate_weights_novar(street_network):
         assert math.isfinite(data["weight"])
 
 
-def test_identify_outlets_no_river(street_network):
-    """Test the identify_outlets in the no river case."""
+def test_identify_outfalls_no_river(street_network):
+    """Test the identify_outfalls in the no river case."""
     G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
@@ -241,16 +241,16 @@ def test_identify_outlets_no_river(street_network):
         for ix, (u, v, d) in enumerate(G.edges(data=True)):
             d["edge_type"] = "street"
             d["weight"] = ix
-        params = parameters.OutletDerivation()
-        G = gu.identify_outlets(G, params)
-        outlets = [
-            (u, v, d) for u, v, d in G.edges(data=True) if d["edge_type"] == "outlet"
+        params = parameters.OutfallDerivation()
+        G = gu.identify_outfalls(G, params)
+        outfalls = [
+            (u, v, d) for u, v, d in G.edges(data=True) if d["edge_type"] == "outfall"
         ]
-        assert len(outlets) == 1
+        assert len(outfalls) == 1
 
 
-def test_identify_outlets_sg(street_network):
-    """Test the identify_outlets with subgraphs."""
+def test_identify_outfalls_sg(street_network):
+    """Test the identify_outfalls with subgraphs."""
     G, _ = street_network
 
     G = gu.assign_id(G)
@@ -269,8 +269,8 @@ def test_identify_outlets_sg(street_network):
             d["edge_type"] = "street"
             d["weight"] = ix
 
-        params = parameters.OutletDerivation(
-            river_buffer_distance=200, outlet_length=10, method="withtopo"
+        params = parameters.OutfallDerivation(
+            river_buffer_distance=200, outfall_length=10, method="withtopo"
         )
         dummy_river1 = sgeom.LineString(
             [(699913.878, 5709769.851), (699932.546, 5709882.575)]
@@ -329,30 +329,30 @@ def test_identify_outlets_sg(street_network):
         G.remove_edge(109753, 25472854)
         G.remove_edge(25472854, 109753)
 
-        # Test outlet derivation
+        # Test outfall derivation
         G_ = G.copy()
-        G_ = gu.identify_outlets(G_, params)
+        G_ = gu.identify_outfalls(G_, params)
 
         # Two subgraphs = two routes to waste
-        outlets = [
+        outfalls = [
             (u, v, d)
             for u, v, d in G_.edges(data=True)
-            if d["edge_type"] == "waste-outlet"
+            if d["edge_type"] == "waste-outfall"
         ]
-        assert len(outlets) == 2
+        assert len(outfalls) == 2
 
-        # With buffer distance 300, the subgraph near the river will have an outlet
+        # With buffer distance 300, the subgraph near the river will have an outfall
         # between the nearest street node to each river node (there are 3 potential
         # links in 150m). The subgraph further from the river is too far to be linked
-        # to the river nodes and so will have a dummy river node as an outlet. 3+1=5
-        outlets = [
-            (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outlet"
+        # to the river nodes and so will have a dummy river node as an outfall. 3+1=5
+        outfalls = [
+            (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outfall"
         ]
-        assert len(outlets) == 3
+        assert len(outfalls) == 3
 
 
-def test_identify_outlets_and_derive_topology(street_network):
-    """Test the identify_outlets and derive_topology functions."""
+def test_identify_outfalls_and_derive_topology(street_network):
+    """Test the identify_outfalls and derive_topology functions."""
     G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
@@ -360,8 +360,8 @@ def test_identify_outlets_and_derive_topology(street_network):
         d["edge_type"] = "street"
         d["weight"] = ix
 
-    params = parameters.OutletDerivation(
-        river_buffer_distance=200, outlet_length=10, method="separate"
+    params = parameters.OutfallDerivation(
+        river_buffer_distance=200, outfall_length=10, method="separate"
     )
     dummy_river1 = sgeom.LineString(
         [(699913.878, 5709769.851), (699932.546, 5709882.575)]
@@ -414,35 +414,35 @@ def test_identify_outlets_and_derive_topology(street_network):
     G.nodes["river4"]["x"] = 700103.427
     G.nodes["river4"]["y"] = 5710169.052
 
-    # Test outlet derivation
+    # Test outfall derivation
     G_ = G.copy()
-    G_ = gu.identify_outlets(G_, params)
+    G_ = gu.identify_outfalls(G_, params)
 
-    outlets = [
-        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outlet"
+    outfalls = [
+        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outfall"
     ]
-    assert len(outlets) == 2
+    assert len(outfalls) == 2
 
     # Test topo derivation
     G_ = gu.derive_topology(G_, params)
     assert len(G_.edges) == 22
-    assert len(set([d["outlet"] for u, d in G_.nodes(data=True)])) == 2
+    assert len(set([d["outfall"] for u, d in G_.nodes(data=True)])) == 2
     for u, d in G_.nodes(data=True):
         assert "x" in d.keys()
         assert "y" in d.keys()
 
-    # Test outlet derivation parameters
+    # Test outfall derivation parameters
     G_ = G.copy()
-    params.outlet_length = 600
-    G_ = gu.identify_outlets(G_, params)
-    outlets = [
-        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outlet"
+    params.outfall_length = 600
+    G_ = gu.identify_outfalls(G_, params)
+    outfalls = [
+        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outfall"
     ]
-    assert len(outlets) == 1
+    assert len(outfalls) == 1
 
 
-def test_identify_outlets_and_derive_topology_withtopo(street_network):
-    """Test the identify_outlets and derive_topology functions."""
+def test_identify_outfalls_and_derive_topology_withtopo(street_network):
+    """Test the identify_outfalls and derive_topology functions."""
     G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
@@ -450,8 +450,8 @@ def test_identify_outlets_and_derive_topology_withtopo(street_network):
         d["edge_type"] = "street"
         d["weight"] = ix
 
-    params = parameters.OutletDerivation(
-        river_buffer_distance=250, outlet_length=10, method="withtopo"
+    params = parameters.OutfallDerivation(
+        river_buffer_distance=250, outfall_length=10, method="withtopo"
     )
     dummy_river1 = sgeom.LineString(
         [(699913.878, 5709769.851), (699932.546, 5709882.575)]
@@ -504,31 +504,33 @@ def test_identify_outlets_and_derive_topology_withtopo(street_network):
     G.nodes["river4"]["x"] = 700103.427
     G.nodes["river4"]["y"] = 5710169.052
 
-    # Test outlet derivation
+    # Test outfall derivation
     G_ = G.copy()
-    G_ = gu.identify_outlets(G_, params)
+    G_ = gu.identify_outfalls(G_, params)
 
-    outlets = [
-        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "waste-outlet"
+    outfalls = [
+        (u, v, d)
+        for u, v, d in G_.edges(data=True)
+        if d["edge_type"] == "waste-outfall"
     ]
-    assert len(outlets) == 1
+    assert len(outfalls) == 1
 
-    outlets = [
-        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outlet"
+    outfalls = [
+        (u, v, d) for u, v, d in G_.edges(data=True) if d["edge_type"] == "outfall"
     ]
-    assert len(outlets) == 4
+    assert len(outfalls) == 4
 
     # Test topo derivation
     G_ = gu.derive_topology(G_, params)
     assert len(G_.edges) == 20
-    assert len(set([d["outlet"] for u, d in G_.nodes(data=True)])) == 4
+    assert len(set([d["outfall"] for u, d in G_.nodes(data=True)])) == 4
 
-    # Test outlet derivation parameters
+    # Test outfall derivation parameters
     G_ = G.copy()
-    params.outlet_length = 600
-    G_ = gu.identify_outlets(G_, params)
+    params.outfall_length = 600
+    G_ = gu.identify_outfalls(G_, params)
     G_ = gu.derive_topology(G_, params)
-    assert len(set([d["outlet"] for u, d in G_.nodes(data=True)])) == 1
+    assert len(set([d["outfall"] for u, d in G_.nodes(data=True)])) == 1
     for u, d in G_.nodes(data=True):
         assert "x" in d.keys()
         assert "y" in d.keys()
@@ -785,7 +787,7 @@ def test_filter_streets():
         [
             (1, 2, {"edge_type": "street"}),
             (2, 3, {"edge_type": "street"}),
-            (3, 4, {"edge_type": "outlet"}),
+            (3, 4, {"edge_type": "outfall"}),
             (4, 5, {"edge_type": "river"}),
         ]
     )

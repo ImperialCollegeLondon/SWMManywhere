@@ -30,22 +30,22 @@ graphfcn_list:
   - set_chahinian_slope # Transform surface slope to more sensible slope for weights
   - set_chahinian_angle # Transform edge angles to more sensible angle for weights
   - calculate_weights # Calculate weights for each edge
-  - identify_outlets # Identify potential street->river outlets
+  - identify_outfalls # Identify potential street->river outfalls
   - derive_topology # Shortest path to give network topology
   - pipe_by_pipe # Design pipe diameters and depths
   - fix_geometries # Ensure geometries present before printing
   - assign_id # Final pass to ensure consistent 'id' and remove duplicates
 metric_list:
-  - outlet_nse_flow
-  - outlet_kge_flow
-  - outlet_relerror_flow
-  - outlet_relerror_length
-  - outlet_relerror_npipes
-  - outlet_relerror_nmanholes
-  - outlet_relerror_diameter
-  - outlet_nse_flooding
-  - outlet_kge_flooding
-  - outlet_relerror_flooding
+  - outfall_nse_flow
+  - outfall_kge_flow
+  - outfall_relerror_flow
+  - outfall_relerror_length
+  - outfall_relerror_npipes
+  - outfall_relerror_nmanholes
+  - outfall_relerror_diameter
+  - outfall_nse_flooding
+  - outfall_kge_flooding
+  - outfall_relerror_flooding
   - grid_nse_flooding
   - grid_kge_flooding
   - grid_relerror_flooding
@@ -55,7 +55,7 @@ metric_list:
   - bias_flood_depth
   - kstest_edge_betweenness
   - kstest_betweenness
-  - outlet_kstest_diameters
+  - outfall_kstest_diameters
   - nc_deltacon0
   - nc_laplacian_dist
   - nc_vertex_edge_distance

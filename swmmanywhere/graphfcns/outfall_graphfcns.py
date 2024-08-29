@@ -1,4 +1,4 @@
-"""Module for graphfcns that identify outlets."""
+"""Module for graphfcns that identify outfalls."""
 
 from __future__ import annotations
 
@@ -58,13 +58,13 @@ def _pair_rivers(
     river_points: Dict[str, shapely.Point],
     street_points: Dict[str, shapely.Point],
     river_buffer_distance: float,
-    outlet_length: float,
+    outfall_length: float,
 ) -> nx.Graph:
     """Pair river and street nodes.
 
     Pair river and street nodes within a certain distance of each other. If
-    there are no plausible outlets for an entire subgraph, then a dummy river
-    node is created and the lowest elevation node is used as the outlet.
+    there are no plausible outfalls for an entire subgraph, then a dummy river
+    node is created and the lowest elevation node is used as the outfall.
 
     Args:
         G (nx.Graph): A graph
@@ -72,15 +72,15 @@ def _pair_rivers(
         street_points (dict): A dictionary of street points
         river_buffer_distance (float): The distance within which a river and
             street node can be paired
-        outlet_length (float): The length of the outlet
+        outfall_length (float): The length of the outfall
 
     Returns:
         G (nx.Graph): A graph
     """
-    matched_outlets = {}
+    matched_outfalls = {}
 
-    # Insert a dummy river node and use lowest elevation node as outlet
-    # for each subgraph with no matched outlets
+    # Insert a dummy river node and use lowest elevation node as outfall
+    # for each subgraph with no matched outfalls
     subgraphs = []
     for sg in nx.weakly_connected_components(G):
         sg = G.subgraph(sg).copy()
@@ -93,14 +93,14 @@ def _pair_rivers(
         # Pair up the river and street nodes for each subgraph
         street_points_ = {k: v for k, v in street_points.items() if k in sg.nodes}
 
-        subgraph_outlets = go.nearest_node_buffer(
+        subgraph_outfalls = go.nearest_node_buffer(
             street_points_, river_points, river_buffer_distance
         )
 
-        # Check if there are any matched outlets
-        if subgraph_outlets:
-            # Update all matched outlets
-            matched_outlets.update(subgraph_outlets)
+        # Check if there are any matched outfalls
+        if subgraph_outfalls:
+            # Update all matched outfalls
+            matched_outfalls.update(subgraph_outfalls)
             continue
 
         # In cases of e.g., an area with no rivers to discharge into or too
@@ -122,30 +122,30 @@ def _pair_rivers(
         nx.set_node_attributes(sg, {name: dummy_river})
 
         # Update function's dicts
-        matched_outlets[lowest_elevation_node] = name
+        matched_outfalls[lowest_elevation_node] = name
         river_points[name] = shapely.Point(dummy_river["x"], dummy_river["y"])
 
         logger.warning(
-            f"""No outlets found for subgraph containing 
-                        {lowest_elevation_node}, using this node as outlet."""
+            f"""No outfalls found for subgraph containing 
+                        {lowest_elevation_node}, using this node as outfall."""
         )
 
     G = nx.compose_all(subgraphs)
 
     # Add edges between the paired river and street nodes
-    for street_id, river_id in matched_outlets.items():
+    for street_id, river_id in matched_outfalls.items():
         # TODO instead use a weight based on the distance between the two nodes
         G.add_edge(
             street_id,
             river_id,
             **{
-                "length": outlet_length,
-                "weight": outlet_length,
-                "edge_type": "outlet",
+                "length": outfall_length,
+                "weight": outfall_length,
+                "edge_type": "outfall",
                 "geometry": shapely.LineString(
                     [street_points[street_id], river_points[river_id]]
                 ),
-                "id": f"{street_id}-{river_id}-outlet",
+                "id": f"{street_id}-{river_id}-outfall",
             },
         )
 
@@ -181,36 +181,36 @@ def _root_nodes(G: nx.Graph) -> nx.Graph:
                 **{
                     "length": 0,
                     "weight": 0,
-                    "edge_type": "waste-outlet",
-                    "id": f"{node}-waste-outlet",
+                    "edge_type": "waste-outfall",
+                    "id": f"{node}-waste-outfall",
                 },
             )
     return G
 
 
-def _connect_mst_outlets(paired_G: nx.Graph, raw_G: nx.Graph) -> nx.Graph:
-    """Connect outlets to a waste node.
+def _connect_mst_outfalls(paired_G: nx.Graph, raw_G: nx.Graph) -> nx.Graph:
+    """Connect outfalls to a waste node.
 
     Run a minimum spanning tree (MST) on the paired graph to identify the
-    'efficient' outlets. These outlets are inserted into the original graph.
+    'efficient' outfalls. These outfalls are inserted into the original graph.
 
     Args:
         paired_G (nx.Graph): A graph where streets and rivers are paired with
-            outlets.
+            outfalls.
         raw_G (nx.Graph): A graph where streets and rivers are separated
 
     Returns:
         (nx.Graph): A graph
     """
-    # Find shortest path to identify only 'efficient' outlets. The MST
+    # Find shortest path to identify only 'efficient' outfalls. The MST
     # makes sense here over shortest path as each node is only allowed to
-    # be visited once - thus encouraging fewer outlets. In shortest path
+    # be visited once - thus encouraging fewer outfalls. In shortest path
     # nodes near rivers will always just pick their nearest river node.
     T = nx.minimum_spanning_tree(paired_G.to_undirected(), weight="length")
 
-    # Retain the shortest path outlets in the original graph
+    # Retain the shortest path outfalls in the original graph
     for u, v, d in T.edges(data=True):
-        if (d["edge_type"] == "outlet") & (v != "waste") & (u != "waste"):
+        if (d["edge_type"] == "outfall") & (v != "waste") & (u != "waste"):
             if u not in raw_G.nodes():
                 raw_G.add_node(u, **paired_G.nodes[u])
             elif v not in raw_G.nodes():
@@ -228,43 +228,43 @@ def _connect_mst_outlets(paired_G: nx.Graph, raw_G: nx.Graph) -> nx.Graph:
 
 
 @register_graphfcn
-class identify_outlets(
+class identify_outfalls(
     BaseGraphFunction,
     required_edge_attributes=["length", "edge_type"],
     required_node_attributes=["x", "y", "surface_elevation"],
 ):
-    """identify_outlets class."""
+    """identify_outfalls class."""
 
     def __call__(
-        self, G: nx.Graph, outlet_derivation: parameters.OutletDerivation, **kwargs
+        self, G: nx.Graph, outfall_derivation: parameters.OutfallDerivation, **kwargs
     ) -> nx.Graph:
-        """Identify outlets in a combined river-street graph.
+        """Identify outfalls in a combined river-street graph.
 
-        This function identifies outlets in a combined river-street graph. An
-        outlet is a node that is connected to a river and a street. Each street
+        This function identifies outfalls in a combined river-street graph. An
+        outfall is a node that is connected to a river and a street. Each street
         node is paired with the nearest river node provided that it is within
-        a distance of outlet_derivation.river_buffer_distance - this provides a
-        large set of plausible outlets. If there are no plausible outlets for an
+        a distance of outfall_derivation.river_buffer_distance - this provides a
+        large set of plausible outfalls. If there are no plausible outfalls for an
         entire subgraph, then a dummy river node is created and the lowest
-        elevation node is paired with it. Any street->river/outlet link is given
-        a `weight` and `length` of outlet_derivation.outlet_length, this is to
-        ensure some penalty on the total number of outlets selected.
+        elevation node is paired with it. Any street->river/outfall link is given
+        a `weight` and `length` of outfall_derivation.outfall_length, this is to
+        ensure some penalty on the total number of outfalls selected.
 
-        Two methods are available for determining which plausible outlets to
+        Two methods are available for determining which plausible outfalls to
         retain:
 
-        - `withtopo`: all plausible outlets are retained, connected to a single
+        - `withtopo`: all plausible outfalls are retained, connected to a single
         'waste' node and assumed to be later identified as part of the
         `derive_topology` graphfcn.
 
-        - `separate`: the retained outlets are those that are selected as part
+        - `separate`: the retained outfalls are those that are selected as part
         of the minimum spanning tree (MST) of the combined street-river graph.
         This method can be temporamental because the MST is undirected, because
-        rivers are inherently directed unusual outlet locations may be retained.
+        rivers are inherently directed unusual outfall locations may be retained.
 
         Args:
             G (nx.Graph): A graph
-            outlet_derivation (parameters.OutletDerivation): An OutletDerivation
+            outfall_derivation (parameters.OutfallDerivation): An OutfallDerivation
                 parameter object
             **kwargs: Additional keyword arguments are ignored.
 
@@ -279,8 +279,8 @@ class identify_outlets(
             G,
             river_points,
             street_points,
-            outlet_derivation.river_buffer_distance,
-            outlet_derivation.outlet_length,
+            outfall_derivation.river_buffer_distance,
+            outfall_derivation.outfall_length,
         )
 
         # Set the length of the river edges to 0 - from a design perspective
@@ -294,10 +294,10 @@ class identify_outlets(
         # Add edges from the river nodes to a waste node
         G_ = _root_nodes(G_)
 
-        if outlet_derivation.method == "withtopo":
-            # The outlets can be derived as part of the shortest path calculations
+        if outfall_derivation.method == "withtopo":
+            # The outfalls can be derived as part of the shortest path calculations
             return G_
-        elif outlet_derivation.method == "separate":
-            return _connect_mst_outlets(G_, G)
+        elif outfall_derivation.method == "separate":
+            return _connect_mst_outfalls(G_, G)
         else:
-            raise ValueError(f"Unknown method {outlet_derivation.method}")
+            raise ValueError(f"Unknown method {outfall_derivation.method}")
