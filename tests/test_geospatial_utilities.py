@@ -229,18 +229,17 @@ def test_burn_shape_in_raster():
         new_raster_fid.unlink(missing_ok=True)
 
 
-@pytest.mark.parametrize("method", ["pyflwdir", "whitebox"])
+@pytest.mark.parametrize(
+    "method,area,slope,width",
+    [("pyflwdir", 2498, 0.1187, 28.202), ("whitebox", 2998, 0.1102, 30.894)],
+)
 @pytest.mark.parametrize("verbose", [True, False])
-def test_derive_subcatchments(street_network, method, verbose):
+def test_derive_subcatchments(street_network, method, area, slope, width, verbose):
     """Test the derive_subcatchments function."""
     set_verbose(verbose)
 
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
-    methods = {
-        "pyflwdir": {"area": 2498, "slope": 0.1187, "width": 28.202},
-        "whitebox": {"area": 2998, "slope": 0.1102, "width": 30.894},
-    }
-    results = methods[method]
+
     polys = go.derive_subcatchments(street_network, elev_fid, method)
     assert "slope" in polys.columns
     assert "area" in polys.columns
@@ -250,14 +249,12 @@ def test_derive_subcatchments(street_network, method, verbose):
     assert polys.dropna().shape == polys.shape
     assert polys.crs == street_network.graph["crs"]
 
+    assert almost_equal(polys.set_index("id").loc[2623975694, "area"], area, tol=1)
     assert almost_equal(
-        polys.set_index("id").loc[2623975694, "area"], results["area"], tol=1
+        polys.set_index("id").loc[2623975694, "slope"], slope, tol=0.001
     )
     assert almost_equal(
-        polys.set_index("id").loc[2623975694, "slope"], results["slope"], tol=0.001
-    )
-    assert almost_equal(
-        polys.set_index("id").loc[2623975694, "width"], results["width"], tol=0.001
+        polys.set_index("id").loc[2623975694, "width"], width, tol=0.001
     )
 
 

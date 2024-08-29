@@ -662,7 +662,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
     # Adjust mapping from WhiteboxTools to pyflwdir
     mapping = {1: 128, 2: 1, 4: 2, 8: 4, 16: 8, 32: 16, 64: 32, 128: 64}
     get_flow_dir = np.vectorize(mapping.get, excluded=["default"])
-    flow_dir = get_flow_dir(flow_dir, np.nan)
+    flow_dir = get_flow_dir(flow_dir, 0)
     return flow_dir
 
 
