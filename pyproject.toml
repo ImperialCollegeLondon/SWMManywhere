@@ -51,7 +51,6 @@ dependencies = [
   "SciPy",
   "shapely",
   "tqdm",
-  "whitebox",
   "xarray",
 ]
 [project.optional-dependencies]

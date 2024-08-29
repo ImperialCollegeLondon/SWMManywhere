@@ -44,7 +44,6 @@ click==8.1.7
     #   fiona
     #   planetary-computer
     #   rasterio
-    #   whitebox
 click-plugins==1.1.1
     # via
     #   fiona
@@ -250,8 +249,6 @@ tzdata==2024.1
     # via pandas
 urllib3==2.2.2
     # via requests
-whitebox==2.3.5
-    # via swmmanywhere (pyproject.toml)
 win32-setctime==1.1.0
     # via loguru
 xarray==2024.6.0
