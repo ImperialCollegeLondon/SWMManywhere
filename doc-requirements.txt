@@ -80,7 +80,7 @@ cramjam==2.8.3
     # via fastparquet
 cytoolz==0.12.3
     # via swmmanywhere (pyproject.toml)
-debugpy==1.8.2
+debugpy==1.8.5
     # via ipykernel
 decorator==5.1.1
     # via ipython
