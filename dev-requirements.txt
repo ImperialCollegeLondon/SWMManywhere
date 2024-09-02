@@ -236,7 +236,7 @@ pystac[validation]==1.10.1
     # via
     #   planetary-computer
     #   pystac-client
-pystac-client==0.8.2
+pystac-client==0.8.3
     # via
     #   planetary-computer
     #   swmmanywhere (pyproject.toml)
