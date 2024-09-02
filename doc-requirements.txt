@@ -295,7 +295,7 @@ packaging==24.1
     #   rioxarray
     #   scikit-image
     #   xarray
-paginate==0.5.6
+paginate==0.5.7
     # via mkdocs-material
 pandas==2.2.2
     # via
