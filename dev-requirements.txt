@@ -288,7 +288,7 @@ requests==2.32.3
     #   osmnx
     #   planetary-computer
     #   pystac-client
-rioxarray==0.16.0
+rioxarray==0.17.0
     # via swmmanywhere (pyproject.toml)
 rpds-py==0.19.1
     # via
