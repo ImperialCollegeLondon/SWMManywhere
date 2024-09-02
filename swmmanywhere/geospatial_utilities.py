@@ -8,9 +8,9 @@ from __future__ import annotations
 import itertools
 import json
 import math
-import operator
 import os
-from copy import deepcopy
+import shutil
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional
@@ -23,11 +23,11 @@ import pyproj
 import rasterio as rst
 import rioxarray
 import shapely
+from pywbt import whitebox_tools
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
 from shapely import geometry as sgeom
-from shapely import ops as sops
 from shapely.strtree import STRtree
 from tqdm.auto import tqdm
 
@@ -35,8 +35,6 @@ from swmmanywhere.logging import logger, verbose
 
 os.environ["NUMBA_NUM_THREADS"] = "1"
 import pyflwdir  # noqa: E402
-import pysheds  # noqa: E402
-from pysheds import grid as pgrid  # noqa: E402
 
 TransformerFromCRS = lru_cache(pyproj.transformer.Transformer.from_crs)
 
@@ -368,117 +366,6 @@ def burn_shape_in_raster(
             dest.write(data, 1)
 
 
-def condition_dem(
-    grid: pysheds.sgrid.sGrid, dem: pysheds.sview.Raster
-) -> pysheds.sview.Raster:
-    """Condition a DEM with pysheds.
-
-    Args:
-        grid (pysheds.sgrid.sGrid): The grid object.
-        dem (pysheds.sview.Raster): The input DEM.
-
-    Returns:
-        pysheds.sview.Raster: The conditioned DEM.
-    """
-    # Fill pits, depressions, and resolve flats in the DEM
-    pit_filled_dem = grid.fill_pits(dem)
-    flooded_dem = grid.fill_depressions(pit_filled_dem)
-    inflated_dem = grid.resolve_flats(flooded_dem)
-
-    return inflated_dem
-
-
-def compute_flow_directions(
-    grid: pysheds.sgrid.sGrid, inflated_dem: pysheds.sview.Raster
-) -> tuple[pysheds.sview.Raster, tuple]:
-    """Compute flow directions.
-
-    Args:
-        grid (pysheds.sgrid.sGrid): The grid object.
-        inflated_dem (pysheds.sview.Raster): The input DEM.
-
-    Returns:
-        pysheds.sview.Raster: Flow directions.
-        tuple: Direction mapping.
-    """
-    dirmap = (64, 128, 1, 2, 4, 8, 16, 32)
-    flow_dir = grid.flowdir(inflated_dem, dirmap=dirmap)
-    return flow_dir, dirmap
-
-
-def calculate_flow_accumulation(
-    grid: pysheds.sgrid.sGrid, flow_dir: pysheds.sview.Raster, dirmap: tuple
-) -> pysheds.sview.Raster:
-    """Calculate flow accumulation.
-
-    Args:
-        grid (pysheds.sgrid.sGrid): The grid object.
-        flow_dir (pysheds.sview.Raster): Flow directions.
-        dirmap (tuple): Direction mapping.
-
-    Returns:
-        pysheds.sview.Raster: Flow accumulations.
-    """
-    flow_acc = grid.accumulation(flow_dir, dirmap=dirmap)
-    return flow_acc
-
-
-def delineate_catchment(
-    grid: pysheds.sgrid.sGrid,
-    flow_acc: pysheds.sview.Raster,
-    flow_dir: pysheds.sview.Raster,
-    dirmap: tuple,
-    G: nx.Graph,
-) -> gpd.GeoDataFrame:
-    """Delineate catchments.
-
-    Args:
-        grid (pysheds.sgrid.Grid): The grid object.
-        flow_acc (pysheds.sview.Raster): Flow accumulations.
-        flow_dir (pysheds.sview.Raster): Flow directions.
-        dirmap (tuple): Direction mapping.
-        G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
-
-    Returns:
-        gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
-            'geometry', 'area', and 'id'. Sorted by area in descending order.
-    """
-    polys = []
-    # Iterate over the nodes in the graph
-    for id, data in tqdm(G.nodes(data=True), total=len(G.nodes), disable=not verbose()):
-        # Snap the node to the nearest grid cell
-        x, y = data["x"], data["y"]
-        grid_ = deepcopy(grid)
-        x_snap, y_snap = grid_.snap_to_mask(flow_acc >= 0, (x, y))
-
-        # Delineate the catchment
-        catch = grid_.catchment(
-            x=x_snap,
-            y=y_snap,
-            fdir=flow_dir,
-            dirmap=dirmap,
-            xytype="coordinate",
-            algorithm="recursive",
-        )
-        # n.b. recursive algorithm is not recommended, but crashes with a seg
-        # fault occasionally otherwise.
-
-        grid_.clip_to(catch)
-
-        # Polygonize the catchment
-        shapes = grid_.polygonize()
-        catchment_polygon = sops.unary_union(
-            [sgeom.shape(shape) for shape, value in shapes]
-        )
-
-        # Add the catchment to the list
-        polys.append(
-            {"id": id, "geometry": catchment_polygon, "area": catchment_polygon.area}
-        )
-    polys.sort(key=operator.itemgetter("area"), reverse=True)
-    return gpd.GeoDataFrame(polys, crs=grid.crs)
-
-
 def remove_intersections(polys: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Remove intersections from a GeoDataFrame of polygons.
 
@@ -573,14 +460,14 @@ def attach_unconnected_subareas(
 
 
 def calculate_slope(
-    polys_gdf: gpd.GeoDataFrame, grid: pysheds.sgrid.sGrid, cell_slopes: np.ndarray
+    polys_gdf: gpd.GeoDataFrame, grid: Grid, cell_slopes: np.ndarray
 ) -> gpd.GeoDataFrame:
     """Calculate the average slope of each polygon.
 
     Args:
         polys_gdf (gpd.GeoDataFrame): A GeoDataFrame containing polygons with
             columns: 'geometry', 'area', and 'id'.
-        grid (pysheds.sgrid.sGrid): The grid object.
+        grid (Grid): Information of the raster (affine, shape, crs, bbox)
         cell_slopes (np.ndarray): The slopes of each cell in the grid.
 
     Returns:
@@ -633,7 +520,7 @@ def vectorize(
 
 
 def delineate_catchment_pyflwdir(
-    grid: pysheds.sgrid.sGrid, flow_dir: pysheds.sview.Raster, G: nx.Graph
+    grid: Grid, flow_dir: np.array, G: nx.Graph
 ) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
@@ -641,8 +528,8 @@ def delineate_catchment_pyflwdir(
     faster than delineate_catchment.
 
     Args:
-        grid (pysheds.sgrid.Grid): The grid object.
-        flow_dir (pysheds.sview.Raster): Flow directions.
+        grid (Grid): Information of the raster (affine, shape, crs, bbox).
+        flow_dir (np.array): Flow directions.
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
 
     Returns:
@@ -691,7 +578,7 @@ def derive_subbasins_streamorder(
         gpd.GeoDataFrame: A GeoDataFrame containing polygons.
     """
     # Load and process the DEM
-    grid, flow_dir, _, _ = load_and_process_dem(fid)
+    grid, flow_dir, _ = load_and_process_dem(fid)
 
     flw = pyflwdir.from_array(
         flow_dir,
@@ -732,67 +619,133 @@ def derive_subbasins_streamorder(
     return gdf_bas
 
 
-def load_and_process_dem(
-    fid: Path,
-) -> tuple[pysheds.sgrid.sGrid, pysheds.sview.Raster, tuple, pysheds.sview.Raster]:
-    """Load and condition a DEM.
+def flwdir_whitebox(fid: Path) -> np.array:
+    """Calculate flow direction using WhiteboxTools.
 
     Args:
         fid (Path): Filepath to the DEM.
 
     Returns:
-        tuple: A tuple containing the grid, flow directions, direction mapping,
-            and cell slopes.
+        np.array: Flow directions.
     """
-    # Initialise pysheds grids
-    grid = pgrid.Grid.from_raster(str(fid))
-    dem = grid.read_raster(str(fid))
+    # Initialize WhiteboxTools
+    with tempfile.TemporaryDirectory(dir=str(fid.parent)) as temp_dir:
+        temp_path = Path(temp_dir)
 
-    # Condition the DEM
-    inflated_dem = condition_dem(grid, dem)
+        # Copy raster to working directory
+        dem = temp_path / "dem.tif"
+        shutil.copy(fid, dem)
 
-    # Compute flow directions
-    flow_dir, dirmap = compute_flow_directions(grid, inflated_dem)
+        # Condition
+        wbt_args = {
+            "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
+            "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
+        }
+        whitebox_tools(
+            wbt_args,
+            work_dir=temp_path,
+            verbose=verbose(),
+            wbt_root=temp_path / "WBT",
+            max_procs=1,
+        )
 
-    # Calculate slopes
-    cell_slopes = grid.cell_slopes(dem, flow_dir)
+        fdir = temp_path / "fdir.tif"
+        if not Path(fdir).exists():
+            raise ValueError("Flow direction raster not created.")
 
-    return grid, flow_dir, dirmap, cell_slopes
+        with rst.open(fdir) as src:
+            flow_dir = src.read(1)
+
+    # Adjust mapping from WhiteboxTools to pyflwdir
+    mapping = {1: 128, 2: 1, 4: 2, 8: 4, 16: 8, 32: 16, 64: 32, 128: 64}
+    get_flow_dir = np.vectorize(mapping.get, excluded=["default"])
+    flow_dir = get_flow_dir(flow_dir, 0)
+    return flow_dir
 
 
-def derive_subcatchments(G: nx.Graph, fid: Path, method="pyflwdir") -> gpd.GeoDataFrame:
+class Grid:
+    """A class to represent a grid."""
+
+    def __init__(self, affine: rst.Affine, shape: tuple, crs: int, bbox: tuple):
+        """Initialize the Grid class.
+
+        Args:
+            affine (rst.Affine): The affine transformation.
+            shape (tuple): The shape of the grid.
+            crs (int): The CRS of the grid.
+            bbox (tuple): The bounding box of the grid.
+        """
+        self.affine = affine
+        self.shape = shape
+        self.crs = crs
+        self.bbox = bbox
+
+
+def load_and_process_dem(
+    fid: Path,
+    method: str = "whitebox",
+) -> tuple[Grid, np.array, np.array]:
+    """Load and condition a DEM.
+
+    Args:
+        fid (Path): Filepath to the DEM.
+        method (str, optional): The method to use for conditioning. Defaults to
+            "whitebox".
+
+    Returns:
+        tuple: A tuple containing the grid, flow directions, and cell slopes.
+    """
+    with rst.open(fid, "r") as src:
+        elevtn = src.read(1).astype(float)
+        nodata = float(src.nodata)
+        transform = src.transform
+        crs = src.crs
+
+    if method not in ("whitebox", "pyflwdir"):
+        raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
+
+    if method == "whitebox":
+        flow_dir = flwdir_whitebox(fid)
+    elif method == "pyflwdir":
+        flw = pyflwdir.from_dem(
+            data=elevtn,
+            nodata=nodata,
+            transform=transform,
+            latlon=crs.is_geographic,
+        )
+        flow_dir = flw.to_array(ftype="d8").astype(int)
+
+    cell_slopes = pyflwdir.dem.slope(
+        elevtn,
+        nodata=nodata,
+        transform=transform,
+        latlon=crs.is_geographic,
+    )
+
+    grid = Grid(transform, elevtn.shape, crs, src.bounds)
+
+    return grid, flow_dir, cell_slopes
+
+
+def derive_subcatchments(
+    G: nx.Graph, fid: Path, method: str = "whitebox"
+) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
     Args:
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
         fid (Path): Filepath to the DEM.
-        method (str, optional): The method to use for delineating catchments.
-            Defaults to 'pyflwdir'. Can also be `pysheds` to use the old
-            method.
+        method (str, optional): The method to use for conditioning.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
-    if method not in ["pyflwdir", "pysheds"]:
-        raise ValueError("Invalid method. Must be 'pyflwdir' or 'pysheds'.")
-
     # Load and process the DEM
-    grid, flow_dir, dirmap, cell_slopes = load_and_process_dem(fid)
+    grid, flow_dir, cell_slopes = load_and_process_dem(fid, method)
 
-    if method == "pysheds":
-        # Calculate flow accumulations
-        flow_acc = calculate_flow_accumulation(grid, flow_dir, dirmap)
-
-        # Delineate catchments
-        polys = delineate_catchment(grid, flow_acc, flow_dir, dirmap, G)
-
-        # Remove intersections
-        result_polygons = remove_intersections(polys)
-
-    elif method == "pyflwdir":
-        # Delineate catchments
-        result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)
+    # Delineate catchments
+    result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)
 
     # Convert to GeoDataFrame
     polys_gdf = result_polygons.dropna(subset=["geometry"])
