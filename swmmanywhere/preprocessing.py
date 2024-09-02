@@ -32,7 +32,7 @@ def write_df(df: pd.DataFrame | gpd.GeoDataFrame, fid: Path):
     """
     if fid.suffix in (".geoparquet", ".parquet"):
         df.to_parquet(fid)
-    elif fid.suffix == ".json":
+    elif fid.suffix in (".geojson", ".json"):
         if isinstance(df, gpd.GeoDataFrame):
             df.to_file(fid, driver="GeoJSON")
         else:

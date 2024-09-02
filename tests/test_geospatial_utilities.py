@@ -15,6 +15,7 @@ from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
+from swmmanywhere.logging import set_verbose
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
 
@@ -228,27 +229,33 @@ def test_burn_shape_in_raster():
         new_raster_fid.unlink(missing_ok=True)
 
 
-def test_derive_subcatchments(street_network):
+@pytest.mark.parametrize(
+    "method,area,slope,width",
+    [("pyflwdir", 2498, 0.1187, 28.202), ("whitebox", 2998, 0.1102, 30.894)],
+)
+@pytest.mark.parametrize("verbose", [True, False])
+def test_derive_subcatchments(street_network, method, area, slope, width, verbose):
     """Test the derive_subcatchments function."""
-    elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
-    for method in ["pysheds", "pyflwdir"]:
-        polys = go.derive_subcatchments(street_network, elev_fid, method=method)
-        assert "slope" in polys.columns
-        assert "area" in polys.columns
-        assert "geometry" in polys.columns
-        assert "id" in polys.columns
-        assert polys.shape[0] > 0
-        assert polys.dropna().shape == polys.shape
-        assert polys.crs == street_network.graph["crs"]
+    set_verbose(verbose)
 
-        # Pyflwdir and pysheds catchment derivation aren't absolutely identical
-        assert almost_equal(polys.set_index("id").loc[2623975694, "area"], 1499, tol=1)
-        assert almost_equal(
-            polys.set_index("id").loc[2623975694, "slope"], 0.06145, tol=0.001
-        )
-        assert almost_equal(
-            polys.set_index("id").loc[2623975694, "width"], 21.845, tol=0.001
-        )
+    elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
+
+    polys = go.derive_subcatchments(street_network, elev_fid, method)
+    assert "slope" in polys.columns
+    assert "area" in polys.columns
+    assert "geometry" in polys.columns
+    assert "id" in polys.columns
+    assert polys.shape[0] > 0
+    assert polys.dropna().shape == polys.shape
+    assert polys.crs == street_network.graph["crs"]
+
+    assert almost_equal(polys.set_index("id").loc[2623975694, "area"], area, tol=1)
+    assert almost_equal(
+        polys.set_index("id").loc[2623975694, "slope"], slope, tol=0.001
+    )
+    assert almost_equal(
+        polys.set_index("id").loc[2623975694, "width"], width, tol=0.001
+    )
 
 
 def test_derive_rc(street_network):

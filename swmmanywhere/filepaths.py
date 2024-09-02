@@ -289,7 +289,7 @@ def filepaths_from_yaml(f: Path):
     """Get file paths from a yaml file."""
     address_dict = yaml_load(f.read_text())
     address_dict["base_dir"] = Path(address_dict["base_dir"])
-    overrides = address_dict.pop("overrides")
+    overrides = address_dict.pop("overrides", {})
     addresses = FilePaths(**address_dict, **overrides)
     return addresses
 
