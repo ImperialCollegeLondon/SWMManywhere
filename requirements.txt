@@ -79,7 +79,7 @@ gitdb==4.0.11
     # via gitpython
 gitpython==3.1.43
     # via swmmanywhere (pyproject.toml)
-idna==3.7
+idna==3.8
     # via requests
 joblib==1.4.2
     # via swmmanywhere (pyproject.toml)
@@ -170,7 +170,7 @@ pystac[validation]==1.10.1
     # via
     #   planetary-computer
     #   pystac-client
-pystac-client==0.8.2
+pystac-client==0.8.3
     # via
     #   planetary-computer
     #   swmmanywhere (pyproject.toml)
@@ -209,7 +209,7 @@ requests==2.32.3
     #   osmnx
     #   planetary-computer
     #   pystac-client
-rioxarray==0.16.0
+rioxarray==0.17.0
     # via swmmanywhere (pyproject.toml)
 rpds-py==0.19.1
     # via

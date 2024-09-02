@@ -79,7 +79,7 @@ cramjam==2.8.3
     # via fastparquet
 cytoolz==0.12.3
     # via swmmanywhere (pyproject.toml)
-debugpy==1.8.2
+debugpy==1.8.5
     # via ipykernel
 decorator==5.1.1
     # via ipython
@@ -111,7 +111,7 @@ gitpython==3.1.43
     # via swmmanywhere (pyproject.toml)
 griffe==0.47.0
     # via mkdocstrings-python
-idna==3.7
+idna==3.8
     # via requests
 ipykernel==6.29.5
     # via mkdocs-jupyter
@@ -339,7 +339,7 @@ pystac[validation]==1.10.1
     # via
     #   planetary-computer
     #   pystac-client
-pystac-client==0.8.2
+pystac-client==0.8.3
     # via
     #   planetary-computer
     #   swmmanywhere (pyproject.toml)
@@ -397,7 +397,7 @@ requests==2.32.3
     #   osmnx
     #   planetary-computer
     #   pystac-client
-rioxarray==0.16.0
+rioxarray==0.17.0
     # via swmmanywhere (pyproject.toml)
 rpds-py==0.19.1
     # via
