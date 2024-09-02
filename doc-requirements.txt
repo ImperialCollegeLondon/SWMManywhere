@@ -360,6 +360,8 @@ pytz==2024.1
     #   multiurl
     #   pandas
     #   planetary-computer
+pywbt==0.1.1
+    # via swmmanywhere (pyproject.toml)
 pywin32==306
     # via jupyter-core
 pyyaml==6.0.1

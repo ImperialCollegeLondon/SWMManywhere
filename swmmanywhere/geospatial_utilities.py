@@ -23,6 +23,7 @@ import pyproj
 import rasterio as rst
 import rioxarray
 import shapely
+from pywbt import whitebox_tools
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
@@ -31,7 +32,6 @@ from shapely.strtree import STRtree
 from tqdm.auto import tqdm
 
 from swmmanywhere.logging import logger, verbose
-from swmmanywhere.whitebox_utils import whitebox_tools
 
 os.environ["NUMBA_NUM_THREADS"] = "1"
 import pyflwdir  # noqa: E402
@@ -637,19 +637,16 @@ def flwdir_whitebox(fid: Path) -> np.array:
         shutil.copy(fid, dem)
 
         # Condition
+        wbt_args = {
+            "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
+            "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
+        }
         whitebox_tools(
-            "BreachDepressions",
-            ["-i=dem.tif", "-o=dem_corr.tif"],
+            wbt_args,
             work_dir=temp_path,
             verbose=verbose(),
             wbt_root=temp_path / "WBT",
-        )
-        whitebox_tools(
-            "D8Pointer",
-            ["-i=dem_corr.tif", "-o=fdir.tif"],
-            work_dir=temp_path,
-            verbose=verbose(),
-            wbt_root=temp_path / "WBT",
+            max_procs=1,
         )
 
         fdir = temp_path / "fdir.tif"

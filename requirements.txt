@@ -189,6 +189,8 @@ pytz==2024.1
     #   multiurl
     #   pandas
     #   planetary-computer
+pywbt==0.1.1
+    # via swmmanywhere (pyproject.toml)
 pyyaml==6.0.1
     # via swmmanywhere (pyproject.toml)
 rasterio==1.3.10
