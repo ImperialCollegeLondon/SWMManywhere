@@ -137,15 +137,17 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         return G
 
 
-def sum_over_delimiter(s):
+def sum_over_delimiter(s: int | str | float) -> float:
     """Sum over a delimiter.
 
-    This function takes a string and sums over the numbers in the string. The
+    This function takes a value, if it is not a string it is casted as a
+    float, otherwise it sums over the numbers in the string. The
     numbers are separated by a delimiter. The delimiter is any non-numeric
     character. If the input is not a string, the function returns the input.
 
     Args:
-        s (str): A string
+        s (int | str | float): The input.
+
     Returns:
         float: The sum of the numbers in the string
     """
