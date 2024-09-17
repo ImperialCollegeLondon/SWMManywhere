@@ -4,6 +4,70 @@ jobs:
   test:
     uses: ./.github/workflows/ci.yml
 
+  build-wheel:
+    needs: test
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/swmmanywhere*
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: dist/swmmanywhere*
+
+  publish-TestPyPI:
+    needs: build-wheel
+    name: Publish SWMManywhere to TestPyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - name: Display structure of downloaded files
+        run: ls -R dist
+
+      - name: Publish package distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  publish-PyPI:
+    needs: publish-TestPyPI
+    name: Publish SWMManywhere to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - name: Display structure of downloaded files
+        run: ls -R dist
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+
   publish-docs:
     needs: publish-PyPI
     runs-on: ubuntu-latest
@@ -20,25 +84,3 @@ jobs:
 
       - name: Deploy Docs
         run: mkdocs gh-deploy --force
-
-  # publish:
-  #   runs-on: ubuntu-latest
-  #   needs: test
-  #   # The following steps to build a Docker image and publish to the GitHub container registry on release. Alternatively, can replace with other publishing steps (ie. publishing to PyPI, deploying documentation etc.)
-  #   steps:
-  #     - name: Login to GitHub Container Registry
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ghcr.io
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Get image metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: ghcr.io/${{ github.repository }}
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v5
-  #       with:
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
