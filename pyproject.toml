@@ -73,6 +73,10 @@ doc = [
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
 ]
+[project.urls]
+Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
+Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
+Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
 [tool.mypy]
 disallow_any_explicit = false
