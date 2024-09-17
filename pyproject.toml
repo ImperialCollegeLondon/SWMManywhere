@@ -1,8 +1,7 @@
 [build-system]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 requires = [
-  "setuptools",
-  "setuptools-scm",
+  "hatchling",
 ]
 
 [tool.setuptools.packages.find]
