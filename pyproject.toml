@@ -33,7 +33,6 @@ dependencies = [
   "jsonschema",
   "loguru",
   "netcdf4",
-  "netcomp@ git+https://github.com/barneydobson/NetComp.git",
   "networkx>=3",
   "numpy",
   "osmnx",
@@ -44,7 +43,7 @@ dependencies = [
   "pyflwdir",
   "pystac_client",
   "pyswmm",
-  "pywbt",
+  "pywbt<=0.1.1",
   "PyYAML",
   "rasterio",
   "rioxarray",
@@ -77,6 +76,9 @@ doc = [
 Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
 Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["swmmanywhere", "netcomp"]
 
 [tool.mypy]
 disallow_any_explicit = false
