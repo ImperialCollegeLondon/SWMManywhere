@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Hashable, cast
 
 import geopandas as gpd
@@ -136,6 +137,25 @@ class remove_non_pipe_allowable_links(BaseGraphFunction):
         return G
 
 
+def sum_over_delimiter(s: int | str | float) -> float:
+    """Sum over a delimiter.
+
+    This function takes a value, if it is not a string it is casted as a
+    float, otherwise it sums over the numbers in the string. The
+    numbers are separated by a delimiter. The delimiter is any non-numeric
+    character. If the input is not a string, the function returns the input.
+
+    Args:
+        s (int | str | float): The input.
+
+    Returns:
+        float: The sum of the numbers in the string
+    """
+    if not isinstance(s, str):
+        return float(s)
+    return float(sum([int(num) for num in re.split(r"\D+", s) if num]))
+
+
 @register_graphfcn
 class calculate_streetcover(
     BaseGraphFunction, required_edge_attributes=["lanes", "geometry"]
@@ -176,9 +196,9 @@ class calculate_streetcover(
             else:
                 lanes = 0
             if isinstance(lanes, list):
-                lanes = sum([float(x) for x in lanes])
+                lanes = sum([sum_over_delimiter(x) for x in lanes])
             else:
-                lanes = float(lanes)
+                lanes = sum_over_delimiter(lanes)
             lines.append(
                 {
                     "geometry": data["geometry"].buffer(
