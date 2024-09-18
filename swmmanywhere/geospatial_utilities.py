@@ -642,10 +642,14 @@ def flwdir_whitebox(fid: Path) -> np.array:
             "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
             "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
         }
+        if verbose():
+            save_dir = fid.parent
+        else:
+            save_dir = temp_path
         whitebox_tools(
             arg_dict=wbt_args,
             src_dir=temp_path,
-            save_dir=temp_path,
+            save_dir=save_dir,
             verbose=verbose(),
             wbt_root=wbt_dir.name,
             max_procs=1,
