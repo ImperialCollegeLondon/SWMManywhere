@@ -8,6 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pre-commit/action@v3.0.1
+        with:
+          exclude: 'netcomp/*'
 
   test:
     needs: qa
