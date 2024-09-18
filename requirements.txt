@@ -56,18 +56,10 @@ colorama==0.4.6
     #   click
     #   loguru
     #   tqdm
-cramjam==2.8.3
-    # via fastparquet
 cytoolz==0.12.3
     # via swmmanywhere (pyproject.toml)
-fastparquet==2024.5.0
-    # via swmmanywhere (pyproject.toml)
 fiona==1.10.1
-    # via
-    #   geopandas
-    #   swmmanywhere (pyproject.toml)
-fsspec==2024.9.0
-    # via fastparquet
+    # via geopandas
 geographiclib==2.0
     # via geopy
 geopandas==0.14.4
@@ -75,10 +67,6 @@ geopandas==0.14.4
     #   osmnx
     #   swmmanywhere (pyproject.toml)
 geopy==2.4.1
-    # via swmmanywhere (pyproject.toml)
-gitdb==4.0.11
-    # via gitpython
-gitpython==3.1.43
     # via swmmanywhere (pyproject.toml)
 idna==3.10
     # via requests
@@ -109,7 +97,6 @@ numba==0.60.0
 numpy==1.26.4
     # via
     #   cftime
-    #   fastparquet
     #   geopandas
     #   netcdf4
     #   numba
@@ -128,7 +115,6 @@ osmnx==1.9.4
     # via swmmanywhere (pyproject.toml)
 packaging==24.1
     # via
-    #   fastparquet
     #   geopandas
     #   planetary-computer
     #   pyswmm
@@ -136,7 +122,6 @@ packaging==24.1
     #   xarray
 pandas==2.2.2
     # via
-    #   fastparquet
     #   geopandas
     #   osmnx
     #   swmmanywhere (pyproject.toml)
@@ -219,8 +204,6 @@ shapely==2.0.6
     #   swmmanywhere (pyproject.toml)
 six==1.16.0
     # via python-dateutil
-smmap==5.0.1
-    # via gitdb
 snuggs==1.4.7
     # via rasterio
 swmm-toolkit==0.15.5

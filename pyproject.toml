@@ -24,11 +24,8 @@ classifiers = [
 dependencies = [
   "cdsapi",
   "cytoolz",
-  "fastparquet",
-  "fiona",
   "geopandas",
   "geopy",
-  "GitPython",
   "joblib",
   "jsonschema",
   "loguru",
