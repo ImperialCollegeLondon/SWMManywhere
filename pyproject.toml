@@ -45,7 +45,7 @@ dependencies = [
   "pyflwdir",
   "pystac_client",
   "pyswmm",
-  "pywbt>=0.2.2",
+  "pywbt",
   "PyYAML",
   "rasterio",
   "rioxarray",
