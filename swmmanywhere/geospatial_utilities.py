@@ -656,7 +656,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
             files_to_save=("fdir.tif",),
         )
         wbt_dir.cleanup()
-        fdir = temp_path / "fdir.tif"
+        fdir = save_dir / "fdir.tif"
         if not Path(fdir).exists():
             raise ValueError("Flow direction raster not created.")
 
