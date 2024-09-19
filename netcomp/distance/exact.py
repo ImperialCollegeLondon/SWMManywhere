@@ -5,6 +5,7 @@ Exact Distances
 Calculation of exact distances between graphs. Generally slow (quadratic in
 graph size).
 """
+
 from __future__ import annotations
 
 import networkx as nx
@@ -13,7 +14,7 @@ from numpy import linalg as la
 
 from netcomp.distance import aggregate_features, get_features
 from netcomp.exception import InputError
-from netcomp.linalg import (
+from netcomp.linalg import (  # type: ignore
     _eigs,
     _flat,
     _pad,
@@ -276,7 +277,7 @@ def resistance_distance(
     --------
     resistance_matrix
     """
-    # Calculate resistance matricies and compare
+    # Calculate resistance matrices and compare
     if renormalized:
         # pad smaller adj. mat. so they're the same size
         n1, n2 = [A.shape[0] for A in [A1, A2]]
@@ -296,13 +297,13 @@ def resistance_distance(
         )
     if attributed:
         return distance_vector ** (1 / p)
-    else:
-        return np.sum(distance_vector) ** (1 / p)
+
+    return np.sum(distance_vector) ** (1 / p)
 
 
 def deltacon0(A1, A2, eps=None):
     """DeltaCon0 distance between two graphs. The distance is the Frobenius norm
-    of the element-wise square root of the fast belief propogation matrix.
+    of the element-wise square root of the fast belief propagation matrix.
 
     Parameters
     ----------

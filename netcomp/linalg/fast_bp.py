@@ -2,8 +2,9 @@
 Fast Belief Propagation
 ***********************
 
-The fast approximation of the Belief Propogation matrix.
+The fast approximation of the Belief propagation matrix.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -12,7 +13,7 @@ from scipy import sparse as sps
 
 
 def fast_bp(A, eps=None):
-    """Return the fast belief propogation matrix of graph associated with A.
+    """Return the fast belief propagation matrix of graph associated with A.
 
     Parameters
     ----------
@@ -27,7 +28,7 @@ def fast_bp(A, eps=None):
     Returns:
     -------
     S : NumPy matrix or Scipy sparse matrix
-        The fast belief propogation matrix. If input is sparse, will be returned
+        The fast belief propagation matrix. If input is sparse, will be returned
         as (sparse) CSC matrix.
 
     Notes:
@@ -44,13 +45,13 @@ def fast_bp(A, eps=None):
     degs = np.array(A.sum(axis=1)).flatten()
     if eps is None:
         eps = 1 / (1 + max(degs))
-    I = sps.identity(n)
+    identity = sps.identity(n)
     D = sps.dia_matrix((degs, [0]), shape=(n, n))
     # form inverse of S and invert (slow!)
-    Sinv = I + eps**2 * D - eps * A
+    Sinv = identity + eps**2 * D - eps * A
     try:
         S = la.inv(Sinv)
-    except:
+    except Exception:
         Sinv = sps.csc_matrix(Sinv)
         S = sps.linalg.inv(Sinv)
     return S

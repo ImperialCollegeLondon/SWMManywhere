@@ -4,7 +4,10 @@ Eigenstuff
 
 Functions for calculating eigenstuff of graphs.
 """
+
 from __future__ import annotations
+
+from contextlib import suppress
 
 import numpy as np
 from numpy import linalg as la
@@ -51,10 +54,9 @@ def _eigs(M, which="SR", k=None):
     if issparse(M) and k < n - 1:
         evals, evecs = spla.eigs(M, k=k, which=which)
     else:
-        try:
+        with suppress(Exception):
             M = M.todense()
-        except:
-            pass
+
         evals, evecs = la.eig(M)
         # sort dem eigenvalues
         inds = np.argsort(evals)

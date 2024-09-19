@@ -10,7 +10,7 @@ import networkx as nx
 import numpy as np
 from scipy import stats
 
-from netcomp.linalg import _eps
+from netcomp.linalg import _eps  # type: ignore
 
 
 def get_features(A):

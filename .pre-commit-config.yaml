@@ -43,5 +43,3 @@ repos:
       name: Modernizing Python codebases using Refurb
       additional_dependencies:
       - numpy
-
-exclude: netcomp

@@ -6,6 +6,8 @@ Resistance matrix. Renormalized version, as well as conductance and commute matr
 """
 from __future__ import annotations
 
+from contextlib import suppress
+
 import networkx as nx
 import numpy as np
 from numpy import linalg as la
@@ -71,10 +73,9 @@ def resistance_matrix(A, check_connected=True):
                 "Graph is not connected. " "Resistance matrix is undefined."
             )
     L = laplacian_matrix(A)
-    try:
+    with suppress(Exception):
         L = L.todense()
-    except:
-        pass
+
     M = la.pinv(L)
     # calculate R in terms of M
     d = np.reshape(np.diag(M), (n, 1))

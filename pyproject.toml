@@ -92,13 +92,14 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D100", "D104"]
+"netcomp/*" = ["D", "F"] # Ignore all checks for netcomp
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.isort]

@@ -7,6 +7,7 @@
     see README.md.
 
 """
+
 from __future__ import annotations
 
 __author__ = "Peter Wills <peter.e.wills@gmail.com>"
@@ -21,5 +22,5 @@ if sys.version_info[0] < 3:
 del sys
 
 
-from .distance import *
-from .linalg import *
+from .distance import *  # noqa
+from .linalg import *  # noqa
