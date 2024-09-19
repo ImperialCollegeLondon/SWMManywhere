@@ -24,7 +24,7 @@ classifiers = [
 dependencies = [
   "cdsapi",
   "cytoolz",
-  "geopandas",
+  "geopandas>=1",
   "geopy",
   "joblib",
   "jsonschema",
@@ -32,7 +32,7 @@ dependencies = [
   "netcdf4",
   "networkx>=3",
   "numpy",
-  "osmnx",
+  "osmnx>=1.9.3",
   "pandas",
   "planetary_computer",
   "pyarrow",

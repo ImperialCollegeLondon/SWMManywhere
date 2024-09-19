@@ -78,7 +78,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r doc-requirements.txt
+        run: pip install .[doc]
 
       - name: Deploy Docs
         run: mkdocs gh-deploy --force
