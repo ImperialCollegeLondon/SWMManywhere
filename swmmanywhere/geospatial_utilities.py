@@ -642,10 +642,12 @@ def flwdir_whitebox(fid: Path) -> np.array:
             "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
         }
         whitebox_tools(
+            temp_path,
             wbt_args,
-            work_dir=temp_path,
+            save_dir=temp_path,
             verbose=verbose(),
             wbt_root=temp_path / "WBT",
+            zip_path=fid.parent / "whiteboxtools_binaries.zip",
             max_procs=1,
         )
 
