@@ -31,7 +31,7 @@ dependencies = [
   "loguru",
   "netcdf4",
   "networkx>=3",
-  "numpy",
+  "numpy>=2",
   "osmnx>=1.9.3",
   "pandas",
   "planetary_computer",
