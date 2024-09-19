@@ -12,18 +12,16 @@ import networkx as nx
 import numpy as np
 from numpy import linalg as la
 
-from netcomp.distance import aggregate_features, get_features
-from netcomp.exception import InputError
-from netcomp.linalg import (  # type: ignore
-    _eigs,
-    _flat,
-    _pad,
+from ..exception import InputError
+from ..linalg import (  # type: ignore
     fast_bp,
-    laplacian_matrix,
     normalized_laplacian_eig,
     renormalized_res_mat,
     resistance_matrix,
 )
+from ..linalg.eigenstuff import _eigs, _flat
+from ..linalg.matrices import _pad, laplacian_matrix
+from .features import aggregate_features, get_features
 
 ######################
 ## Helper Functions ##

@@ -15,7 +15,7 @@ from scipy import sparse as sps
 from scipy.sparse import issparse
 from scipy.sparse import linalg as spla
 
-from netcomp.linalg.matrices import _eps, _flat
+from .matrices import _eps, _flat
 
 ######################
 ## Helper Functions ##

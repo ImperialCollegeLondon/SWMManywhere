@@ -21,6 +21,5 @@ if sys.version_info[0] < 3:
     raise ImportError(m % sys.version_info[:2])
 del sys
 
-
-from .distance import *  # noqa
 from .linalg import *  # noqa
+from .distance import *  # noqa

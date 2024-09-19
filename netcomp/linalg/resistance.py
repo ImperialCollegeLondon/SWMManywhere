@@ -14,8 +14,8 @@ from numpy import linalg as la
 from scipy import linalg as spla
 from scipy.sparse import issparse
 
-from netcomp.exception import UndefinedException
-from netcomp.linalg.matrices import laplacian_matrix
+from ..exception import UndefinedException
+from .matrices import laplacian_matrix
 
 
 def resistance_matrix(A, check_connected=True):
