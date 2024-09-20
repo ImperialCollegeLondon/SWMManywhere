@@ -5,12 +5,12 @@ on:
     inputs:
       os:
         description: 'Operating system'
-        required: true
         default: '["ubuntu-latest", "windows-latest"]'
+        type: string
       python-version:
         description: 'Python version'
-        required: true
         default: '["3.10"]'
+        type: string
 
 jobs:
   qa:
