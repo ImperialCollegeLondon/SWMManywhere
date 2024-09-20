@@ -7,7 +7,10 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci_template.yml
+    with:
+      os: '["ubuntu-latest", "windows-latest", "macos-latest"]'
+      python-version: '["3.9", "3.10", "3.11", "3.12"]'
 
   build-wheel:
     needs: test

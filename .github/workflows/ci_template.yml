@@ -1,0 +1,38 @@
+name: Test
+
+on: 
+  workflow_call:
+    inputs:
+      os:
+        description: 'Operating system'
+        required: true
+        default: '["ubuntu-latest", "windows-latest"]'
+      python-version:
+        description: 'Python version'
+        required: true
+        default: '["3.10"]'
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pre-commit/action@v3.0.1
+
+  test:
+    needs: qa
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{fromJson(inputs.os)}}
+        python-version: ${{fromJson(inputs.python-version)}}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: pip install .[dev]
+    - name: Run tests
+      run: pytest
