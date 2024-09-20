@@ -1,25 +1,33 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
+  "hatch-vcs",
   "hatchling",
 ]
 
-[tool.setuptools.packages.find]
-exclude = ["htmlcov"] # Exclude the coverage report file from setuptools package finder
-
 [project]
 name = "swmmanywhere"
-version = "0.0.1"
 authors = [
     { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
 ]
 requires-python = ">=3.10"
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: GIS",
+  "Typing :: Typed",
+]
+dynamic = [
+  "version",
 ]
 dependencies = [
   "cdsapi",
@@ -77,20 +85,11 @@ Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 [tool.hatch.build.targets.sdist]
 only-include = ["swmmanywhere", "netcomp"]
 
-[tool.mypy]
-disallow_any_explicit = false
-disallow_any_generics = false
-warn_unreachable = true
-warn_unused_ignores = false
-disallow_untyped_defs = false
-exclude = [".venv/"]
+[tool.hatch.version]
+source = "vcs"
 
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-
-[tool.pytest.ini_options]
-addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
+[tool.hatch.build.hooks.vcs]
+version-file = "_version.py"
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
@@ -108,6 +107,21 @@ required-imports = ["from __future__ import annotations"]
 [tool.codespell]
 skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"
+
+[tool.pytest.ini_options]
+addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
+
+[tool.mypy]
+disallow_any_explicit = false
+disallow_any_generics = false
+warn_unreachable = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+exclude = [".venv/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
 
 [tool.refurb]
 ignore = [
