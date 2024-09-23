@@ -9,11 +9,11 @@ an updated graph.
 
 ## Using graph functions
 
-Let's look at a [graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.to_undirected)
+Let's look at a [graph function](reference-graph-utilities.md#swmmanywhere.graphfcns.network_cleaning_graphfcns.to_undirected)
 that is simply a wrapper for
 [`networkx.to_undirected`](https://networkx.org/documentation/stable/reference/classes/generated/networkx.DiGraph.to_undirected.html):
 
-:::swmmanywhere.graph_utilities.to_undirected
+:::swmmanywhere.graphfcns.network_cleaning_graphfcns.to_undirected
     handler: python
     options:
       members: no
@@ -64,9 +64,9 @@ view the [`parameters`](reference-parameters.md) and
 [`FilePaths`](reference-filepaths.md) APIs.
 
 We can see an example of using a parameter category with this
-[graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.remove_non_pipe_allowable_links):
+[graph function](reference-graph-utilities.md#swmmanywhere.graphfcns.network_cleaning_graphfcns.remove_non_pipe_allowable_links):
 
-:::swmmanywhere.graph_utilities.remove_non_pipe_allowable_links
+:::swmmanywhere.graphfcns.network_cleaning_graphfcns.remove_non_pipe_allowable_links
     handler: python
     options:
       members: no
@@ -138,9 +138,9 @@ are not provided, `iterate_graphfcns` uses the default values for all
 
 Furthermore, this `graphfcn_list` also provides opportunities for validation.
 For example, see the
-[following graph function](reference-graph-utilities.md#swmmanywhere.graph_utilities.set_surface_slope):
+[following graph function](reference-graph-utilities.md#swmmanywhere.graphfcns.topology_graphfcns.set_surface_slope):
 
-:::swmmanywhere.graph_utilities.set_surface_slope
+:::swmmanywhere.graphfcns.topology_graphfcns.set_surface_slope
     handler: python
     options:
       members: no
@@ -168,7 +168,7 @@ can be used to specify what, if any, parameters are added to the graph by the
 graph function.
 
 Let us inspect the `set_elevation` graph function:
-:::swmmanywhere.graph_utilities.set_elevation
+:::swmmanywhere.graphfcns.topology_graphfcns.set_elevation
     handler: python
     options:
       members: no
