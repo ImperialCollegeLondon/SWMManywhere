@@ -629,7 +629,6 @@ def flwdir_whitebox(fid: Path) -> np.array:
         np.array: Flow directions.
     """
     # Initialize WhiteboxTools
-    wbt_dir = tempfile.TemporaryDirectory(dir=(str(fid.parent)))
     with tempfile.TemporaryDirectory(dir=str(fid.parent)) as temp_dir:
         temp_path = Path(temp_dir)
 
@@ -647,15 +646,15 @@ def flwdir_whitebox(fid: Path) -> np.array:
         else:
             save_dir = temp_path
         whitebox_tools(
-            arg_dict=wbt_args,
-            src_dir=temp_path,
+            temp_path,
+            wbt_args,
             save_dir=save_dir,
             verbose=verbose(),
-            wbt_root=wbt_dir.name,
+            wbt_root=temp_path / "WBT",
+            zip_path=fid.parent / "whiteboxtools_binaries.zip",
             max_procs=1,
             files_to_save=("fdir.tif",),
         )
-        wbt_dir.cleanup()
         fdir = save_dir / "fdir.tif"
         if not Path(fdir).exists():
             raise ValueError("Flow direction raster not created.")
