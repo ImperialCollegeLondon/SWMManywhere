@@ -110,6 +110,9 @@ ignore-words-list = "gage,gages"
 
 [tool.pytest.ini_options]
 addopts = "-v --import-mode=importlib --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
+markers = [
+  "downloads: mark a test as requiring downloads",
+]
 
 [tool.mypy]
 disallow_any_explicit = false
