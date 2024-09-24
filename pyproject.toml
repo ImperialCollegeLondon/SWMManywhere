@@ -109,7 +109,7 @@ skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"
 
 [tool.pytest.ini_options]
-addopts = "-v -p no:warnings --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
+addopts = "-v --import-mode=importlib --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
 
 [tool.mypy]
 disallow_any_explicit = false
