@@ -84,6 +84,9 @@ Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
 Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
+[tool.hatch.build]
+include = ["src/netcomp/**", "src/swmmanywhere/**"]
+
 [tool.hatch.build.targets.wheel]
 only-include = ["src"]
 sources = ["src"]
