@@ -14,7 +14,6 @@ import geopandas as gpd
 import networkx as nx
 import pytest
 from shapely import geometry as sgeom
-
 from swmmanywhere import parameters
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import (
