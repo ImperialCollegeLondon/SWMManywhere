@@ -44,9 +44,9 @@ example:
 ![SWMM Model](docs/images/andorra_swmm_screenshot.png)
 
 <!-- markdown-link-check-disable -->
-Follow the [Quickstart](https://imperialcollegelondon.github.io/swmmanywhere/quickstart)
+Follow the [Quickstart](https://imperialcollegelondon.github.io/SWMManywhere/quickstart)
 for a more detailed initial example and
-[ReadTheDocs](https://imperialcollegelondon.github.io/swmmanywhere/)
+[ReadTheDocs](https://imperialcollegelondon.github.io/SWMManywhere/)
 for full information of SWMManywhere capabilities.
 <!-- markdown-link-check-enable -->
 

@@ -87,7 +87,7 @@ data sources beyond those that are provided by default...
 A user may want to change some of the key data files that underpin SWMManywhere, such
 as the base `elevation` file (i.e., a DEM from NASADEM) if you have higher resolution
 data for your region. You can explore the default file structure of a SWMManywhere
-project in [link to filepaths page], but a user may provide their own file paths
+project at [`FilePaths`](reference-filepaths.md), but a user may provide their own file paths
 via the config file through the `address_overrides` entry, for example:
 
 ```yml
@@ -114,7 +114,7 @@ The path to a `subcatchments` geometry file, and a `graph` file (see
 [`save_graph`](reference-graph-utilities.md#swmmanywhere.graph_utilities.save_graph)
 for format) must be provided - however this is temporary and will be unnecessary
 following the fixing of
-[this].
+[this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
 The user can then provide either an `inp` path to the SWMM `.inp`
 model file, or if the file has already been run, directly to the `results` file. If
 a `results` file is provided this will always be used for metric calculation. If
