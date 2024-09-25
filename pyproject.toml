@@ -9,6 +9,7 @@ requires = [
 name = "swmmanywhere"
 description = "SWMManywhere software"
 readme = "README.md"
+license-files = { paths = ["LICENSE", "src/netcomp/LICENSE.txt"] }
 authors = [
     { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
@@ -17,7 +18,7 @@ requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: BSD License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
