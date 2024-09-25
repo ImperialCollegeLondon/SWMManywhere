@@ -85,12 +85,10 @@ Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src"]
-sources = ["src"]
+packages = [ "src" ]
 
 [tool.hatch.build.targets.wheel]
-only-include = ["src"]
-sources = ["src"]
+packages = [ "src" ]
 
 [tool.hatch.version]
 source = "vcs"
@@ -123,6 +121,30 @@ ignore-words-list = "gage,gages"
 addopts = "-v --cov=src/swmmanywhere --cov-report=html --doctest-modules --ignore=src/swmmanywhere/logging.py"
 markers = [
   "downloads: mark a test as requiring downloads",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "if TYPE_CHECKING:",
+]
+omit = [
+  "**/__init__.py",
+]
+ignore_errors = true
+
+[tool.coverage.paths]
+source = [ "src", "*/site-packages" ]
+omit = [
+  "**/__init__.py",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+  "swmmanywhere",
+]
+omit = [
+  "**/__init__.py",
 ]
 
 [tool.mypy]
