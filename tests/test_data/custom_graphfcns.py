@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import networkx as nx
+
 from swmmanywhere.graph_utilities import BaseGraphFunction, register_graphfcn
 
 
