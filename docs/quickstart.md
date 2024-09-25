@@ -43,4 +43,4 @@ If you want to investigate your model in GIS, then the geospatial data that was 
 ## Not happy with your model?
 
 Then it sounds like you want to explore the wide range of customisability that SWMManywhere offers!
-See our notebooks to understand what is going on in greater detail and how to create better synthetic UDMs.
+See our [guides](config_guide.md) to understand what is going on in greater detail and how to create better synthetic UDMs.
