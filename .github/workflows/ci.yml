@@ -1,28 +1,9 @@
-name: Test
-
-on: [push,pull_request,workflow_call]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
-  qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pre-commit/action@v3.0.1
-
   test:
-    needs: qa
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: [ "3.10" ]
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -r dev-requirements.txt
-    - name: Run tests
-      run: pytest
+    uses: ./.github/workflows/ci_template.yml

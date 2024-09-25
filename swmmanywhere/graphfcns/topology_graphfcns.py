@@ -209,7 +209,7 @@ class calculate_weights(
             G (nx.Graph): A graph
         """
         # Calculate bounds to normalise between
-        bounds: Dict[Any, List[float]] = defaultdict(lambda: [np.Inf, -np.Inf])
+        bounds: Dict[Any, List[float]] = defaultdict(lambda: [np.inf, -np.inf])
 
         for w in topology_derivation.weights:
             bounds[w][0] = min(nx.get_edge_attributes(G, w).values())  # lower bound

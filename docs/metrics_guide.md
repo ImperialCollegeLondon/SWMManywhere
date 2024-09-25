@@ -39,15 +39,15 @@ registered metrics to be called from one place.
 ``` py
 >>> from swmmanywhere.metric_utilities import metrics
 >>> print(metrics.keys())
-dict_keys(['outlet_nse_flow', 'outlet_kge_flow', 'outlet_relerror_flow',
-'outlet_relerror_length', 'outlet_relerror_npipes', 'outlet_relerror_nmanholes',
-'outlet_relerror_diameter', 'outlet_nse_flooding', 'outlet_kge_flooding',
-'outlet_relerror_flooding', 'grid_nse_flooding', 'grid_kge_flooding',
+dict_keys(['outfall_nse_flow', 'outfall_kge_flow', 'outfall_relerror_flow',
+'outfall_relerror_length', 'outfall_relerror_npipes', 'outfall_relerror_nmanholes',
+'outfall_relerror_diameter', 'outfall_nse_flooding', 'outfall_kge_flooding',
+'outfall_relerror_flooding', 'grid_nse_flooding', 'grid_kge_flooding',
 'grid_relerror_flooding', 'subcatchment_nse_flooding',
 'subcatchment_kge_flooding', 'subcatchment_relerror_flooding', 'nc_deltacon0',
 'nc_laplacian_dist', 'nc_laplacian_norm_dist', 'nc_adjacency_dist',
 'nc_vertex_edge_distance', 'nc_resistance_distance', 'bias_flood_depth',
-'kstest_edge_betweenness', 'kstest_betweenness', 'outlet_kstest_diameters'])
+'kstest_edge_betweenness', 'kstest_betweenness', 'outfall_kstest_diameters'])
 ```
 
 We will later demonstrate how to [add a new metric](#add-a-new-metric) to the
@@ -66,9 +66,9 @@ any `metric` has access to a range of arguments for calculation:
 - the [`MetricEvaluation`](reference-parameters.md#swmmanywhere.parameters.MetricEvaluation)
 parameters category.
 
-For example, see the [following metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.outlet_kstest_diameters)
+For example, see the [following metric](reference-metric-utilities.md#swmmanywhere.metric_utilities.outfall_kstest_diameters)
 
-:::swmmanywhere.metric_utilities.outlet_kstest_diameters
+:::swmmanywhere.metric_utilities.outfall_kstest_diameters
     handler: python
     options:
       members: no
@@ -184,7 +184,7 @@ us create a metric with `metric_factory`:
 
 ``` py
 >>> from swmmanywhere.metric_utilities import metric_factory
->>> metric_factory('outlet_nse_flow')
+>>> metric_factory('outfall_nse_flow')
 <function metric_factory.<locals>.new_metric at 0x000001EECEA7C220>
 ```
 
@@ -243,7 +243,7 @@ in `metrics` we can also register that.
 ...     metrics
 ... )
 >>> import numpy as np
->>> metric_factory('outlet_rmse_flow') # Try creating the metric
+>>> metric_factory('outfall_rmse_flow') # Try creating the metric
 Traceback (most recent call last):
     ...
 KeyError: 'rmse'
@@ -253,9 +253,9 @@ KeyError: 'rmse'
 <function rmse at 0x000001DC38ABC540>
 >>> print(coef_registry.keys())
 dict_keys(['relerror', 'nse', 'kge', 'rmse'])
->>> metrics.register(metric_factory('outlet_rmse_flow')) # Create and register new metric
+>>> metrics.register(metric_factory('outfall_rmse_flow')) # Create and register new metric
 <function metric_factory.<locals>.new_metric at 0x00000227D219E020>
->>> 'outlet_rmse_flow' in metrics # Check that the metric is available for use
+>>> 'outfall_rmse_flow' in metrics # Check that the metric is available for use
 True
 ```
 
@@ -267,7 +267,7 @@ As with coefficients, these are stored in a registry.
 ``` py
 >>> from swmmanywhere.metric_utilities import scale_registry
 >>> print(scale_registry.keys())
-dict_keys(['subcatchment', 'grid', 'outlet'])
+dict_keys(['subcatchment', 'grid', 'outfall'])
 ```
 
 For example, `subcatchment` aligns `real` and `synthesised` subcatchments
@@ -305,7 +305,7 @@ is a description of the designed UDM.
 
 ``` py
 >>> from swmmanywhere.metric_utilities import metric_factory
->>> metric_factory('outlet_nse_npipes')
+>>> metric_factory('outfall_nse_npipes')
 Traceback (most recent call last):
     ... , in restriction_on_metric
     raise ValueError(f"Variable {variable} only valid with relerror metric")

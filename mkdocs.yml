@@ -23,6 +23,7 @@ plugins:
   - include-markdown
 
 repo_url: https://github.com/ImperialCollegeLondon/SWMManywhere
+site_url: https://imperialcollegelondon.github.io/SWMManywhere/
 
 markdown_extensions:
   - footnotes

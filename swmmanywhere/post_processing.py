@@ -433,7 +433,8 @@ def format_to_swmm_dict(
 
         # Extract SWMM order and default values
         columns = conversion_dict[key]["iwcolumns"]
-        shp = shp.fillna(0)
+        numeric_cols = shp.select_dtypes(include=[np.number]).columns
+        shp[numeric_cols] = shp[numeric_cols].fillna(0)
 
         # Find columns with a default specified
         cols_default = [c[1:] for c in columns if c.startswith("/")]
