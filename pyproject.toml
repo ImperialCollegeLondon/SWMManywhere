@@ -7,6 +7,8 @@ requires = [
 
 [project]
 name = "swmmanywhere"
+description = "SWMManywhere software"
+readme = "README.md"
 authors = [
     { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
