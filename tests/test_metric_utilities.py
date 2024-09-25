@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import shapely
-
 from swmmanywhere import metric_utilities as mu
 from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.parameters import MetricEvaluation

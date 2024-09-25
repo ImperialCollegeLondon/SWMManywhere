@@ -8,7 +8,6 @@ from __future__ import annotations
 from time import time
 
 import pandas as pd
-
 from swmmanywhere import metric_utilities as mu
 from swmmanywhere.prepare_data import download_street
 
