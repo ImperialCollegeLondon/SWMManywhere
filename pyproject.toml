@@ -89,7 +89,8 @@ Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 packages = [ "src" ]
 
 [tool.hatch.build.targets.wheel]
-packages = [ "src" ]
+only-include = ["src"]
+sources = ["src"]
 
 [tool.hatch.version]
 source = "vcs"
