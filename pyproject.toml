@@ -11,6 +11,8 @@ exclude = ["htmlcov"] # Exclude the coverage report file from setuptools package
 [project]
 name = "swmmanywhere"
 version = "0.0.1"
+description = "SWMManywhere software"
+readme = "README.md"
 authors = [
     { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
     { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
