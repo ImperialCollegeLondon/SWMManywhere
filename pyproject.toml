@@ -97,10 +97,6 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "_version.py"
 
-[tool.ruff]
-# Mark the directory as a namespace package
-namespace-packages = ["src/swmmanywhere", "src/netcomp"]
-
 [tool.ruff.lint]
 select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
