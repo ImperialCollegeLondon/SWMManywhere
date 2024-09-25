@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import networkx as nx
 import pytest
+
 from swmmanywhere.shortest_path_utils import dijkstra_pq, tarjans_pq
 
 
