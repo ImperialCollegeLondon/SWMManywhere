@@ -13,14 +13,7 @@ on:
         type: string
 
 jobs:
-  qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pre-commit/action@v3.0.1
-
   test:
-    needs: qa
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

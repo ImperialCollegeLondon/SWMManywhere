@@ -16,6 +16,7 @@ from swmmanywhere.filepaths import FilePaths
 
 fid = (
     Path(__file__).parent.parent
+    / "src"
     / "swmmanywhere"
     / "defs"
     / "basic_drainage_all_bits.inp"
@@ -185,6 +186,7 @@ def test_synthetic_write():
         comparison_file = addresses.model_paths.model / "model_base.inp"
         template_fid = (
             Path(__file__).parent.parent
+            / "src"
             / "swmmanywhere"
             / "defs"
             / "basic_drainage_all_bits.inp"
@@ -234,7 +236,9 @@ def test_format_to_swmm_dict():
     data_dict = generate_data_dict()
     data_dict = stt.format_to_swmm_dict(**data_dict)
 
-    rain_fid = Path(__file__).parent.parent / "swmmanywhere" / "defs" / "storm.dat"
+    rain_fid = (
+        Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs" / "storm.dat"
+    )
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
         shutil.copy(rain_fid, temp_dir / "storm.dat")
