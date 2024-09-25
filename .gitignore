@@ -133,3 +133,7 @@ cache/
 
 # Documentation generated models
 swmmanywhere_models/
+whiteboxtools_binaries.zip
+
+# Hatch
+_version.py

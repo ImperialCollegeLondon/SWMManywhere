@@ -9,14 +9,9 @@ import jsonschema
 import pytest
 import yaml
 
-from swmmanywhere import __version__, swmmanywhere
+from swmmanywhere import swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
-
-
-def test_version():
-    """Check that the version is acceptable."""
-    assert __version__ == "0.1.0"
 
 
 def test_run():
