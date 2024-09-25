@@ -5,20 +5,7 @@ on:
   pull_request:
 
 jobs:
-  build-wheel:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - uses: hynek/build-and-inspect-python-package@v2
-      with:
-        attest-build-provenance-github: true
-
   test:
-    needs: build-wheel
     uses: ./.github/workflows/ci_template.yml
   
   
