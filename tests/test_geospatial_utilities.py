@@ -12,7 +12,6 @@ import pytest
 import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
-
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
 from swmmanywhere.logging import set_verbose
