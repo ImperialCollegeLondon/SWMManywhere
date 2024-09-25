@@ -4,7 +4,7 @@
 
 ```yml
 {%
-    include-markdown "../swmmanywhere/defs/demo_config.yml"
+    include-markdown "../src/swmmanywhere/defs/demo_config.yml"
     comments=false
 %}
 ```
@@ -13,7 +13,7 @@
 
 ```yml
 {%
-    include-markdown "../swmmanywhere/defs/schema.yml"
+    include-markdown "../src/swmmanywhere/defs/schema.yml"
     comments=false
 %}
 ```

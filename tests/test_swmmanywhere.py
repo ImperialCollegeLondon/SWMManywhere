@@ -1,4 +1,5 @@
 """Tests for the main module."""
+
 from __future__ import annotations
 
 import os
@@ -16,7 +17,7 @@ from swmmanywhere.metric_utilities import metrics
 
 def test_run():
     """Test the run function."""
-    demo_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
+    demo_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
     model = demo_dir / "basic_drainage_all_bits.inp"
     storevars = ["flooding", "flow", "runoff", "depth"]
     results = swmmanywhere.run(model, reporting_iters=50, storevars=storevars)
@@ -39,7 +40,7 @@ def test_swmmanywhere():
     with tempfile.TemporaryDirectory() as temp_dir:
         # Load the config
         test_data_dir = Path(__file__).parent / "test_data"
-        defs_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
+        defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
         with (defs_dir / "demo_config.yml").open("r") as f:
             config = yaml.safe_load(f)
 
@@ -97,7 +98,7 @@ def test_swmmanywhere():
 def test_load_config_file_validation():
     """Test the file validation of the config."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        defs_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
+        defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
         base_dir = Path(temp_dir)
 
         # Test file not found
@@ -124,7 +125,7 @@ def test_load_config_file_validation():
 def test_load_config_schema_validation():
     """Test the schema validation of the config."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        defs_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
+        defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
         base_dir = Path(temp_dir)
 
         # Load the config
@@ -147,7 +148,7 @@ def test_save_config():
     """Test the save_config function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
-        defs_dir = Path(__file__).parent.parent / "swmmanywhere" / "defs"
+        defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
 
         with (defs_dir / "demo_config.yml").open("r") as f:
             config = yaml.safe_load(f)
