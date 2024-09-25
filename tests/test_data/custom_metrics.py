@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import networkx as nx
+
 from swmmanywhere.metric_utilities import metrics
 
 
