@@ -5,6 +5,9 @@ on:
   pull_request:
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci_template.yml
+  
   build-wheel:
     needs: test
     name: Build source distribution
@@ -17,6 +20,3 @@ jobs:
     - uses: hynek/build-and-inspect-python-package@v2
       with:
         attest-build-provenance-github: true
-        
-  test:
-    uses: ./.github/workflows/ci_template.yml
