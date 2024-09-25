@@ -7,5 +7,3 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/ci_template.yml
-  
-  
