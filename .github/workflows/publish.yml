@@ -28,11 +28,6 @@ jobs:
         attest-build-provenance-github: true
         skip-wheel: true
 
-    - name: Check wheel contents
-      run: |
-        pip install check-wheel-contents
-        check-wheel-contents dist/swmmanywhere-*.whl --toplevel="swmmanywhere","netcomp"
-
   publish-TestPyPI:
     needs: build-wheel
     name: Publish SWMManywhere to TestPyPI
