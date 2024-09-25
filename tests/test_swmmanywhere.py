@@ -49,7 +49,6 @@ def test_swmmanywhere():
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
-            "precipitation": str(defs_dir / "storm.dat"),
         }
         config["parameter_overrides"] = {
             "subcatchment_derivation": {"subbasin_streamorder": 5}
