@@ -85,10 +85,12 @@ Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
 [tool.hatch.build.targets.sdist]
-only-include = ["swmmanywhere", "netcomp"]
+only-include = ["src"]
+sources = ["src"]
 
 [tool.hatch.build.targets.wheel]
-only-include = ["swmmanywhere", "netcomp"]
+only-include = ["src"]
+sources = ["src"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -101,7 +103,7 @@ select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D100", "D104"]
-"netcomp/*" = ["D", "F"] # Ignore all checks for netcomp
+"src/netcomp/*" = ["D", "F"] # Ignore all checks for netcomp
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -110,11 +112,11 @@ convention = "google"
 required-imports = ["from __future__ import annotations"]
 
 [tool.codespell]
-skip = "swmmanywhere/defs/iso_converter.yml,*.inp"
+skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"
 
 [tool.pytest.ini_options]
-addopts = "-v --import-mode=importlib --cov=swmmanywhere --cov-report=html --doctest-modules --ignore=swmmanywhere/logging.py"
+addopts = "-v --cov=src/swmmanywhere --cov-report=html --doctest-modules --ignore=src/swmmanywhere/logging.py"
 markers = [
   "downloads: mark a test as requiring downloads",
 ]
