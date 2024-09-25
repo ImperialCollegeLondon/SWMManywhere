@@ -3,6 +3,14 @@
 SWMManywhere is a Python tool to synthesise Urban Drainage Models (UDM) anywhere in the world.
 It handles everything from data acquisition to running the UDM in the [SWMM](https://www.epa.gov/sites/default/files/2019-02/documents/epaswmm5_1_manual_master_8-2-15.pdf) software.
 
+## Install SWMManywhere
+
+Install SWMManywhere:
+
+```bash
+pip install swmmanywhere
+```
+
 ## Run SWMManywhere
 
 The intended use of SWMManywhere is via a Command Line Interface (CLI) that receives
@@ -43,4 +51,4 @@ If you want to investigate your model in GIS, then the geospatial data that was 
 ## Not happy with your model?
 
 Then it sounds like you want to explore the wide range of customisability that SWMManywhere offers!
-See our notebooks to understand what is going on in greater detail and how to create better synthetic UDMs.
+See our [guides](config_guide.md) to understand what is going on in greater detail and how to create better synthetic UDMs.
