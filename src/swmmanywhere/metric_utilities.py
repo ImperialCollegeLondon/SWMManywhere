@@ -12,13 +12,13 @@ from typing import Callable, Optional, get_type_hints
 import cytoolz.curried as tlz
 import geopandas as gpd
 import joblib
+import netcomp
 import networkx as nx
 import numpy as np
 import pandas as pd
 import shapely
 from scipy import stats
 
-import netcomp
 from swmmanywhere.logging import logger
 from swmmanywhere.parameters import MetricEvaluation
 
