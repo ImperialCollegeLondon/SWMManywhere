@@ -3,10 +3,12 @@ message: "If you use SWMManywhere, please cite it as below."
 authors:
   - family-names: "Dobson"
     given-names: "Barnaby"
+    orcid: "https://orcid.org/0000-0002-0149-4124"
   - family-names: "Alonso Alvarez"
     given-names: "Diego"
   - family-names: "Chegini"
     given-names: "Taher"
+    orcid: "https://orcid.org/0000-0002-5430-6000"
 title: "SWMManywhere"
 version: 0.1.2
 date-released: 2024-09-25
