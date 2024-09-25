@@ -85,7 +85,8 @@ Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
 [tool.hatch.build.targets.sdist]
-packages = [ "src" ]
+only-include = ["src"]
+sources = ["src"]
 
 [tool.hatch.build.targets.wheel]
 only-include = ["src"]
