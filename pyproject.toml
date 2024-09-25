@@ -113,7 +113,7 @@ convention = "google"
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
-known-first-party = ["swmmanywhere", "netcomp"]
+known-first-party = ["src/swmmanywhere", "src/netcomp"]
 
 [tool.codespell]
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
