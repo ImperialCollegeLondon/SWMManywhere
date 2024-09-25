@@ -87,6 +87,9 @@ Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 [tool.hatch.build.targets.sdist]
 only-include = ["swmmanywhere", "netcomp"]
 
+[tool.hatch.build.targets.wheel]
+only-include = ["swmmanywhere", "netcomp"]
+
 [tool.hatch.version]
 source = "vcs"
 
