@@ -9,7 +9,6 @@ from pathlib import Path
 import jsonschema
 import pytest
 import yaml
-
 from swmmanywhere import swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
