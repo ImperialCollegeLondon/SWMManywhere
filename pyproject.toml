@@ -11,7 +11,8 @@ description = "SWMManywhere software"
 readme = "README.md"
 authors = [
     { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
-    { name = "Imperial College London RSE Team", email = "ict-rse-team@imperial.ac.uk" }
+    { name = "Diego Alonso-Álvarez", email = "d.alonso-alvarez@imperial.ac.uk" },
+    { name = "Taher Chegini", email = "tchegini@purdue.edu" },
 ]
 requires-python = ">=3.10"
 classifiers = [

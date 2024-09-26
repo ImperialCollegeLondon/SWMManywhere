@@ -2,6 +2,7 @@
 
 <!-- markdown-link-check-disable -->
 [![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/741903266.svg)](https://zenodo.org/doi/10.5281/zenodo.13837741)
 <!-- markdown-link-check-enable -->
 
 SWMManywhere is a tool to synthesise urban drainage network models (UDMs) using

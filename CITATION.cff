@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use SWMManywhere, please cite it as below."
+authors:
+  - family-names: "Dobson"
+    given-names: "Barnaby"
+    orcid: "https://orcid.org/0000-0002-0149-4124"
+  - family-names: "Alonso-Álvarez"
+    given-names: "Diego"
+    orcid: "https://orcid.org/0000-0002-0060-9495"
+  - family-names: "Chegini"
+    given-names: "Taher"
+    orcid: "https://orcid.org/0000-0002-5430-6000"
+title: "SWMManywhere"
+doi: 10.5281/zenodo.13837741
+version: 0.1.4
+date-released: 2024-09-25
