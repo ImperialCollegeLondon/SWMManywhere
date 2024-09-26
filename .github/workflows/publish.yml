@@ -26,6 +26,7 @@ jobs:
     - uses: hynek/build-and-inspect-python-package@v2
       with:
         attest-build-provenance-github: true
+        skip-wheel: true
 
   publish-TestPyPI:
     needs: build-wheel
