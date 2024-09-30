@@ -1,4 +1,5 @@
 """Misc line to trigger workflow."""
+
 from __future__ import annotations
 
 import tempfile

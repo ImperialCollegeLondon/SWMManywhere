@@ -6,6 +6,7 @@ following test command:
 
 pytest -m downloads
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -215,15 +216,13 @@ def test_download_elevation():
 
         # Mock the external dependencies
         module_base = "swmmanywhere.prepare_data."
-        with mock.patch(
-            f"{module_base}pystac_client.Client.open"
-        ) as mock_open, mock.patch(
-            f"{module_base}planetary_computer.sign_inplace"
-        ), mock.patch(f"{module_base}planetary_computer.sign") as mock_sign, mock.patch(
-            f"{module_base}rioxarray.open_rasterio"
-        ) as mock_open_rasterio, mock.patch(
-            f"{module_base}rxr_merge.merge_arrays"
-        ) as mock_merge_arrays:
+        with (
+            mock.patch(f"{module_base}pystac_client.Client.open") as mock_open,
+            mock.patch(f"{module_base}planetary_computer.sign_inplace"),
+            mock.patch(f"{module_base}planetary_computer.sign") as mock_sign,
+            mock.patch(f"{module_base}rioxarray.open_rasterio") as mock_open_rasterio,
+            mock.patch(f"{module_base}rxr_merge.merge_arrays") as mock_merge_arrays,
+        ):
             # Mock the behavior of the catalog search and items
             mock_catalog = mock.MagicMock()
             mock_open.return_value = mock_catalog

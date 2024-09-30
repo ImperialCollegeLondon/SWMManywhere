@@ -1,4 +1,5 @@
 """Module for graph functions."""
+
 from __future__ import annotations
 
 # Importing the graphfcns modules to register them

@@ -4,6 +4,7 @@ Linear Algebra
 
 Linear algebraic functions, calculations of important matrices.
 """
+
 from __future__ import annotations
 
 from .eigenstuff import *

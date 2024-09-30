@@ -4,6 +4,7 @@ Resistance
 
 Resistance matrix. Renormalized version, as well as conductance and commute matrices.
 """
+
 from __future__ import annotations
 
 from contextlib import suppress

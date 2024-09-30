@@ -1,4 +1,5 @@
 """Unit tests for MyProject."""
+
 from __future__ import annotations
 
 from logging import getLogger

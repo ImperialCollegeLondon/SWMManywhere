@@ -1,4 +1,5 @@
 """Utility functions for shortest path algorithms."""
+
 from __future__ import annotations
 
 import heapq
