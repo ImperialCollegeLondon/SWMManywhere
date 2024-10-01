@@ -1,6 +1,7 @@
 # SWMManywhere: Synthesise Urban Drainage Network Models Anywhere in the World
 
 <!-- markdown-link-check-disable -->
+[![PyPI version shields.io](https://img.shields.io/pypi/v/swmmanywhere.svg)](https://pypi.python.org/pypi/swmmanywhere/)
 [![Test and build](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml/badge.svg)](https://github.com/ImperialCollegeLondon/SWMManywhere/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/741903266.svg)](https://zenodo.org/doi/10.5281/zenodo.13837741)
 <!-- markdown-link-check-enable -->
