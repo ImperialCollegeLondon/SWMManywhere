@@ -25,7 +25,21 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: pip install .[dev]
+
     - name: Run tests
-      run: pytest
+      run: pytest --junitxml=junit/pytest.xml \
+        --cov=swmmanywhere \
+        --cov-branch \
+        --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      if: success() && (github.event_name == 'push' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
+        files: ./coverage.xml
+        verbose: true
