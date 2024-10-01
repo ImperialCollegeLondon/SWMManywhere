@@ -3,6 +3,7 @@
 A module for metrics, the metrics registry object and utilities for calculating
 metrics (such as NSE or timeseries data alignment) used in SWMManywhere.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict

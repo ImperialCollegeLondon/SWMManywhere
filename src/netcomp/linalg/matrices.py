@@ -4,6 +4,7 @@ Matrices
 
 Matrices associated with graphs. Also contains linear algebraic helper functions.
 """
+
 from __future__ import annotations
 
 import numpy as np

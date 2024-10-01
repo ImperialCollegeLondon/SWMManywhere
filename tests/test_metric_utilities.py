@@ -477,9 +477,9 @@ def test_outfall_nse_flooding(subs):
     assert val == 0.0
 
     # Test time interpolation
-    results_.loc[
-        results_.date == pd.to_datetime("2021-01-01 00:00:05"), "date"
-    ] = pd.to_datetime("2021-01-01 00:00:10")
+    results_.loc[results_.date == pd.to_datetime("2021-01-01 00:00:05"), "date"] = (
+        pd.to_datetime("2021-01-01 00:00:10")
+    )
 
     val = mu.metrics.outfall_nse_flooding(
         synthetic_G=G_,

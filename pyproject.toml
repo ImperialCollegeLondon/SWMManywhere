@@ -10,9 +10,9 @@ name = "swmmanywhere"
 description = "SWMManywhere software"
 readme = "README.md"
 authors = [
-    { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
-    { name = "Diego Alonso-Álvarez", email = "d.alonso-alvarez@imperial.ac.uk" },
-    { name = "Taher Chegini", email = "tchegini@purdue.edu" },
+  { name = "Barnaby Dobson", email = "b.dobson@imperial.ac.uk" },
+  { name = "Diego Alonso-Álvarez", email = "d.alonso-alvarez@imperial.ac.uk" },
+  { name = "Taher Chegini", email = "tchegini@purdue.edu" },
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -45,23 +45,22 @@ dependencies = [
   "numpy>=2",
   "osmnx>=1.9.3",
   "pandas",
-  "planetary_computer",
+  "planetary-computer",
   "pyarrow",
   "pydantic",
   "pyflwdir",
-  "pystac_client",
+  "pystac-client",
   "pyswmm",
   "pywbt>=0.2.2",
-  "PyYAML",
+  "pyyaml",
   "rasterio",
   "rioxarray",
-  "SciPy",
+  "scipy",
   "shapely",
   "tqdm",
   "xarray",
 ]
-[project.optional-dependencies]
-dev = [
+optional-dependencies.dev = [
   "mypy",
   "pip-tools",
   "pre-commit",
@@ -71,7 +70,7 @@ dev = [
   "pytest-mypy",
   "ruff",
 ]
-doc = [
+optional-dependencies.doc = [
   "mkdocs",
   "mkdocs-coverage",
   "mkdocs-include-markdown-plugin",
@@ -80,18 +79,17 @@ doc = [
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
 ]
-[project.urls]
-Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
-Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
-Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
+urls.Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
+urls.Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
+urls.Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["src"]
-sources = ["src"]
+only-include = [ "src" ]
+sources = [ "src" ]
 
 [tool.hatch.metadata]
-license = "BSD-3-clause"  # Or your primary license name
-license-files = ["LICENSE", "src/netcomp/LICENSE.txt"]
+license = "BSD-3-clause"                                 # Or your primary license name
+license-files = [ "LICENSE", "src/netcomp/LICENSE.txt" ]
 
 [tool.hatch.version]
 source = "vcs"
@@ -99,19 +97,13 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "_version.py"
 
-[tool.ruff.lint]
-select = ["D", "E", "F", "I"] # pydocstyle, pycodestyle, Pyflakes, isort
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D100", "D104"]
-"src/netcomp/*" = ["D", "F"] # Ignore all checks for netcomp
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.isort]
-required-imports = ["from __future__ import annotations"]
-known-first-party = ["swmmanywhere", "netcomp"]
+[tool.ruff]
+lint.select = [ "D", "E", "F", "I" ]                                   # pydocstyle, pycodestyle, Pyflakes, isort
+lint.per-file-ignores."src/netcomp/*" = [ "D", "F" ]                   # Ignore all checks for netcomp
+lint.per-file-ignores."tests/*" = [ "D100", "D104" ]
+lint.isort.known-first-party = [ "swmmanywhere", "netcomp" ]
+lint.isort.required-imports = [ "from __future__ import annotations" ]
+lint.pydocstyle.convention = "google"
 
 [tool.codespell]
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
@@ -153,7 +145,7 @@ disallow_any_generics = false
 warn_unreachable = true
 warn_unused_ignores = false
 disallow_untyped_defs = false
-exclude = [".venv/"]
+exclude = [ ".venv/" ]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -161,6 +153,6 @@ disallow_untyped_defs = false
 
 [tool.refurb]
 ignore = [
-        184, # Because some frankly bizarre suggestions
-        109  # Because pyyaml doesn't support tuples
-        ]
+  184, # Because some frankly bizarre suggestions
+  109, # Because pyyaml doesn't support tuples
+]

@@ -4,6 +4,7 @@ This is an alternative function for derive_rc in geospatial_utilities/derive_rc
 it is used to double check that they are performing correctly. It may also be
 more computationally efficient.
 """
+
 from __future__ import annotations
 
 import geopandas as gpd

@@ -4,6 +4,7 @@ Exceptions
 
 Custom exceptions for NetComp.
 """
+
 from __future__ import annotations
 
 

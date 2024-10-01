@@ -1,4 +1,5 @@
 """File paths module for SWMMAnywhere."""
+
 from __future__ import annotations
 
 import json

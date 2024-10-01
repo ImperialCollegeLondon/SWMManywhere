@@ -4,6 +4,7 @@ Features
 
 Calculation of features for NetSimile algorithm.
 """
+
 from __future__ import annotations
 
 import networkx as nx

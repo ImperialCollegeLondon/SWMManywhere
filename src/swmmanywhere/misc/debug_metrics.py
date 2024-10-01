@@ -1,11 +1,12 @@
 """Debug results by recalculating metrics.
 
-This script provides a way to load a model file from the default setup in 
-experimenter.py and recalculate the metrics. This is useful for recreating 
-how a metric is calculated to verify that it is being done correctly. In this 
-example we reproduce code from `metric_utilities.py` to check how timeseries 
-data are aligned and compared. 
+This script provides a way to load a model file from the default setup in
+experimenter.py and recalculate the metrics. This is useful for recreating
+how a metric is calculated to verify that it is being done correctly. In this
+example we reproduce code from `metric_utilities.py` to check how timeseries
+data are aligned and compared.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
