@@ -72,7 +72,6 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.doc = [
   "mkdocs",
-  "mkdocs-coverage",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
   "mkdocs-material",

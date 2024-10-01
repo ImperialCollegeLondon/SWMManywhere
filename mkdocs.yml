@@ -17,9 +17,6 @@ plugins:
   - mkdocs-jupyter: 
       execute: false
   - search
-  - coverage:
-      page_name: coverage  # default
-      html_report_dir: htmlcov  # default
   - include-markdown
 
 repo_url: https://github.com/ImperialCollegeLondon/SWMManywhere
