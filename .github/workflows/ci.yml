@@ -7,3 +7,5 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/ci_template.yml
+    secrets:
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}
