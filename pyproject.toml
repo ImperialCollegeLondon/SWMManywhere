@@ -72,7 +72,6 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.doc = [
   "mkdocs",
-  "mkdocs-coverage",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
   "mkdocs-material",
@@ -110,7 +109,7 @@ skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
 ignore-words-list = "gage,gages"
 
 [tool.pytest.ini_options]
-addopts = "-v --cov=src/swmmanywhere --cov-report=html --doctest-modules --ignore=src/swmmanywhere/logging.py"
+addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
 markers = [
   "downloads: mark a test as requiring downloads",
 ]

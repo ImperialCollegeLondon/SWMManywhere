@@ -17,9 +17,6 @@ plugins:
   - mkdocs-jupyter: 
       execute: false
   - search
-  - coverage:
-      page_name: coverage  # default
-      html_report_dir: htmlcov  # default
   - include-markdown
 
 repo_url: https://github.com/ImperialCollegeLondon/SWMManywhere
@@ -61,4 +58,4 @@ nav:
     - Post processing: reference-post-processing.md
     - Preprocessing: reference-preprocessing.md
     - Config definitions: reference-defs.md
-  - Coverage report: coverage.md
+  - Coverage report: https://app.codecov.io/gh/ImperialCollegeLondon/SWMManywhere
