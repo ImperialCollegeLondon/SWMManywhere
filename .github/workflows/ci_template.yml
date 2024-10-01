@@ -2,6 +2,9 @@ name: Test
 
 on: 
   workflow_call:
+    secrets:
+      codecov_token:
+        required: true
     inputs:
       os:
         description: 'Operating system'
@@ -37,5 +40,5 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         fail_ci_if_error: true
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.codecov_token }}
         verbose: true
