@@ -14,7 +14,7 @@ simulations for the synthesised UDMs.
 
 ## Features
 
-- **Automatic data retrieval and preprocessing**: all of our data requirements
+- **Automatic data retrieval and preprocessing**: All of our data requirements
 are met with global datasets, so all you need is a bounding box!
 - **Customisable network synthesis**: change a range of parameters to create
 different networks, power users can easily extend existing functionality.
