@@ -31,7 +31,7 @@ Install SWMManywhere:
 pip install swmmanywhere
 ```
 
-or with `conda`:
+or with `conda` (currently not available on `macos`):
 
 ```bash
 conda install swmmanywhere
