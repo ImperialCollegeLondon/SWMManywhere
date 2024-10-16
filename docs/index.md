@@ -24,5 +24,5 @@ derive a synthetic urban drainage network anywhere in the world.
     - [Post processing](reference-post-processing.md)
     - [Preprocessing](reference-preprocessing.md)
     - [Config](reference-defs.md)
-- [Coverage report](coverage.md)
+- [Coverage report](https://app.codecov.io/gh/ImperialCollegeLondon/SWMManywhere)
 <!---  --->
