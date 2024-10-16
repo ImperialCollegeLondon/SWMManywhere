@@ -31,10 +31,10 @@ Install SWMManywhere:
 pip install swmmanywhere
 ```
 
-or with `conda` (currently not available on `macos`):
+Alternatively, it can be installed using `mamba` (`conda` or `micromamba`):
 
 ```bash
-conda install swmmanywhere
+mamba install -c conda-forge swmmanywhere
 ```
 
 ## Documentation and Quickstart
