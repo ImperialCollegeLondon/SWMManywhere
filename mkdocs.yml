@@ -18,7 +18,10 @@ plugins:
       execute: false
   - search
   - include-markdown
-
+  - bibtex:
+      bib_file: "./docs/paper/paper.bib"
+      csl_file: "./docs/paper/apa.csl"
+      cite_inline: false
 repo_url: https://github.com/ImperialCollegeLondon/SWMManywhere
 site_url: https://imperialcollegelondon.github.io/SWMManywhere/
 
@@ -41,6 +44,7 @@ extra_javascript:
 
 nav:
   - Home: index.md
+  - About: ./paper/paper.md
   - Quickstart: quickstart.md
   - Guides:
     - Configuration guide: config_guide.md
