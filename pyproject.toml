@@ -73,11 +73,15 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.doc = [
   "mkdocs",
+  "mkdocs-autorefs",
+  "mkdocs-bibtex",
+  "mkdocs-coverage",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
+  "pypandoc",
 ]
 urls.Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
 urls.Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
