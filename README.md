@@ -31,6 +31,12 @@ Install SWMManywhere:
 pip install swmmanywhere
 ```
 
+Alternatively, it can be installed using `mamba` (`conda` or `micromamba`):
+
+```bash
+mamba install -c conda-forge swmmanywhere
+```
+
 ## Documentation and Quickstart
 
 Once installed, you can simply run SWMManywhere from the command line giving a
