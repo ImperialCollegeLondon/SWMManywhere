@@ -251,6 +251,7 @@ def clickable_map(model_dir):
         ).add_to(m)
     return m
 
+
 # Display the map
 clickable_map(model_dir)
 
