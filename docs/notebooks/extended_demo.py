@@ -66,21 +66,28 @@ def basic_map(model_dir):
     # Load and inspect results
     nodes = gpd.read_file(model_dir / "nodes.geoparquet")
     edges = gpd.read_file(model_dir / "edges.geoparquet")
-    
 
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326)
     edges = edges.to_crs(4326)
-    
-    m = folium.Map(location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16)
-    folium.GeoJson(edges, color='black',weight=1).add_to(m)
-    folium.GeoJson(nodes, marker=folium.CircleMarker(radius = 3, # Radius in metres
-                                               weight = 0, #outline weight
-                                               fill_color = 'black', 
-                                               fill_opacity = 1)).add_to(m)
-    
+
+    m = folium.Map(
+        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
+    )
+    folium.GeoJson(edges, color="black", weight=1).add_to(m)
+    folium.GeoJson(
+        nodes,
+        marker=folium.CircleMarker(
+            radius=3,  # Radius in metres
+            weight=0,  # outline weight
+            fill_color="black",
+            fill_opacity=1,
+        ),
+    ).add_to(m)
+
     # Display the map
     return m
+
 
 basic_map(model_file.parent)
 
@@ -103,7 +110,10 @@ basic_map(model_file.parent)
 # [`parameter_overrides` functionality](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#changing-parameters).
 #
 # %%
-config['parameter_overrides'] = {'topology_derivation' : {'allowable_networks' : ['drive'], 'omit_edges' : []}, 'subcatchment_derivation' : {'node_merge_distance':15 }}
+config["parameter_overrides"] = {
+    "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": []},
+    "subcatchment_derivation": {"node_merge_distance": 15},
+}
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
 
@@ -125,12 +135,10 @@ basic_map(outputs[0].parent)
 # %%
 # Make verbose
 from swmmanywhere import logging
-logging.set_verbose(True) # Set verbosity
-# Run again (wrapped in some html to limit the display)
-output_html = """
-<div style="max-height: 200px; overflow-y: auto;">
-    <pre>
-"""
+
+logging.set_verbose(True)  # Set verbosity
+
+# Run again
 outputs = swmmanywhere(config)
 
 output_html += """
@@ -149,7 +157,7 @@ m = basic_map(model_dir)
 
 # %%
 subbasins = gpd.read_file(model_dir / "subbasins.geoparquet")
-folium.GeoJson(subbasins,fill_opacity=0, color='blue',weight=2).add_to(m)
+folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
 m
 
 # %% [markdown]
@@ -178,6 +186,7 @@ flows.loc[flows.id == flows.iloc[0].id].set_index('date').value.plot(ylabel='flo
 # %% [markdown]
 # Since folium is super clever, we can make these clickable on our map - and now you can inspect your results in a much more elegant way than the SWMM GUI.
 
+
 # %%
 # Create a folium map and add the nodes and edges
 def clickable_map(model_dir):
@@ -186,16 +195,17 @@ def clickable_map(model_dir):
     edges = gpd.read_file(model_dir / "edges.geoparquet")
     df = pd.read_parquet(model_dir / "results.parquet")
     df.id = df.id.astype(str)
-    floods = df.loc[df.variable == 'flooding'].groupby('id')
-    flows = df.loc[df.variable == 'flow'].groupby('id')
-
+    floods = df.loc[df.variable == "flooding"].groupby("id")
+    flows = df.loc[df.variable == "flow"].groupby("id")
 
     # Convert to EPSG 4326 for plotting
-    nodes = nodes.to_crs(4326).set_index('id')
-    edges = edges.to_crs(4326).set_index('id')
+    nodes = nodes.to_crs(4326).set_index("id")
+    edges = edges.to_crs(4326).set_index("id")
 
     # Create map
-    m = folium.Map(location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16)
+    m = folium.Map(
+        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
+    )
 
     # Add nodes
     for node, row in nodes.iterrows():
@@ -214,7 +224,7 @@ def clickable_map(model_dir):
             color="black",
             radius=3,
             weight=0,
-            fill_color='black',
+            fill_color="black",
             fill_opacity=1,
             popup=folium.Popup(img_html),
         ).add_to(m)
@@ -232,12 +242,13 @@ def clickable_map(model_dir):
         img_base64 = base64.b64encode(img.read()).decode()
         img_html = f'<img src="data:image/png;base64,{img_base64}">'
         folium.PolyLine(
-            [[c[1],c[0]] for c in row.geometry.coords],
+            [[c[1], c[0]] for c in row.geometry.coords],
             color="black",
             weight=2,
             popup=folium.Popup(img_html),
         ).add_to(m)
     return m
+
 
 clickable_map(model_dir)
 
