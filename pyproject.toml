@@ -62,6 +62,8 @@ dependencies = [
   "xarray",
 ]
 optional-dependencies.dev = [
+  "folium",
+  "matplotlib",
   "mypy",
   "pip-tools",
   "pre-commit",

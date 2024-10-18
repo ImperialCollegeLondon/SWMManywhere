@@ -1,6 +1,3 @@
-# %%
-"""A demo."""
-
 # %% [markdown]
 # # Extended Demo
 # Note - this script can also be opened in interactive Python if you wanted to
@@ -46,11 +43,6 @@ config = {
     "base_dir": base_dir,
     "project": "my_first_swmm",
     "bbox": [1.52740, 42.50524, 1.54273, 42.51259],
-    "address_overrides": {
-        "elevation": Path(
-            r"C:\Users\bdobson\Downloads\test\my_first_swmm\bbox_1\download\elevation.tif"
-        )
-    },
 }
 
 # Run SWMManywhere
@@ -98,35 +90,60 @@ basic_map(model_file.parent)
 # ## Customising outputs
 #
 # Some things stick out on first glance:
-# - Probably we do not need pipes in the hills to the South, these seem to be along pedestrian routes, which can be adjusted with the `allowable_networks` parameter.
-# - We will also remove any types under the `omit_edges` entry, here you can specify to not allow pipes to cross bridges, tunnels, motorways, etc., however, this is such a small area we probably don't want to restrict things so much.
-# - The density of points seems a bit extreme, ultimately we'd like to walk around and figure out where the manholes are, but for now we can reduce density by increasing `node_merge_distance`.
-# Let's just demonstrate that using the [`parameter_overrides` functionality](config_guide.md/#changing-parameters).
-
+# - Probably we do not need pipes in the hills to the South, these seem to be along
+# pedestrian routes, which can be adjusted with the `allowable_networks` parameter.
+# - We will also remove any types under the `omit_edges` entry, here you can specify
+# to not allow pipes to cross bridges, tunnels, motorways, etc., however, this is
+# such a small area we probably don't want to restrict things so much.
+# - The density of points seems a bit extreme, ultimately we'd like to survey
+# manholes locations, but for now we can reduce density by increasing 
+# `node_merge_distance`.
+#
+# Let's just demonstrate that using the 
+# [`parameter_overrides` functionality](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#changing-parameters).
+#
 # %%
 config['parameter_overrides'] = {'topology_derivation' : {'allowable_networks' : ['drive'], 'omit_edges' : []}, 'subcatchment_derivation' : {'node_merge_distance':15 }}
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
 
 # %% [markdown]
-# OK that clearly helped, although we have appear to have stranded pipes along *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it is connected via a pedestrian route. We won't remedy this in the tutorial, but you can manually provide your [`starting_graph`](config_guide.md/#change-starting_graph) via the configuration file to address such mitakes. 
+# OK that clearly helped, although we have appear to have stranded pipes along (e.g.,)
+# *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it
+# is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
+# manually provide your 
+# [`starting_graph`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#change-starting_graph) 
+# via the configuration file to address such mitakes. 
 #
-# More importantly we can see some distinctive unconnected network in the South West. What is going on there? To explain this we will have to turn on verbosity to print the intermediate files used in model derivation.
+# More importantly we can see some distinctive unconnected network in the South West.
+# What is going on there? To explain this we will have to turn on verbosity to print the
+# intermediate files used in model derivation.
 #
-# To do this with a command line call we simply add the flag `--verbose=True`.
+# To do this with a command line call we simply add the flag `--verbose=True`. 
+# Though in code we will have to import the `logging` module.
 
 # %%
 # Make verbose
 from swmmanywhere import logging
 logging.set_verbose(True) # Set verbosity
-
-# Run again
+# Run again (wrapped in some html to limit the display)
+output_html = """
+<div style="max-height: 200px; overflow-y: auto;">
+    <pre>
+"""
 outputs = swmmanywhere(config)
+
+output_html += """
+    </pre>
+</div>
+"""
 model_dir = outputs[0].parent
 m = basic_map(model_dir)
 
 # %% [markdown]
-# OK that's a lot of information! We can see `swmmanywhere` iterating through the various graph functions and a variety of other messages. However, the reason we are currently interested in this is because the files associated with each step are saved when `verbose=True`. 
+# That's a lot of information! However, the reason we are currently interested 
+# in this is because the files associated with
+# each workflow step are saved when `verbose=True`. 
 #
 # We will load a file called `subbasins` and add it to the map.
 
@@ -136,11 +153,15 @@ folium.GeoJson(subbasins,fill_opacity=0, color='blue',weight=2).add_to(m)
 m
 
 # %% [markdown]
-# Although this can be customised, the default behaviour of `swmmanywhere` is to not allow edges to cross hydrological subbasins. It is now super clear why these unconnected networks have appeared, and are ultimately due to the underlying DEM. If you did desperately care about these streets, then you should probably widen your bounding box.
+# Although this can be customised, the default behaviour of `swmmanywhere` is to not
+# allow edges to cross hydrological subbasins. It is now super clear why these unconnected
+# networks have appeared, and are ultimately due to the underlying DEM. If you did
+# desperately care about these streets, then you should probably widen your bounding box.
 #
 # ## Plotting results
 #
-# Because we have run the model with `verbose=True` we will also see that a new `results` file has appeared, which contains all of the simulation results from SWMM.
+# Because we have run the model with `verbose=True` we will also see that a new `results`
+# file has appeared, which contains all of the simulation results from SWMM.
 
 # %%
 df = pd.read_parquet(model_dir / "results.parquet")
@@ -150,7 +171,6 @@ df.head()
 # `results` contains all simulation results in long format, with `flooding` at nodes and `flow` at edges. We will plot a random `flow`.
 
 # %%
-floods = df.loc[df.variable == 'flooding']
 flows = df.loc[df.variable == 'flow']
 flows.loc[flows.id == flows.iloc[0].id].set_index('date').value.plot(ylabel='flow (m3/s)')
 
@@ -180,9 +200,10 @@ def clickable_map(model_dir):
     # Add nodes
     for node, row in nodes.iterrows():
         grp = floods.get_group(str(node))
-        grp.set_index('date').value.plot(ylabel='flooding (m3)', title = node)
+        f,ax=plt.subplots(figsize=(4,3))
+        grp.set_index('date').value.plot(ylabel='flooding (m3)', title = node,ax=ax)
         img = BytesIO()
-        f = plt.gcf()
+        f.tight_layout()
         f.savefig(img, format="png",dpi=94)
         plt.close(f)
         img.seek(0)
@@ -195,15 +216,16 @@ def clickable_map(model_dir):
             weight=0,
             fill_color='black',
             fill_opacity=1,
-            popup=folium.Popup(img_html, max_width=450),
+            popup=folium.Popup(img_html),
         ).add_to(m)
 
     # Add edges
     for edge, row in edges.iterrows():
         grp = flows.get_group(str(edge))
-        grp.set_index('date').value.plot(ylabel='flow (m3/s)', title = edge)
+        f,ax=plt.subplots(figsize=(4,3))
+        grp.set_index('date').value.plot(ylabel='flow (m3/s)', title = edge,ax=ax)
         img = BytesIO()
-        f = plt.gcf()
+        f.tight_layout()
         f.savefig(img, format="png",dpi=94)
         plt.close(f)
         img.seek(0)
@@ -213,11 +235,11 @@ def clickable_map(model_dir):
             [[c[1],c[0]] for c in row.geometry.coords],
             color="black",
             weight=2,
-            popup=folium.Popup(img_html, max_width=450),
+            popup=folium.Popup(img_html),
         ).add_to(m)
     return m
 
 clickable_map(model_dir)
 
 # %% [markdown]
-# If we explore around, clicking on edges, we can see that flows are often looking sensible, though we can definitely some areas that have been hampered by our starting street graph (e.g., *Carrer dels Canals*). The first suggestion here would be to widen your bounding box, however, if you want to make more sophisticated customisations then your probably want to learn about [graph functions](graphfcns_guide.md)
+# If we explore around, clicking on edges, we can see that flows are often looking sensible, though we can definitely some areas that have been hampered by our starting street graph (e.g., *Carrer dels Canals*). The first suggestion here would be to widen your bounding box, however, if you want to make more sophisticated customisations then your probably want to learn about [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
