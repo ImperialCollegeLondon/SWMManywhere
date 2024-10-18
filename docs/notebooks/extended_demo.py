@@ -191,7 +191,7 @@ def clickable_map(model_dir):
         folium.CircleMarker(
             [nodes.loc[node].geometry.y, nodes.loc[node].geometry.x],
             color="black",
-            radius=5,
+            radius=3,
             weight=0,
             fill_color='black',
             fill_opacity=1,
@@ -212,29 +212,12 @@ def clickable_map(model_dir):
         folium.PolyLine(
             [[c[1],c[0]] for c in row.geometry.coords],
             color="black",
-            weight=5,
+            weight=2,
             popup=folium.Popup(img_html, max_width=450),
         ).add_to(m)
     return m
 
 clickable_map(model_dir)
 
-# %%
-from io import BytesIO
-from matplotlib import pyplot as plt
-import base64
-
-# %%
-nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-nodes
-
-# %%
-df = pd.read_parquet(model_dir / "results.parquet")
-df.id = df.id.astype(str)
-floods = df.loc[df.variable == 'flooding'].groupby('id')
-floods.get_group('174')
-
-# %%
-floods
-
-# %%
+# %% [markdown]
+# If we explore around, clicking on edges, we can see that flows are often looking sensible, though we can definitely some areas that have been hampered by our starting street graph (e.g., *Carrer dels Canals*). The first suggestion here would be to widen your bounding box, however, if you want to make more sophisticated customisations then your probably want to learn about [graph functions](graphfcns_guide.md)
