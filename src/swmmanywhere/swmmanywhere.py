@@ -106,7 +106,9 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
             setattr(params[category], key, val)
 
     # If `allowable_networks` has been changed, force a redownload of street graph.
-    if 'allowable_networks' in config.get("parameter_overrides", {}).get("topology_derivation", {}):
+    if "allowable_networks" in config.get("parameter_overrides", {}).get(
+        "topology_derivation", {}
+    ):
         logger.info("Allowable networks have been changed, removing old street graph.")
         addresses.bbox_paths.street.unlink(missing_ok=True)
 

@@ -74,21 +74,28 @@ def basic_map(model_dir):
     # Load and inspect results
     nodes = gpd.read_file(model_dir / "nodes.geoparquet")
     edges = gpd.read_file(model_dir / "edges.geoparquet")
-    
 
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326)
     edges = edges.to_crs(4326)
-    
-    m = folium.Map(location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16)
-    folium.GeoJson(edges, color='black',weight=1).add_to(m)
-    folium.GeoJson(nodes, marker=folium.CircleMarker(radius = 3, # Radius in metres
-                                               weight = 0, #outline weight
-                                               fill_color = 'black', 
-                                               fill_opacity = 1)).add_to(m)
-    
+
+    m = folium.Map(
+        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
+    )
+    folium.GeoJson(edges, color="black", weight=1).add_to(m)
+    folium.GeoJson(
+        nodes,
+        marker=folium.CircleMarker(
+            radius=3,  # Radius in metres
+            weight=0,  # outline weight
+            fill_color="black",
+            fill_opacity=1,
+        ),
+    ).add_to(m)
+
     # Display the map
     return m
+
 
 basic_map(model_file.parent)
 
@@ -104,12 +111,15 @@ basic_map(model_file.parent)
 # Let's just demonstrate that using the [`parameter_overrides` functionality](config_guide.md/#changing-parameters).
 
 # %%
-config['parameter_overrides'] = {'topology_derivation' : {'allowable_networks' : ['drive'], 'omit_edges' : []}, 'subcatchment_derivation' : {'node_merge_distance':15 }}
+config["parameter_overrides"] = {
+    "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": []},
+    "subcatchment_derivation": {"node_merge_distance": 15},
+}
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
 
 # %% [markdown]
-# OK that clearly helped, although we have appear to have stranded pipes along *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it is connected via a pedestrian route. We won't remedy this in the tutorial, but you can manually provide your [`starting_graph`](config_guide.md/#change-starting_graph) via the configuration file to address such mitakes. 
+# OK that clearly helped, although we have appear to have stranded pipes along *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it is connected via a pedestrian route. We won't remedy this in the tutorial, but you can manually provide your [`starting_graph`](config_guide.md/#change-starting_graph) via the configuration file to address such mitakes.
 #
 # More importantly we can see some distinctive unconnected network in the South West. What is going on there? To explain this we will have to turn on verbosity to print the intermediate files used in model derivation.
 #
@@ -118,7 +128,8 @@ basic_map(outputs[0].parent)
 # %%
 # Make verbose
 from swmmanywhere import logging
-logging.set_verbose(True) # Set verbosity
+
+logging.set_verbose(True)  # Set verbosity
 
 # Run again
 outputs = swmmanywhere(config)
@@ -126,13 +137,13 @@ model_dir = outputs[0].parent
 m = basic_map(model_dir)
 
 # %% [markdown]
-# OK that's a lot of information! We can see `swmmanywhere` iterating through the various graph functions and a variety of other messages. However, the reason we are currently interested in this is because the files associated with each step are saved when `verbose=True`. 
+# OK that's a lot of information! We can see `swmmanywhere` iterating through the various graph functions and a variety of other messages. However, the reason we are currently interested in this is because the files associated with each step are saved when `verbose=True`.
 #
 # We will load a file called `subbasins` and add it to the map.
 
 # %%
 subbasins = gpd.read_file(model_dir / "subbasins.geoparquet")
-folium.GeoJson(subbasins,fill_opacity=0, color='blue',weight=2).add_to(m)
+folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
 m
 
 # %% [markdown]
@@ -150,13 +161,16 @@ df.head()
 # `results` contains all simulation results in long format, with `flooding` at nodes and `flow` at edges. We will plot a random `flow`.
 
 # %%
-floods = df.loc[df.variable == 'flooding']
-flows = df.loc[df.variable == 'flow']
-flows.loc[flows.id == flows.iloc[0].id].set_index('date').value.plot(ylabel='flow (m3/s)')
+floods = df.loc[df.variable == "flooding"]
+flows = df.loc[df.variable == "flow"]
+flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
+    ylabel="flow (m3/s)"
+)
 
 
 # %% [markdown]
 # Since folium is super clever, we can make these clickable on our map - and now you can inspect your results in a much more elegant way than the SWMM GUI.
+
 
 # %%
 # Create a folium map and add the nodes and edges
@@ -166,24 +180,25 @@ def clickable_map(model_dir):
     edges = gpd.read_file(model_dir / "edges.geoparquet")
     df = pd.read_parquet(model_dir / "results.parquet")
     df.id = df.id.astype(str)
-    floods = df.loc[df.variable == 'flooding'].groupby('id')
-    flows = df.loc[df.variable == 'flow'].groupby('id')
-
+    floods = df.loc[df.variable == "flooding"].groupby("id")
+    flows = df.loc[df.variable == "flow"].groupby("id")
 
     # Convert to EPSG 4326 for plotting
-    nodes = nodes.to_crs(4326).set_index('id')
-    edges = edges.to_crs(4326).set_index('id')
+    nodes = nodes.to_crs(4326).set_index("id")
+    edges = edges.to_crs(4326).set_index("id")
 
     # Create map
-    m = folium.Map(location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16)
+    m = folium.Map(
+        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
+    )
 
     # Add nodes
     for node, row in nodes.iterrows():
         grp = floods.get_group(str(node))
-        grp.set_index('date').value.plot(ylabel='flooding (m3)', title = node)
+        grp.set_index("date").value.plot(ylabel="flooding (m3)", title=node)
         img = BytesIO()
         f = plt.gcf()
-        f.savefig(img, format="png",dpi=94)
+        f.savefig(img, format="png", dpi=94)
         plt.close(f)
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
@@ -193,7 +208,7 @@ def clickable_map(model_dir):
             color="black",
             radius=3,
             weight=0,
-            fill_color='black',
+            fill_color="black",
             fill_opacity=1,
             popup=folium.Popup(img_html, max_width=450),
         ).add_to(m)
@@ -201,21 +216,22 @@ def clickable_map(model_dir):
     # Add edges
     for edge, row in edges.iterrows():
         grp = flows.get_group(str(edge))
-        grp.set_index('date').value.plot(ylabel='flow (m3/s)', title = edge)
+        grp.set_index("date").value.plot(ylabel="flow (m3/s)", title=edge)
         img = BytesIO()
         f = plt.gcf()
-        f.savefig(img, format="png",dpi=94)
+        f.savefig(img, format="png", dpi=94)
         plt.close(f)
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
         img_html = f'<img src="data:image/png;base64,{img_base64}">'
         folium.PolyLine(
-            [[c[1],c[0]] for c in row.geometry.coords],
+            [[c[1], c[0]] for c in row.geometry.coords],
             color="black",
             weight=2,
             popup=folium.Popup(img_html, max_width=450),
         ).add_to(m)
     return m
+
 
 clickable_map(model_dir)
 
