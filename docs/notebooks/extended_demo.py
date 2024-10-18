@@ -114,14 +114,15 @@ basic_map(model_file.parent)
 # %%
 config["parameter_overrides"] = {
     "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": []},
-    "subcatchment_derivation": {"node_merge_distance": 15},
+    "subcatchment_derivation": {"node_merge_distance": 12.5},
 }
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
 
 # %% [markdown]
-# OK that clearly helped, although we have appear to have stranded pipes along (e.g.,)
-# *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it
+# OK that clearly helped, although we have appear to have stranded pipes along (e.g.,
+# *Carrer de la Grella* in North West), presumably due to some mistake in the
+# OSM specifying that it
 # is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
 # manually provide your
 # [`starting_graph`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#change-starting_graph)
@@ -250,13 +251,16 @@ def clickable_map(model_dir):
         ).add_to(m)
     return m
 
-
+# Display the map
 clickable_map(model_dir)
+
+# Clear temp dir
+temp_dir.cleanup()
 
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often
 # looking sensible, though we can definitely some areas that have been hampered
-# by our starting street graph (e.g., *Carrer dels Canals*). The first
+# by our starting street graph (e.g., *Carrer dels Canals* in North West). The first
 # suggestion here would be to widen your bounding box, however, if you want to
 # make more sophisticated customisations then your probably want to learn about
 # [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
