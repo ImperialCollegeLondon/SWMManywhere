@@ -9,14 +9,15 @@
 # %% [markdown]
 # ## Introduction
 # This script demonstrates a simple use case of `SWMManywhere`, building on the
-# [quickstart](..//quickstart.md) example, but including plotting and alterations.
+# [quickstart](https://imperialcollegelondon.github.io/SWMManywhere/quickstart/)
+# example, but including plotting and alterations.
 #
-# Since this is a notebook, we will define [`config`](..//config_guide.md) as a
-# dictionary rather than a `yaml` file, but the same principles apply.
+# Since this is a notebook, we will define [`config`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/)
+# as a dictionary rather than a `yaml` file, but the same principles apply.
 #
 # ## Initial run
 #
-# Here we will run the [quickstart](..//quickstart.md) configuration, keeping
+# Here we will run the [quickstart](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/) configuration, keeping
 # everything in a temporary directory.
 # %%
 # Imports
@@ -114,7 +115,7 @@ basic_map(model_file.parent)
 # %%
 config["parameter_overrides"] = {
     "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": []},
-    "subcatchment_derivation": {"node_merge_distance": 12.5},
+    "subcatchment_derivation": {"node_merge_distance": 20},
 }
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
