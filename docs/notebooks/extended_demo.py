@@ -9,14 +9,14 @@
 # %% [markdown]
 # ## Introduction
 # This script demonstrates a simple use case of `SWMManywhere`, building on the
-# [quickstart](quickstart.md) example, but including plotting and alterations.
+# [quickstart](..//quickstart.md) example, but including plotting and alterations.
 #
-# Since this is a notebook, we will define [`config`](config_guide.md) as a
+# Since this is a notebook, we will define [`config`](..//config_guide.md) as a
 # dictionary rather than a `yaml` file, but the same principles apply.
 #
 # ## Initial run
 #
-# Here we will run the [quickstart](quickstart.md) configuration, keeping
+# Here we will run the [quickstart](..//quickstart.md) configuration, keeping
 # everything in a temporary directory.
 # %%
 # Imports
