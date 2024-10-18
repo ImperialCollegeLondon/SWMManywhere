@@ -35,7 +35,6 @@ def dynamic_filter(record):
     """A dynamic filter."""
     return verbose()
 
-
 def get_logger() -> loguru.logger:
     """Get a logger."""
     logger = loguru.logger

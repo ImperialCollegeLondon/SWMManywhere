@@ -73,6 +73,7 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.doc = [
   "folium",
+  "matplotlib",
   "mkdocs",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
