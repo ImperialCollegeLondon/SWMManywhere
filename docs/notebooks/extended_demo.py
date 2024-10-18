@@ -133,7 +133,7 @@ basic_map(outputs[0].parent)
 # intermediate files used in model derivation.
 #
 # To do this with a command line call we simply add the flag `--verbose=True`.
-# Though in code we will have to import the `logging` module.
+# Though in code we will have to use the `logging` module.
 
 # %%
 # Make verbose
@@ -253,9 +253,6 @@ def clickable_map(model_dir):
 
 # Display the map
 clickable_map(model_dir)
-
-# Clear temp dir
-temp_dir.cleanup()
 
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often
