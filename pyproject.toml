@@ -62,6 +62,8 @@ dependencies = [
   "xarray",
 ]
 optional-dependencies.dev = [
+  "folium",
+  "matplotlib",
   "mypy",
   "pip-tools",
   "pre-commit",
@@ -72,6 +74,8 @@ optional-dependencies.dev = [
   "ruff",
 ]
 optional-dependencies.doc = [
+  "folium",
+  "matplotlib",
   "mkdocs",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
@@ -99,6 +103,7 @@ version-file = "_version.py"
 
 [tool.ruff]
 lint.select = [ "D", "E", "F", "I" ]                                   # pydocstyle, pycodestyle, Pyflakes, isort
+lint.per-file-ignores."docs/notebooks/*" = [ "D100" ]
 lint.per-file-ignores."src/netcomp/*" = [ "D", "F" ]                   # Ignore all checks for netcomp
 lint.per-file-ignores."tests/*" = [ "D100", "D104" ]
 lint.isort.known-first-party = [ "swmmanywhere", "netcomp" ]
@@ -107,7 +112,7 @@ lint.pydocstyle.convention = "google"
 
 [tool.codespell]
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
-ignore-words-list = "gage,gages"
+ignore-words-list = "gage,gages,Carrer"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
