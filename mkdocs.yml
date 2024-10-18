@@ -2,16 +2,12 @@ site_name: SWMManywhere docs
 
 theme:
   name: "material"
-  palette:
-    primary: 'cyan'
+
   icon:
     repo: fontawesome/brands/github
   features:
     - content.code.copy
-
-extra_css:
-  - stylesheets/extra.css
-  - docs/notebooks/custom.css
+extra_css: [custom.css]
 
 plugins:
   - mkdocstrings

@@ -646,7 +646,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
             temp_path,
             wbt_args,
             save_dir=temp_path,
-            verbose=False,
+            verbose=verbose(),
             wbt_root=temp_path / "WBT",
             zip_path=fid.parent / "whiteboxtools_binaries.zip",
             max_procs=1,
