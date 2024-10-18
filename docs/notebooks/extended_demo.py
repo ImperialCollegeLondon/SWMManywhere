@@ -103,10 +103,10 @@ basic_map(model_file.parent)
 # to not allow pipes to cross bridges, tunnels, motorways, etc., however, this is
 # such a small area we probably don't want to restrict things so much.
 # - The density of points seems a bit extreme, ultimately we'd like to survey
-# manholes locations, but for now we can reduce density by increasing 
+# manholes locations, but for now we can reduce density by increasing
 # `node_merge_distance`.
 #
-# Let's just demonstrate that using the 
+# Let's just demonstrate that using the
 # [`parameter_overrides` functionality](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#changing-parameters).
 #
 # %%
@@ -121,15 +121,15 @@ basic_map(outputs[0].parent)
 # OK that clearly helped, although we have appear to have stranded pipes along (e.g.,)
 # *Carrer de la Grella*, presumably due to some mistake in the OSM specifying that it
 # is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
-# manually provide your 
-# [`starting_graph`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#change-starting_graph) 
-# via the configuration file to address such mitakes. 
+# manually provide your
+# [`starting_graph`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#change-starting_graph)
+# via the configuration file to address such mitakes.
 #
 # More importantly we can see some distinctive unconnected network in the South West.
 # What is going on there? To explain this we will have to turn on verbosity to print the
 # intermediate files used in model derivation.
 #
-# To do this with a command line call we simply add the flag `--verbose=True`. 
+# To do this with a command line call we simply add the flag `--verbose=True`.
 # Though in code we will have to import the `logging` module.
 
 # %%
@@ -149,9 +149,9 @@ model_dir = outputs[0].parent
 m = basic_map(model_dir)
 
 # %% [markdown]
-# That's a lot of information! However, the reason we are currently interested 
+# That's a lot of information! However, the reason we are currently interested
 # in this is because the files associated with
-# each workflow step are saved when `verbose=True`. 
+# each workflow step are saved when `verbose=True`.
 #
 # We will load a file called `subbasins` and add it to the map.
 
@@ -179,8 +179,10 @@ df.head()
 # `results` contains all simulation results in long format, with `flooding` at nodes and `flow` at edges. We will plot a random `flow`.
 
 # %%
-flows = df.loc[df.variable == 'flow']
-flows.loc[flows.id == flows.iloc[0].id].set_index('date').value.plot(ylabel='flow (m3/s)')
+flows = df.loc[df.variable == "flow"]
+flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
+    ylabel="flow (m3/s)"
+)
 
 
 # %% [markdown]
@@ -210,11 +212,11 @@ def clickable_map(model_dir):
     # Add nodes
     for node, row in nodes.iterrows():
         grp = floods.get_group(str(node))
-        f,ax=plt.subplots(figsize=(4,3))
-        grp.set_index('date').value.plot(ylabel='flooding (m3)', title = node,ax=ax)
+        f, ax = plt.subplots(figsize=(4, 3))
+        grp.set_index("date").value.plot(ylabel="flooding (m3)", title=node, ax=ax)
         img = BytesIO()
         f.tight_layout()
-        f.savefig(img, format="png",dpi=94)
+        f.savefig(img, format="png", dpi=94)
         plt.close(f)
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
@@ -232,11 +234,11 @@ def clickable_map(model_dir):
     # Add edges
     for edge, row in edges.iterrows():
         grp = flows.get_group(str(edge))
-        f,ax=plt.subplots(figsize=(4,3))
-        grp.set_index('date').value.plot(ylabel='flow (m3/s)', title = edge,ax=ax)
+        f, ax = plt.subplots(figsize=(4, 3))
+        grp.set_index("date").value.plot(ylabel="flow (m3/s)", title=edge, ax=ax)
         img = BytesIO()
         f.tight_layout()
-        f.savefig(img, format="png",dpi=94)
+        f.savefig(img, format="png", dpi=94)
         plt.close(f)
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
