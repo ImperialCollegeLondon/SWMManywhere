@@ -179,7 +179,7 @@ df.head()
 # %%
 flows = df.loc[df.variable == "flow"]
 flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
-    ylabel="flow (m3/s)"
+    ylabel="flow (l/s)"
 )
 
 
@@ -213,7 +213,7 @@ def clickable_map(model_dir):
     for node, row in nodes.iterrows():
         grp = floods.get_group(str(node))
         f, ax = plt.subplots(figsize=(4, 3))
-        grp.set_index("date").value.plot(ylabel="flooding (m3)", title=node, ax=ax)
+        grp.set_index("date").value.plot(ylabel="flooding (l)", title=node, ax=ax)
         img = BytesIO()
         f.tight_layout()
         f.savefig(img, format="png", dpi=94)
@@ -235,7 +235,7 @@ def clickable_map(model_dir):
     for edge, row in edges.iterrows():
         grp = flows.get_group(str(edge))
         f, ax = plt.subplots(figsize=(4, 3))
-        grp.set_index("date").value.plot(ylabel="flow (m3/s)", title=edge, ax=ax)
+        grp.set_index("date").value.plot(ylabel="flow (l/s)", title=edge, ax=ax)
         img = BytesIO()
         f.tight_layout()
         f.savefig(img, format="png", dpi=94)
