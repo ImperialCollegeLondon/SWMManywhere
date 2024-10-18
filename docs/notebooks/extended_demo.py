@@ -32,6 +32,7 @@ import geopandas as gpd
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from swmmanywhere import logging
 from swmmanywhere.swmmanywhere import swmmanywhere
 
 # Create temporary directory
@@ -63,6 +64,7 @@ if not model_file.exists():
 # %%
 # Create a folium map and add the nodes and edges
 def basic_map(model_dir):
+    """Create a basic map with nodes and edges."""
     # Load and inspect results
     nodes = gpd.read_file(model_dir / "nodes.geoparquet")
     edges = gpd.read_file(model_dir / "edges.geoparquet")
@@ -123,7 +125,7 @@ basic_map(outputs[0].parent)
 # is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
 # manually provide your
 # [`starting_graph`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#change-starting_graph)
-# via the configuration file to address such mitakes.
+# via the configuration file to address such mistakes.
 #
 # More importantly we can see some distinctive unconnected network in the South West.
 # What is going on there? To explain this we will have to turn on verbosity to print the
@@ -134,17 +136,10 @@ basic_map(outputs[0].parent)
 
 # %%
 # Make verbose
-from swmmanywhere import logging
-
 logging.set_verbose(True)  # Set verbosity
 
 # Run again
 outputs = swmmanywhere(config)
-
-output_html += """
-    </pre>
-</div>
-"""
 model_dir = outputs[0].parent
 m = basic_map(model_dir)
 
@@ -162,21 +157,23 @@ m
 
 # %% [markdown]
 # Although this can be customised, the default behaviour of `swmmanywhere` is to not
-# allow edges to cross hydrological subbasins. It is now super clear why these unconnected
-# networks have appeared, and are ultimately due to the underlying DEM. If you did
-# desperately care about these streets, then you should probably widen your bounding box.
+# allow edges to cross hydrological subbasins. It is now super clear why these
+# unconnected  networks have appeared, and are ultimately due to the underlying DEM.
+# If you did desperately care about these streets, then you should probably
+# widen your bounding box.
 #
 # ## Plotting results
 #
-# Because we have run the model with `verbose=True` we will also see that a new `results`
-# file has appeared, which contains all of the simulation results from SWMM.
+# Because we have run the model with `verbose=True` we will also see that a new
+# `results` file has appeared, which contains all of the simulation results from SWMM.
 
 # %%
 df = pd.read_parquet(model_dir / "results.parquet")
 df.head()
 
 # %% [markdown]
-# `results` contains all simulation results in long format, with `flooding` at nodes and `flow` at edges. We will plot a random `flow`.
+# `results` contains all simulation results in long format, with `flooding` at
+# nodes and `flow` at edges. We will plot a random `flow`.
 
 # %%
 flows = df.loc[df.variable == "flow"]
@@ -186,12 +183,14 @@ flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
 
 
 # %% [markdown]
-# Since folium is super clever, we can make these clickable on our map - and now you can inspect your results in a much more elegant way than the SWMM GUI.
+# Since folium is super clever, we can make these clickable on our map - and
+# now you can inspect your results in a much more elegant way than the SWMM GUI.
 
 
 # %%
 # Create a folium map and add the nodes and edges
 def clickable_map(model_dir):
+    """Create a clickable map with nodes, edges and results."""
     # Load and inspect results
     nodes = gpd.read_file(model_dir / "nodes.geoparquet")
     edges = gpd.read_file(model_dir / "edges.geoparquet")
@@ -255,4 +254,9 @@ def clickable_map(model_dir):
 clickable_map(model_dir)
 
 # %% [markdown]
-# If we explore around, clicking on edges, we can see that flows are often looking sensible, though we can definitely some areas that have been hampered by our starting street graph (e.g., *Carrer dels Canals*). The first suggestion here would be to widen your bounding box, however, if you want to make more sophisticated customisations then your probably want to learn about [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
+# If we explore around, clicking on edges, we can see that flows are often
+# looking sensible, though we can definitely some areas that have been hampered
+# by our starting street graph (e.g., *Carrer dels Canals*). The first
+# suggestion here would be to widen your bounding box, however, if you want to
+# make more sophisticated customisations then your probably want to learn about
+# [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
