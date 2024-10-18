@@ -72,6 +72,7 @@ optional-dependencies.dev = [
   "ruff",
 ]
 optional-dependencies.doc = [
+  "folium",
   "mkdocs",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
