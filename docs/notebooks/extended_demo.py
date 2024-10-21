@@ -17,8 +17,8 @@
 #
 # ## Initial run
 #
-# Here we will run the [quickstart](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/) configuration, keeping
-# everything in a temporary directory.
+# Here we will run the [quickstart](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/)
+# configuration, keeping everything in a temporary directory.
 # %%
 # Imports
 from __future__ import annotations
@@ -33,7 +33,7 @@ import geopandas as gpd
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from swmmanywhere import logging
+from swmmanywhere.logging import set_verbose
 from swmmanywhere.swmmanywhere import swmmanywhere
 
 # Create temporary directory
@@ -62,6 +62,8 @@ if not model_file.exists():
 # If you do not have a real UDM, the majority of your interpretation will be
 # around the synthesised `nodes` and `edges`. These are
 # created in the same directory as the `model_file`. Let's have a look at them.
+# Note that the `outfall` that each node drains to is specified in the `outfall`
+# attribute, we will plot these in red and other nodes in black.
 # %%
 # Create a folium map and add the nodes and edges
 def basic_map(model_dir):
@@ -74,16 +76,30 @@ def basic_map(model_dir):
     nodes = nodes.to_crs(4326)
     edges = edges.to_crs(4326)
 
+    # Identify outfalls
+    outfall = nodes.id == nodes.outfall
+
+    # Plot on map
     m = folium.Map(
         location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
     )
     folium.GeoJson(edges, color="black", weight=1).add_to(m)
     folium.GeoJson(
-        nodes,
+        nodes.loc[~outfall],
         marker=folium.CircleMarker(
             radius=3,  # Radius in metres
             weight=0,  # outline weight
             fill_color="black",
+            fill_opacity=1,
+        ),
+    ).add_to(m)
+
+    folium.GeoJson(
+        nodes.loc[outfall],
+        marker=folium.CircleMarker(
+            radius=3,  # Radius in metres
+            weight=0,  # outline weight
+            fill_color="red",
             fill_opacity=1,
         ),
     ).add_to(m)
@@ -99,29 +115,36 @@ basic_map(model_file.parent)
 #
 # ## Customising outputs
 #
-# Some things stick out on first glance:
+# Some things stick out on first glance,
+#
 # - Probably we do not need pipes in the hills to the South, these seem to be along
 # pedestrian routes, which can be adjusted with the `allowable_networks` parameter.
 # - We will also remove any types under the `omit_edges` entry, here you can specify
 # to not allow pipes to cross bridges, tunnels, motorways, etc., however, this is
 # such a small area we probably don't want to restrict things so much.
-# - The density of points seems a bit extreme, ultimately we'd like to survey
-# manholes locations, but for now we can reduce density by increasing
-# `node_merge_distance`.
+# - Due to the apparent steep slopes, it seems like other topological factors, such
+# as pipe length, are less important. We can adjust the `weights` parameter to
+# include only slope, whose parameter name is `chahinian_slope`.
+# - We have far too few outfalls, it seems implausible that so many riverside streets
+# would not have outfalls. Furthermore, there are points that are quite far from the
+# river that have been assigned as outfalls. We can reduce the `river_buffer_distance`
+# to make nodes nearer the river more likely to be outfalls, but also reduce the
+# `outfall_length` distance parameter to enable `swmmanywhere` to more freely select
+# outfalls that are adjacent to the river.
 #
 # Let's just demonstrate that using the
 # [`parameter_overrides` functionality](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/#changing-parameters).
 #
 # %%
 config["parameter_overrides"] = {
-    "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": []},
-    "subcatchment_derivation": {"node_merge_distance": 20},
+    "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": ["bridge"]},
+    "outfall_derivation": {"outfall_length": 5, "river_buffer_distance": 30},
 }
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
 
 # %% [markdown]
-# OK that clearly helped, although we have appear to have stranded pipes along (e.g.,
+# OK that clearly helped, although we have appear to have stranded pipes (e.g., along
 # *Carrer de la Grella* in North West), presumably due to some mistake in the
 # OSM specifying that it
 # is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
@@ -134,11 +157,11 @@ basic_map(outputs[0].parent)
 # intermediate files used in model derivation.
 #
 # To do this with a command line call we simply add the flag `--verbose=True`.
-# Though in code we will have to use the `logging` module.
+# Though in code we will have to use `set_verbose` from the `logging` module.
 
 # %%
 # Make verbose
-logging.set_verbose(True)  # Set verbosity
+set_verbose(True)  # Set verbosity
 
 # Run again
 outputs = swmmanywhere(config)
@@ -210,28 +233,6 @@ def clickable_map(model_dir):
         location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
     )
 
-    # Add nodes
-    for node, row in nodes.iterrows():
-        grp = floods.get_group(str(node))
-        f, ax = plt.subplots(figsize=(4, 3))
-        grp.set_index("date").value.plot(ylabel="flooding (l)", title=node, ax=ax)
-        img = BytesIO()
-        f.tight_layout()
-        f.savefig(img, format="png", dpi=94)
-        plt.close(f)
-        img.seek(0)
-        img_base64 = base64.b64encode(img.read()).decode()
-        img_html = f'<img src="data:image/png;base64,{img_base64}">'
-        folium.CircleMarker(
-            [nodes.loc[node].geometry.y, nodes.loc[node].geometry.x],
-            color="black",
-            radius=3,
-            weight=0,
-            fill_color="black",
-            fill_opacity=1,
-            popup=folium.Popup(img_html),
-        ).add_to(m)
-
     # Add edges
     for edge, row in edges.iterrows():
         grp = flows.get_group(str(edge))
@@ -250,6 +251,33 @@ def clickable_map(model_dir):
             weight=2,
             popup=folium.Popup(img_html),
         ).add_to(m)
+
+    # Add nodes
+    for node, row in nodes.iterrows():
+        grp = floods.get_group(str(node))
+        f, ax = plt.subplots(figsize=(4, 3))
+        grp.set_index("date").value.plot(ylabel="flooding (l)", title=node, ax=ax)
+        img = BytesIO()
+        f.tight_layout()
+        f.savefig(img, format="png", dpi=94)
+        plt.close(f)
+        img.seek(0)
+        img_base64 = base64.b64encode(img.read()).decode()
+        img_html = f'<img src="data:image/png;base64,{img_base64}">'
+        if row.outfall == node:
+            color = "red"
+        else:
+            color = "black"
+        folium.CircleMarker(
+            [nodes.loc[node].geometry.y, nodes.loc[node].geometry.x],
+            color=color,
+            radius=3,
+            weight=0,
+            fill_color=color,
+            fill_opacity=1,
+            popup=folium.Popup(img_html),
+        ).add_to(m)
+
     return m
 
 
@@ -259,7 +287,8 @@ clickable_map(model_dir)
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often
 # looking sensible, though we can definitely some areas that have been hampered
-# by our starting street graph (e.g., *Carrer dels Canals* in North West). The first
-# suggestion here would be to widen your bounding box, however, if you want to
+# by our starting street graph (e.g., the Western portion of *Carrer del Sant Andreu*
+# in North West). The first suggestion here would be to examine the starting graph,
+# however, if you want to
 # make more sophisticated customisations then your probably want to learn about
 # [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
