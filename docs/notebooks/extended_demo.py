@@ -23,18 +23,16 @@
 # Imports
 from __future__ import annotations
 
-import base64
 import tempfile
-from io import BytesIO
 from pathlib import Path
 
 import folium
 import geopandas as gpd
 import pandas as pd
-from matplotlib import pyplot as plt
 
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.swmmanywhere import swmmanywhere
+from swmmanywhere.utilities import map
 
 # Create temporary directory
 temp_dir = tempfile.TemporaryDirectory()
@@ -67,49 +65,7 @@ if not model_file.exists():
 # attribute, we will plot these in red and other nodes in black.
 # %%
 # Create a folium map and add the nodes and edges
-def basic_map(model_dir):
-    """Create a basic map with nodes and edges."""
-    # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
-
-    # Convert to EPSG 4326 for plotting
-    nodes = nodes.to_crs(4326)
-    edges = edges.to_crs(4326)
-
-    # Identify outfalls
-    outfall = nodes.id == nodes.outfall
-
-    # Plot on map
-    m = folium.Map(
-        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
-    )
-    folium.GeoJson(edges, color="black", weight=1).add_to(m)
-    folium.GeoJson(
-        nodes.loc[~outfall],
-        marker=folium.CircleMarker(
-            radius=3,  # Radius in metres
-            weight=0,  # outline weight
-            fill_color="black",
-            fill_opacity=1,
-        ),
-    ).add_to(m)
-
-    folium.GeoJson(
-        nodes.loc[outfall],
-        marker=folium.CircleMarker(
-            radius=3,  # Radius in metres
-            weight=0,  # outline weight
-            fill_color="red",
-            fill_opacity=1,
-        ),
-    ).add_to(m)
-
-    # Display the map
-    return m
-
-
-basic_map(model_file.parent)
+map(model_file.parent)
 
 # %% [markdown]
 # OK, it's done something! Though perhaps we're not super satisfied with the output.
@@ -148,7 +104,7 @@ config["parameter_overrides"] = {
     },
 }
 outputs = swmmanywhere(config)
-basic_map(outputs[0].parent)
+map(outputs[0].parent)
 
 # %% [markdown]
 # OK that clearly helped, although we have appear to have stranded pipes (e.g., along
@@ -173,7 +129,7 @@ set_verbose(True)  # Set verbosity
 # Run again
 outputs = swmmanywhere(config)
 model_dir = outputs[0].parent
-m = basic_map(model_dir)
+m = map(model_dir)
 
 # %% [markdown]
 # That's a lot of information! However, the reason we are currently interested
@@ -217,79 +173,11 @@ flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
 # %% [markdown]
 # Since folium is super clever, we can make these clickable on our map - and
 # now you can inspect your results in a much more elegant way than the SWMM GUI.
+# Just click a node or link to view the flooding or flow timeseries!
 
 
 # %%
-# Create a folium map and add the nodes and edges
-def clickable_map(model_dir):
-    """Create a clickable map with nodes, edges and results."""
-    # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
-    df = pd.read_parquet(model_dir / "results.parquet")
-    df.id = df.id.astype(str)
-    floods = df.loc[df.variable == "flooding"].groupby("id")
-    flows = df.loc[df.variable == "flow"].groupby("id")
-
-    # Convert to EPSG 4326 for plotting
-    nodes = nodes.to_crs(4326).set_index("id")
-    edges = edges.to_crs(4326).set_index("id")
-
-    # Create map
-    m = folium.Map(
-        location=[nodes.geometry.y.mean(), nodes.geometry.x.mean()], zoom_start=16
-    )
-
-    # Add edges
-    for edge, row in edges.iterrows():
-        grp = flows.get_group(str(edge))
-        f, ax = plt.subplots(figsize=(4, 3))
-        grp.set_index("date").value.plot(ylabel="flow (l/s)", title=edge, ax=ax)
-        img = BytesIO()
-        f.tight_layout()
-        f.savefig(img, format="png", dpi=94)
-        plt.close(f)
-        img.seek(0)
-        img_base64 = base64.b64encode(img.read()).decode()
-        img_html = f'<img src="data:image/png;base64,{img_base64}">'
-        folium.PolyLine(
-            [[c[1], c[0]] for c in row.geometry.coords],
-            color="black",
-            weight=2,
-            popup=folium.Popup(img_html),
-        ).add_to(m)
-
-    # Add nodes
-    for node, row in nodes.iterrows():
-        grp = floods.get_group(str(node))
-        f, ax = plt.subplots(figsize=(4, 3))
-        grp.set_index("date").value.plot(ylabel="flooding (l)", title=node, ax=ax)
-        img = BytesIO()
-        f.tight_layout()
-        f.savefig(img, format="png", dpi=94)
-        plt.close(f)
-        img.seek(0)
-        img_base64 = base64.b64encode(img.read()).decode()
-        img_html = f'<img src="data:image/png;base64,{img_base64}">'
-        if row.outfall == node:
-            color = "red"
-        else:
-            color = "black"
-        folium.CircleMarker(
-            [nodes.loc[node].geometry.y, nodes.loc[node].geometry.x],
-            color=color,
-            radius=3,
-            weight=0,
-            fill_color=color,
-            fill_opacity=1,
-            popup=folium.Popup(img_html),
-        ).add_to(m)
-
-    return m
-
-
-# Display the map
-clickable_map(model_dir)
+m
 
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often

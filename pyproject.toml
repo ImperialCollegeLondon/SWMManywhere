@@ -36,11 +36,13 @@ dynamic = [
 dependencies = [
   "cdsapi",
   "cytoolz",
+  "folium",
   "geopandas>=1",
   "geopy",
   "joblib",
   "jsonschema",
   "loguru",
+  "matplotlib",
   "netcdf4",
   "networkx>=3",
   "numpy>=2",
@@ -62,8 +64,6 @@ dependencies = [
   "xarray",
 ]
 optional-dependencies.dev = [
-  "folium",
-  "matplotlib",
   "mypy",
   "pip-tools",
   "pre-commit",
@@ -74,8 +74,6 @@ optional-dependencies.dev = [
   "ruff",
 ]
 optional-dependencies.doc = [
-  "folium",
-  "matplotlib",
   "mkdocs",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
