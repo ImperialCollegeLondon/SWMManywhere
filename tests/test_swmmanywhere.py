@@ -13,7 +13,7 @@ import yaml
 from swmmanywhere import swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
-from swmmanywhere.utilities import plot_map, plot_basic
+from swmmanywhere.utilities import plot_basic, plot_map
 
 
 def test_run():
@@ -98,8 +98,6 @@ def test_swmmanywhere():
         # Check the map functions
         plot_basic(inp.parent)
         plot_map(inp.parent)
-
-
 
 
 def test_load_config_file_validation():
