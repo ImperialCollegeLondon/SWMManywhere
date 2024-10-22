@@ -8,7 +8,7 @@
 #
 # %% [markdown]
 # ## Introduction
-# This script demonstrates a simple use case of `SWMManywhere`, building on the
+# This script demonstrates a simple use case of `swmmanywhere`, building on the
 # [quickstart](https://imperialcollegelondon.github.io/SWMManywhere/quickstart/)
 # example, but including plotting and alterations.
 #
@@ -80,9 +80,6 @@ plot_map(model_file.parent)
 # - We will also remove any types under the `omit_edges` entry, here you can specify
 # to not allow pipes to cross bridges, tunnels, motorways, etc., however, this is
 # such a small area we probably don't want to restrict things so much.
-# - Due to the apparent steep slopes, it seems like other topological factors, such
-# as pipe length, are less important. We can adjust the `weights` parameter to
-# include only slope, whose parameter name is `chahinian_slope`.
 # - We have far too few outfalls, it seems implausible that so many riverside streets
 # would not have outfalls. Furthermore, there are points that are quite far from the
 # river that have been assigned as outfalls. We can reduce the `river_buffer_distance`
@@ -109,7 +106,7 @@ plot_map(outputs[0].parent)
 
 # %% [markdown]
 # OK that clearly helped, although we have appear to have stranded pipes (e.g., along
-# *Carrer de la Grella* in North West), presumably due to some mistake in the
+# *Carrer dels Canals* in North West), presumably due to some mistake in the
 # OSM specifying that it
 # is connected via a pedestrian route. We won't remedy this in the tutorial, but you can
 # manually provide your
