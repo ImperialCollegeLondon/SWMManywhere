@@ -883,25 +883,6 @@ def calculate_angle(
 
     return angle_degrees
 
-def get_serializable_properties(base_props: dict, extra_data: dict) -> dict:
-   """Convert graph properties to serializable GeoJSON properties.
-   
-   Args:
-       base_props (dict): Base properties that must be included (e.g. id for nodes, u/v for edges)
-       extra_data (dict): Additional data to include if serializable
-   
-   Returns:
-       dict: Combined properties with only serializable values
-   """
-   properties = base_props.copy()
-    for key, value in extra_data.items():
-        # Check for basic GeoJSON-compatible types
-        if isinstance(value, (str, int, float, bool, type(None))):
-            properties[key] = value
-        else:
-            logger.warning(f"Skipping field {key}: unsupported type: {type(value)}")
-           
-   return properties
 
 def nodes_to_features(G: nx.Graph):
     """Convert a graph to a GeoJSON node feature collection.
@@ -917,7 +898,7 @@ def nodes_to_features(G: nx.Graph):
         feature = {
             "type": "Feature",
             "geometry": sgeom.mapping(sgeom.Point(data["x"], data["y"])),
-            "properties": get_serializable_properties({"id": node}, data),
+            "properties": {"id": node, **data},
         }
         features.append(feature)
     return features
@@ -942,10 +923,11 @@ def edges_to_features(G: nx.Graph):
         feature = {
             "type": "Feature",
             "geometry": geom,
-            "properties": get_serializable_properties({"u": u, "v": v}, data),
+            "properties": {"u": u, "v": v, **data},
         }
         features.append(feature)
     return features
+
 
 def graph_to_geojson(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, crs: str):
     """Write a graph to a GeoJSON file.
@@ -959,7 +941,7 @@ def graph_to_geojson(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, crs: str
     graph = graph.copy()
     nodes = nodes_to_features(graph)
     edges = edges_to_features(graph)
-    
+
     for iterable, fid in zip([nodes, edges], [fid_nodes, fid_edges]):
         geojson = {
             "type": "FeatureCollection",
