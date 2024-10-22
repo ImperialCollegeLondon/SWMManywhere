@@ -13,6 +13,7 @@ import yaml
 from swmmanywhere import swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
+from swmmanywhere.utilities import plot_map, plot_basic
 
 
 def test_run():
@@ -93,6 +94,12 @@ def test_swmmanywhere():
         assert inp.exists()
         assert (inp.parent / "results.parquet").exists()
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
+
+        # Check the map functions
+        plot_basic(inp.parent)
+        plot_map(inp.parent)
+
+
 
 
 def test_load_config_file_validation():

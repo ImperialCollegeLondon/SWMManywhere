@@ -185,7 +185,7 @@ def plot_clickable(model_dir: Path):
     return m
 
 
-def map(model_dir: Path):
+def plot_map(model_dir: Path):
     """Create a map from a model directory.
 
     Args:
