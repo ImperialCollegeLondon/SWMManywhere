@@ -134,6 +134,7 @@ def plot_clickable(model_dir: Path):
 
     # Add edges
     for edge, row in edges.iterrows():
+        # Create a plot for each edge
         grp = flows.get_group(str(edge))
         f, ax = plt.subplots(figsize=(4, 3))
         grp.set_index("date").value.plot(ylabel="flow (l/s)", title=edge, ax=ax)
@@ -141,9 +142,13 @@ def plot_clickable(model_dir: Path):
         f.tight_layout()
         f.savefig(img, format="png", dpi=94)
         plt.close(f)
+
+        # Convert plot to base64
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
         img_html = f'<img src="data:image/png;base64,{img_base64}">'
+
+        # Add edge to map
         folium.PolyLine(
             [[c[1], c[0]] for c in row.geometry.coords],
             color="black",
