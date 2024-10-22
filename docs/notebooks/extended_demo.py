@@ -62,7 +62,8 @@ if not model_file.exists():
 # around the synthesised `nodes` and `edges`. These are
 # created in the same directory as the `model_file`. Let's have a look at them.
 # Note that the `outfall` that each node drains to is specified in the `outfall`
-# attribute, we will plot these in red and other nodes in black.
+# attribute, we will plot these in red and other nodes in black with the built-
+# in `swmmanywhere.utilities.map` function.
 # %%
 # Create a folium map and add the nodes and edges
 map(model_file.parent)
@@ -171,13 +172,14 @@ flows.loc[flows.id == flows.iloc[0].id].set_index("date").value.plot(
 
 
 # %% [markdown]
-# Since folium is super clever, we can make these clickable on our map - and
+# If `results` are present in the `model_dir`, `map` will make clickable
+# elements to view plots,
 # now you can inspect your results in a much more elegant way than the SWMM GUI.
 # Just click a node or link to view the flooding or flow timeseries!
 
 
 # %%
-m
+map(model_dir)
 
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often
