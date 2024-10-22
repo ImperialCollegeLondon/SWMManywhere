@@ -38,13 +38,14 @@ from swmmanywhere.swmmanywhere import swmmanywhere
 
 # Create temporary directory
 temp_dir = tempfile.TemporaryDirectory()
-base_dir = Path(temp_dir.name)
+base_dir = Path(r"C:\Users\darne\Documents\data\temp")
 
-# Define minimum viable config
+# Define minimum viable config (with shorter duration so better inspect results)
 config = {
     "base_dir": base_dir,
     "project": "my_first_swmm",
     "bbox": [1.52740, 42.50524, 1.54273, 42.51259],
+    "run_settings": {"duration" : 3600},
 }
 
 # Run SWMManywhere
