@@ -11,7 +11,6 @@ import shutil
 from pathlib import Path
 from typing import Any, Literal
 
-from IPython.utils import io
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -36,9 +35,7 @@ def synthetic_write(addresses: FilePaths):
         addresses (FilePaths): A dictionary of file paths.
     """
     nodes = gpd.read_file(addresses.model_paths.nodes)
-    with io.capture_output() as captured:
-        # TODO: this is hacky, to be addressed when converted to SWMMIO.
-        edges = gpd.read_file(addresses.model_paths.edges)
+    edges = gpd.read_file(addresses.model_paths.edges)
 
     if addresses.model_paths.subcatchments.suffix == ".geoparquet":
         subs = gpd.read_parquet(addresses.model_paths.subcatchments)
