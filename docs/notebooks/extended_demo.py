@@ -137,8 +137,14 @@ basic_map(model_file.parent)
 #
 # %%
 config["parameter_overrides"] = {
-    "topology_derivation": {"allowable_networks": ["drive"], "omit_edges": ["bridge"]},
-    "outfall_derivation": {"outfall_length": 5, "river_buffer_distance": 30},
+    "topology_derivation": {
+        "allowable_networks": ["drive"],
+        "omit_edges": ["bridge"],
+    },
+    "outfall_derivation": {
+        "outfall_length": 5,
+        "river_buffer_distance": 30,
+    },
 }
 outputs = swmmanywhere(config)
 basic_map(outputs[0].parent)
