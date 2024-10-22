@@ -45,7 +45,7 @@ config = {
     "base_dir": base_dir,
     "project": "my_first_swmm",
     "bbox": [1.52740, 42.50524, 1.54273, 42.51259],
-    "run_settings": {"duration" : 3600},
+    "run_settings": {"duration": 3600},
 }
 
 # Run SWMManywhere

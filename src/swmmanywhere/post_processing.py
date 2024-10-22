@@ -10,7 +10,6 @@ import contextlib
 import os
 import re
 import shutil
-import sys
 from pathlib import Path
 from typing import Any, Literal
 
@@ -40,7 +39,7 @@ def synthetic_write(addresses: FilePaths):
     # TODO these node/edge names are probably not good or extendible defulats
     # revisit once overall software architecture is more clear.
     nodes = gpd.read_file(addresses.model_paths.nodes)
-    with open(os.devnull, 'w') as devnull:
+    with open(os.devnull, "w") as devnull:
         with contextlib.redirect_stderr(devnull):
             edges = gpd.read_file(addresses.model_paths.edges)
 
