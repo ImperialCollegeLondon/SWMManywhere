@@ -6,13 +6,12 @@ files.
 
 from __future__ import annotations
 
-import contextlib
-import os
 import re
 import shutil
 from pathlib import Path
 from typing import Any, Literal
 
+from IPython.utils import io
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -36,12 +35,10 @@ def synthetic_write(addresses: FilePaths):
     Args:
         addresses (FilePaths): A dictionary of file paths.
     """
-    # TODO these node/edge names are probably not good or extendible defulats
-    # revisit once overall software architecture is more clear.
     nodes = gpd.read_file(addresses.model_paths.nodes)
-    with open(os.devnull, "w") as devnull:
-        with contextlib.redirect_stderr(devnull):
-            edges = gpd.read_file(addresses.model_paths.edges)
+    with io.capture_output() as captured:
+        # TODO: this is hacky, to be addressed when converted to SWMMIO.
+        edges = gpd.read_file(addresses.model_paths.edges)
 
     if addresses.model_paths.subcatchments.suffix == ".geoparquet":
         subs = gpd.read_parquet(addresses.model_paths.subcatchments)
