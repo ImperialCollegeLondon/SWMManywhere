@@ -38,7 +38,7 @@ from swmmanywhere.swmmanywhere import swmmanywhere
 
 # Create temporary directory
 temp_dir = tempfile.TemporaryDirectory()
-base_dir = Path(r"C:\Users\darne\Documents\data\temp")
+base_dir = Path(temp_dir.name)
 
 # Define minimum viable config (with shorter duration so better inspect results)
 config = {
