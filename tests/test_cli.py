@@ -1,16 +1,18 @@
 """Integration test for the swmmanywhere command-line interface."""
+
+from __future__ import annotations
+
 import sys
 import tempfile
-import yaml
 from pathlib import Path
 
-import pytest
+import yaml
 
 from swmmanywhere import __main__
 
+
 def test_swmmanywhere_cli(capsys):
     """Test that the CLI can successfully run with an actual configuration."""
-
     with tempfile.TemporaryDirectory() as tempdir:
         base_dir = Path(tempdir)
         # Define minimum viable config
@@ -27,8 +29,10 @@ def test_swmmanywhere_cli(capsys):
         # Mock sys.argv to simulate command-line arguments
         sys.argv = [
             "swmmanywhere",
-            "--config_path", str(config_path),
-            "--verbose", "True"
+            "--config_path",
+            str(config_path),
+            "--verbose",
+            "True",
         ]
 
         # Run the CLI entry point
