@@ -181,8 +181,10 @@ plot_map(model_dir)
 # %% [markdown]
 # If we explore around, clicking on edges, we can see that flows are often
 # looking sensible, though we can definitely some areas that have been hampered
-# by our starting street graph (e.g., the Western portion of *Carrer del Sant Andreu*
-# in North West). The first suggestion here would be to examine the starting graph,
+# by our starting street graph (e.g., in the Western portion of *Carrer del Sant Andreu*
+# in North West we can see negative flows meaning the direction is different from
+# what the topology derivation assumed flow would be going in!). 
+# The first suggestion here would be to examine the starting graph,
 # however, if you want to
 # make more sophisticated customisations then your probably want to learn about
 # [graph functions](https://imperialcollegelondon.github.io/SWMManywhere/graphfcns_guide/).
