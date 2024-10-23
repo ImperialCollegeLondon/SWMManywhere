@@ -4,7 +4,7 @@ Thank you for considering contributing to `SWMManywhere`.
 
 ## Bugs
 
-Please create a new issues (insert link when published)
+Please [create a new issue](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/new)
 if you may have found a bug.
 Please describe the bug and instructions on recreating it (including OS and
 Python version). Label the issue with `bug`.
