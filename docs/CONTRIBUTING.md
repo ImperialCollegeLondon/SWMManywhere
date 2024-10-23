@@ -4,7 +4,7 @@ Thank you for considering contributing to `SWMManywhere`.
 
 ## Bugs
 
-Please create a new issues (insert link when published)
+Please [create a new issue](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/new)
 if you may have found a bug.
 Please describe the bug and instructions on recreating it (including OS and
 Python version). Label the issue with `bug`.
@@ -14,12 +14,12 @@ Python version). Label the issue with `bug`.
 Our intention with `SWMManywhere` is that a high level of customisation to suit
 your needs may be achieved by adding new `graphfcns` or new `metrics`, see
 below. Other new behaviour may be tagged with `enhancement`, though please
-check existing issues (insert link when published)
+check [existing issues](https://github.com/ImperialCollegeLondon/SWMManywhere/issues)
 to see if something similar already exists.
 
 ### Take a graph give a graph: `graphfcns`
 
-All transformations that take place do so on graph functions, you can change
+All transformations that take place do so on graph functions; you can change
 the order in which these are executed and add new ones. If you want a
 `graphfcn` that does a new thing, please create an issue to discuss with the
 label `graphfcn`. If a single new `graphfcn` is not sufficient to capture the
@@ -38,7 +38,7 @@ create a new `metric`, please create an issue to discuss with the label
 ## Installation for development
 
 To install `SWMManywhere` in development mode, first you will need a virtual
-environment. Here we use a `conda` environment which let us use the version of
+environment. Here we use a `conda` environment which lets us use the version of
 python we want to use, but you can use any other tool you are familiar with.
 Just make sure you use a version of Python compatible with SWMManywhere.
 
@@ -59,19 +59,18 @@ cd swmmanywhere
 
 We use [`pip-tools`](https://pip-tools.readthedocs.io/en/latest/) to ensure
 consistency in the development process, ensuring all people contributing to
-`SWMManywhere` uses the same versions for all the dependencies, which minimiese
+`SWMManywhere` use the same versions for all the dependencies, which minimises
 the conflicts. To install the development dependencies and then `SWMManywhere`
-in development mode run:
+in development mode, run:
 
 ```bash
-pip install -r dev-requirements.txt
-pip install -e .
+pip install .[dev,doc]
 ```
 
 ## Quality assurance and linting
 
 `SWMManywhere` uses a collection of tools that ensure that a specific code
-style and formatting is follow throughout the software. The tools we used for
+style and formatting is followed throughout the software. The tools we use for
 that are [`ruff`](https://docs.astral.sh/ruff/),
 [`markdownlint`](https://github.com/igorshubovych/markdownlint-cli),
 [`mypy`](https://github.com/pre-commit/mirrors-mypy),
@@ -123,7 +122,7 @@ coverage run -m pytest
 coverage report
 ```
 
-And generate a new coverage html for the documentation with
+And generate a new coverage html site for the documentation with
 
 ```bash
 coverage html
@@ -131,15 +130,8 @@ coverage html
 
 ## Changing dependencies
 
-As the development process moves forward you find you need to add a new
-dependency, just add it to the relevant section of the `pyproject.toml` file
-and recompile requirements:
-
-```bash
-pip-compile
-pip-compile --extra dev -o dev-requirements.txt pyproject.toml
-pip-compile --extra doc -o doc-requirements.txt pyproject.toml
-```
+As the development process moves forward, you may find you need to add a new
+dependency. Just add it to the relevant section of the `pyproject.toml` file.
 
 Read the
 [`pip-tools` documentation](https://pip-tools.readthedocs.io/en/latest/) for
