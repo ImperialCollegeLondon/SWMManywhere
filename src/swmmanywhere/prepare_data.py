@@ -92,7 +92,7 @@ def _record_batch_reader(bbox: tuple[float, float, float, float]) -> RecordBatch
 
 def download_buildings_bbox(
     file_address: Path, bbox: tuple[float, float, float, float]
-):
+) -> None:
     """Retrieve building data in bbox from Overture Maps to file.
 
     This function is based on
