@@ -34,8 +34,6 @@ def synthetic_write(addresses: FilePaths):
     Args:
         addresses (FilePaths): A dictionary of file paths.
     """
-    # TODO these node/edge names are probably not good or extendible defulats
-    # revisit once overall software architecture is more clear.
     nodes = gpd.read_file(addresses.model_paths.nodes)
     edges = gpd.read_file(addresses.model_paths.edges)
 

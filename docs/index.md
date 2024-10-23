@@ -9,6 +9,7 @@ derive a synthetic urban drainage network anywhere in the world.
 - [Quickstart](quickstart.md)
 - Guides:
     - [Configuration file](config_guide.md)
+    - [Extended demo](./notebooks/extended_demo.py)
     - [Graph functions](graphfcns_guide.md)
     - [Metrics guide](metrics_guide.md)
 - [Contributing](CONTRIBUTING.md)

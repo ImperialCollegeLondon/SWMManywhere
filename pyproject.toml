@@ -36,11 +36,13 @@ dynamic = [
 dependencies = [
   "cdsapi",
   "cytoolz",
+  "folium",
   "geopandas>=1",
   "geopy",
   "joblib",
   "jsonschema",
   "loguru",
+  "matplotlib",
   "netcdf4",
   "networkx>=3",
   "numpy>=2",
@@ -99,6 +101,7 @@ version-file = "_version.py"
 
 [tool.ruff]
 lint.select = [ "D", "E", "F", "I" ]                                   # pydocstyle, pycodestyle, Pyflakes, isort
+lint.per-file-ignores."docs/notebooks/*" = [ "D100" ]
 lint.per-file-ignores."src/netcomp/*" = [ "D", "F" ]                   # Ignore all checks for netcomp
 lint.per-file-ignores."tests/*" = [ "D100", "D104" ]
 lint.isort.known-first-party = [ "swmmanywhere", "netcomp" ]
@@ -107,7 +110,7 @@ lint.pydocstyle.convention = "google"
 
 [tool.codespell]
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
-ignore-words-list = "gage,gages"
+ignore-words-list = "gage,gages,Carrer"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"

@@ -2,20 +2,17 @@ site_name: SWMManywhere docs
 
 theme:
   name: "material"
-  palette:
-    primary: 'cyan'
+
   icon:
     repo: fontawesome/brands/github
   features:
     - content.code.copy
-
-extra_css:
-  - stylesheets/extra.css
+extra_css: [custom.css]
 
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: false
+      execute: true
   - search
   - include-markdown
 
@@ -44,6 +41,7 @@ nav:
   - Quickstart: quickstart.md
   - Guides:
     - Configuration guide: config_guide.md
+    - Extended demo: ./notebooks/extended_demo.py
     - Graph functions: graphfcns_guide.md
     - Metrics guide: metrics_guide.md
   - Contributing: CONTRIBUTING.md

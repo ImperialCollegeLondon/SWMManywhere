@@ -77,7 +77,7 @@ class remove_parallel_edges(BaseGraphFunction):
         # Set the attribute (weight) used to determine which parallel edge to
         # retain. Could make this a parameter in parameters.py if needed.
         weight = "length"
-        graph = ox.get_digraph(G)
+        graph = ox.convert.to_digraph(G)
         _, _, attr_list = next(iter(graph.edges(data=True)))  # type: ignore
         attr_list = cast("dict[str, Any]", attr_list)
         if weight not in attr_list:
