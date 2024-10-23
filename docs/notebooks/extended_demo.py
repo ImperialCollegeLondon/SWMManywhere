@@ -1,7 +1,8 @@
 # %% [markdown]
 # # Extended Demo
 # Note - this script can also be opened in interactive Python if you wanted to
-# play around. On the GitHub it is in [docs/notebooks]. To run this on your
+# play around. On the GitHub it is in [docs/notebooks](https://github.com/ImperialCollegeLondon/SWMManywhere/blob/main/docs/notebooks/extended_demo.py)
+# . To run this on your
 # local machine, you will need to install the optional dependencies for `doc`:
 #
 # `pip install swmmanywhere[doc]`
