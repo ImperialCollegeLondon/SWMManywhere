@@ -19,6 +19,11 @@ import rioxarray
 import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
+from pyarrow import RecordBatchReader
+from pyarrow.compute import field
+from pyarrow.dataset import dataset
+from pyarrow.fs import S3FileSystem
+from pyarrow.parquet import ParquetWriter
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
@@ -57,6 +62,50 @@ def get_country(x: float, y: float) -> dict[int, str]:
 
     # Return a dictionary with the two and three letter ISO codes
     return {2: iso_country_code, 3: data.get(iso_country_code, "")}
+
+
+def _record_batch_reader(bbox: tuple[float, float, float, float]) -> RecordBatchReader:
+    """Get a pyarrow batch reader this for bounding box and s3 path."""
+    s3_region = "us-west-2"
+    version = "2024-07-22.0"
+    path = f"overturemaps-{s3_region}/release/{version}/theme=buildings/type=building/"
+    xmin, ymin, xmax, ymax = bbox
+    ds_filter = (
+        (field("bbox", "xmin") < xmax)
+        & (field("bbox", "xmax") > xmin)
+        & (field("bbox", "ymin") < ymax)
+        & (field("bbox", "ymax") > ymin)
+    )
+
+    ds = dataset(path, filesystem=S3FileSystem(anonymous=True, region=s3_region))
+    batches = ds.to_batches(filter=ds_filter)
+    non_empty_batches = (b for b in batches if b.num_rows > 0)
+
+    geoarrow_schema = ds.schema.set(
+        ds.schema.get_field_index("geometry"),
+        ds.schema.field("geometry").with_metadata(
+            {b"ARROW:extension:name": b"geoarrow.wkb"}
+        ),
+    )
+    return RecordBatchReader.from_batches(geoarrow_schema, non_empty_batches)
+
+
+def download_buildings_bbox(
+    file_address: Path, bbox: tuple[float, float, float, float]
+):
+    """Retrieve building data in bbox from Overture Maps to file.
+
+    This function is based on
+    `overturemaps-py <https://github.com/OvertureMaps/overturemaps-py>`__.
+
+    Args:
+        bbox (tuple): Bounding box coordinates (xmin, ymin, xmax, ymax)
+        file_address (Path): File address to save the downloaded data.
+    """
+    reader = _record_batch_reader(bbox)
+    with ParquetWriter(file_address, reader.schema) as writer:
+        for batch in reader:
+            writer.write_batch(batch)
 
 
 def download_buildings(file_address: Path, x: float, y: float) -> int:
