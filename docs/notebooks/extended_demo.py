@@ -183,7 +183,7 @@ plot_map(model_dir)
 # looking sensible, though we can definitely some areas that have been hampered
 # by our starting street graph (e.g., in the Western portion of *Carrer del Sant Andreu*
 # in North West we can see negative flows meaning the direction is different from
-# what the topology derivation assumed flow would be going in!). 
+# what the topology derivation assumed flow would be going in!).
 # The first suggestion here would be to examine the starting graph,
 # however, if you want to
 # make more sophisticated customisations then your probably want to learn about
