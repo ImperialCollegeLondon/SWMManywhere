@@ -14,7 +14,7 @@ Python version). Label the issue with `bug`.
 Our intention with `SWMManywhere` is that a high level of customisation to suit
 your needs may be achieved by adding new `graphfcns` or new `metrics`, see
 below. Other new behaviour may be tagged with `enhancement`, though please
-check existing issues (insert link when published)
+check [existing issues](https://github.com/ImperialCollegeLondon/SWMManywhere/issues)
 to see if something similar already exists.
 
 ### Take a graph give a graph: `graphfcns`
