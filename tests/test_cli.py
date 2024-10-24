@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 from swmmanywhere import __main__
-from swmmanywhere.logging import logger, set_verbose
+from swmmanywhere.logging import logger
 
 
 def test_swmmanywhere_cli():
