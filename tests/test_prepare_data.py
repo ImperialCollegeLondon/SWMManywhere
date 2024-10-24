@@ -80,7 +80,7 @@ def test_building_bbox_downloader_download():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.parquet"
         # Download
-        response = downloaders.download_buildings_bbox(temp_fid, bbox)
+        downloaders.download_buildings_bbox(temp_fid, bbox)
 
         # Check file exists
         assert temp_fid.exists(), "Buildings data file not found after download."
