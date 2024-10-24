@@ -9,12 +9,15 @@ from pathlib import Path
 import yaml
 
 from swmmanywhere import __main__
+from swmmanywhere.logging import logger, set_verbose
 
 
-def test_swmmanywhere_cli(capsys):
+def test_swmmanywhere_cli():
     """Test that the CLI can successfully run with an actual configuration."""
+    
     with tempfile.TemporaryDirectory() as tempdir:
         base_dir = Path(tempdir)
+
         # Define minimum viable config
         config = {
             "base_dir": str(base_dir),
@@ -35,10 +38,16 @@ def test_swmmanywhere_cli(capsys):
             "True",
         ]
 
-        # Run the CLI entry point
-        __main__.run()
+        expected = b"No real network provided, returning SWMM .inp file."
 
-        # Capture the output
-        captured = capsys.readouterr()
-        expected = "No real network provided, returning SWMM .inp file."
-        assert expected in captured.out
+        with tempfile.NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+            fid = Path(temp_file.name)
+            logger.add(fid)
+
+            # Run the CLI entry point
+            __main__.run()
+
+            # Capture the output    
+            assert expected in temp_file.read()
+            logger.remove()
+        
