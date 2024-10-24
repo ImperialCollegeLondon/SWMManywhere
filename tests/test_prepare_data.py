@@ -72,6 +72,24 @@ def test_building_downloader_download():
         # Make sure has some rows
         assert gdf.shape[0] > 0
 
+@pytest.mark.downloads
+def test_building_bbox_downloader_download():
+    """Check buildings are downloaded."""
+    # Coordinates for small country (VAT)
+    bbox = (-0.17929, 51.49638, -0.17383, 51.49846)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_fid = Path(temp_dir) / "temp.parquet"
+        # Download
+        response = downloaders.download_buildings_bbox(temp_fid, bbox)
+
+        # Check file exists
+        assert temp_fid.exists(), "Buildings data file not found after download."
+
+        # Load data
+        gdf = gpd.read_parquet(temp_fid)
+
+        # Make sure has some rows
+        assert gdf.shape[0] > 0
 
 @pytest.mark.downloads
 def test_street_downloader_download():
