@@ -78,23 +78,14 @@ def prepare_elevation(
 def prepare_building(
     bbox: tuple[float, float, float, float], addresses: FilePaths, target_crs: str
 ):
-    """Download, trim and reproject building data."""
+    """Download and reproject building data."""
     if addresses.bbox_paths.building.exists():
         return
 
-    if not addresses.project_paths.national_building.exists():
-        logger.info(
-            f"""downloading buildings to 
-                    {addresses.project_paths.national_building}"""
-        )
-        prepare_data.download_buildings(
-            addresses.project_paths.national_building, bbox[0], bbox[1]
-        )
+    logger.info(f"downloading buildings to {addresses.bbox_paths.building}")
+    prepare_data.download_buildings_bbox(addresses.bbox_paths.building, bbox)
 
-    logger.info(f"trimming buildings to {addresses.bbox_paths.building}")
-    national_buildings = gpd.read_parquet(addresses.project_paths.national_building)
-    buildings = national_buildings.cx[bbox[0] : bbox[2], bbox[1] : bbox[3]]  # type: ignore
-
+    buildings = gpd.read_parquet(addresses.bbox_paths.building)
     buildings = buildings.to_crs(target_crs)
     write_df(buildings, addresses.bbox_paths.building)
 
