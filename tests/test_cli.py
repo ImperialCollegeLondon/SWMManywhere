@@ -14,7 +14,6 @@ from swmmanywhere.logging import logger
 
 def test_swmmanywhere_cli():
     """Test that the CLI can successfully run with an actual configuration."""
-    
     with tempfile.TemporaryDirectory() as tempdir:
         base_dir = Path(tempdir)
 
@@ -40,14 +39,15 @@ def test_swmmanywhere_cli():
 
         expected = b"No real network provided, returning SWMM .inp file."
 
-        with tempfile.NamedTemporaryFile(suffix=".log", mode="w+b", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            suffix=".log", mode="w+b", delete=False
+        ) as temp_file:
             fid = Path(temp_file.name)
             logger.add(fid)
 
             # Run the CLI entry point
             __main__.run()
 
-            # Capture the output    
+            # Capture the output
             assert expected in temp_file.read()
             logger.remove()
-        
