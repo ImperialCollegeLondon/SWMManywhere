@@ -72,6 +72,7 @@ def test_building_downloader_download():
         # Make sure has some rows
         assert gdf.shape[0] > 0
 
+
 @pytest.mark.downloads
 def test_building_bbox_downloader_download():
     """Check buildings are downloaded."""
@@ -90,6 +91,7 @@ def test_building_bbox_downloader_download():
 
         # Make sure has some rows
         assert gdf.shape[0] > 0
+
 
 @pytest.mark.downloads
 def test_street_downloader_download():
