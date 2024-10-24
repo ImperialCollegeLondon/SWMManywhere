@@ -20,7 +20,7 @@ repos:
     rev: v0.42.0
     hooks:
       - id: markdownlint
-        args: ["--disable", "MD013", "--"]
+        args: ["--disable", "MD013", "--disable", "MD025", "--"]
         
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
