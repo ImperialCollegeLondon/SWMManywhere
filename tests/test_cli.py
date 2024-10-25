@@ -12,10 +12,8 @@ from swmmanywhere import __main__
 from swmmanywhere.logging import logger
 
 
-def test_swmmanywhere_cli():
+def test_swmmanywhere_cli(tmp_path):
     """Test that the CLI can successfully run with an actual configuration."""
-    with tempfile.TemporaryDirectory() as tempdir:
-        base_dir = Path(tempdir)
 
         # Define minimum viable config
         config = {
