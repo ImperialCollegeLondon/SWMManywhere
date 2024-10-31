@@ -10,6 +10,8 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/ci_template.yml
+    secrets:
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}
     with:
       os: '["ubuntu-latest", "windows-latest", "macos-latest"]'
       python-version: '["3.10", "3.11", "3.12"]'
