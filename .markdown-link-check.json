@@ -1,7 +1,7 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^docs/paper/paper.pdf"
+      "pattern": "^paper.pdf"
     }
   ]
 }
