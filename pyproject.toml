@@ -113,7 +113,7 @@ lint.isort.required-imports = [ "from __future__ import annotations" ]
 lint.pydocstyle.convention = "google"
 
 [tool.codespell]
-skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
+skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*"
 ignore-words-list = "gage,gages,Carrer"
 
 [tool.pytest.ini_options]
