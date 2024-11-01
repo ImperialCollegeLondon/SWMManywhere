@@ -54,7 +54,7 @@ def save_graph(G: nx.Graph, fid: Path) -> None:
         G (nx.Graph): A graph
         fid (Path): The path to the file
     """
-    json_data = nx.node_link_data(G)
+    json_data = nx.node_link_data(G, edges="edges")
 
     with fid.open("w") as file:
         json.dump(json_data, file, default=_serialize_line_string)
