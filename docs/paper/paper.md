@@ -38,7 +38,7 @@ SWMManywhere is an open-source Python package designed for the global synthesis 
 
 A variety of datasets were selected to enable SWMManywhere to be applied globally, \autoref{table:table1}.
 
-: SWMManywhere data source. \label{table:table1}
+: SWMManywhere data sources. \label{table:table1}
 
 | Data Source | Description | Reference |
 |-------------|-------------| --------- |
@@ -46,7 +46,7 @@ A variety of datasets were selected to enable SWMManywhere to be applied globall
 | **Google-Microsoft Open Buildings** | A dataset of global building footprints, used for estimating impervious surfaces essential for runoff calculations. | [@VIDA2023] |
 | **NASADEM** | Provides 30m resolution global digital elevation model (DEM) data to support sub-catchment delineation and slope calculation. | [@Crippen2016] |
 
-These datasets are global in their coverage, and we consider them of sufficient quality in locations that we have tested [@Dobson24-dv], however, we urge users to check data in their specific case study.
+These datasets are global in their coverage, and we consider them of sufficient quality in locations that we have tested [@Dobson2024-dv], however, we urge users to check data in their specific case study.
 
 ### Approach and customisation
 
@@ -54,7 +54,7 @@ The core task in SWMManywhere is to begin with a 'starting graph' (e.g., an OSM 
 
 We visualise the example from the [extended demonstration](https://imperialcollegelondon.github.io/SWMManywhere/notebooks/extended_demo/) in the documentation to illustrate how changing relatively few parameter values in a strategic way can dramatically change the nature of the synthesised network \autoref{fig:fig1}.
 
-![Figure 1: Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.png)
+![Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.png)
 
 ## Outlook
 

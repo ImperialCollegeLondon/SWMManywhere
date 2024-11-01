@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -54,7 +55,9 @@ def save_graph(G: nx.Graph, fid: Path) -> None:
         G (nx.Graph): A graph
         fid (Path): The path to the file
     """
-    json_data = nx.node_link_data(G, edges="links")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        json_data = nx.node_link_data(G)
 
     with fid.open("w") as file:
         json.dump(json_data, file, default=_serialize_line_string)
