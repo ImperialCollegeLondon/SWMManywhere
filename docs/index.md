@@ -6,7 +6,7 @@ derive a synthetic urban drainage network anywhere in the world.
 ## Table of contents
 <!-- markdownlint-disable MD007 -->
 - [Home](index.md)
-- [About](./paper/paper.md)
+- [About](./paper/paper.pdf)
 - [Quickstart](quickstart.md)
 - Guides:
     - [Configuration file](config_guide.md)
