@@ -8,16 +8,13 @@ tags:
   - swmm
   - hydraulic-modelling
 authors:
-  - family-names: "Dobson"
-    given-names: "Barnaby"
+  - name: "Barnaby Dobson"
     orcid: "https://orcid.org/0000-0002-0149-4124"
     affiliation: 1
-  - family-names: "Alonso-Álvarez"
-    given-names: "Diego"
+  - name: "Diego Alonso-Álvarez"
     orcid: "https://orcid.org/0000-0002-0060-9495"
     affiliation: 1
-  - family-names: "Chegini"
-    given-names: "Taher"
+  - name: "Taher Chegini"
     orcid: "https://orcid.org/0000-0002-5430-6000"
     affiliation: 2
 affiliations:
@@ -27,7 +24,6 @@ affiliations:
    index: 2
 date: 16 October 2024
 bibliography: paper.bib
-
 ---
 
 ## Summary
@@ -58,7 +54,7 @@ The core task in SWMManywhere is to begin with a 'starting graph' (e.g., an OSM 
 
 We visualise the example from the [extended demonstration](https://imperialcollegelondon.github.io/SWMManywhere/notebooks/extended_demo/) in the documentation to illustrate how changing relatively few parameter values in a strategic way can dramatically change the nature of the synthesised network \autoref{fig:fig1}.
 
-![Figure 1: Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.svg)
+![Figure 1: Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.png)
 
 ## Outlook
 
