@@ -153,6 +153,7 @@ def test_download_precipitation():
     assert "precipitation_amount_1hour_Accumulation" in df.columns
     assert df["precipitation_amount_1hour_Accumulation"].max() > 0
 
+
 @pytest.fixture
 def setup_mocks():
     """Set up get_country mock for the tests."""
