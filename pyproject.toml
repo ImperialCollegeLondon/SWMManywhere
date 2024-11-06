@@ -83,7 +83,6 @@ optional-dependencies.doc = [
   "mkdocs-material",
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
-  "pandoc",
   "pypandoc",
 ]
 urls.Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"

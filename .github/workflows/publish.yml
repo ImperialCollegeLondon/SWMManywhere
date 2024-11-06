@@ -8,6 +8,24 @@ permissions:
   id-token: write
 
 jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+        pip install .[doc]
+        python -c "import pypandoc; pypandoc.download_pandoc()"
+
+      - name: Test Docs
+        run: mkdocs build
+
   test:
     uses: ./.github/workflows/ci_template.yml
     secrets:
@@ -106,7 +124,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install .[doc]
+        run: |
+        pip install .[doc]
+        python -c "import pypandoc; pypandoc.download_pandoc()"
 
       - name: Deploy Docs
         run: mkdocs gh-deploy --force
