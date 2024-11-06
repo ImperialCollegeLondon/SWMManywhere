@@ -23,6 +23,7 @@ from pyarrow.compute import field
 from pyarrow.dataset import dataset
 from pyarrow.fs import S3FileSystem
 from pyarrow.parquet import ParquetWriter
+from tqdm.auto import tqdm
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
@@ -236,9 +237,11 @@ def download_precipitation(
 ) -> pd.DataFrame:
     """Download precipitation data within bbox from ERA5.
 
-    Register for an account and API key at: https://cds.climate.copernicus.eu.
-    Produces hourly gridded data (31km grid) in CRS EPSG:4326.
-    More information at: https://github.com/ecmwf/cdsapi.
+    Use Planetary Computer to download ERA5 precipitation data to find
+    the nearest grid point to the specified bounding box an download the
+    hourly timeseries for that point. Based on example in:
+    https://planetarycomputer.microsoft.com/dataset/era5-pds#Example-Notebook
+
 
     Args:
         bbox (tuple): Bounding box coordinates in the format
@@ -249,16 +252,24 @@ def download_precipitation(
     Returns:
         df (DataFrame): DataFrame containing downloaded data.
     """
+    yearmonths = pd.date_range(start_date, end_date, freq="MS").strftime("%Y-%m")
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
-    search = catalog.search(
-        collections=["era5-pds"],
-    )
-    items = search.get_all_items()
     datasets = []
-    for item in items:
+    for yearmonth in tqdm(yearmonths):
+        search = catalog.search(
+            collections=["era5-pds"],
+            query={
+                "era5:kind": {
+                    "eq": "fc",
+                }
+            },
+            datetime=yearmonth,
+        )
+        item = list(search.get_all_items())[0]
+
         signed_item = planetary_computer.sign(item)
         asset = signed_item.assets["precipitation_amount_1hour_Accumulation"]
         fields = asset.extra_fields["xarray:open_kwargs"]
@@ -266,8 +277,7 @@ def download_precipitation(
         del fields["chunks"]
         df = (
             xr.open_dataset(asset.href, **fields)
-            .sel(bbox[1], bbox[0], method="nearest")
-            .sel(time=slice(start_date, end_date))
+            .sel(lat=bbox[1], lon=bbox[0], method="nearest")
             .to_dataframe()
         )
         datasets.append(df)
