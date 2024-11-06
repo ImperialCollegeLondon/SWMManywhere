@@ -34,11 +34,11 @@ Urban drainage network models (UDMs) are useful for a variety of purposes, most 
 
 A variety of literature exists to derive UDMs from GIS data, producing hydraulically feasible models that closely approximate real-world systems [@Blumensaat2012-hd;@Chahinian2019-lg;@Reyes-Silva2022-pr;@Chegini2022-oo]. We identify some key limitations of these approaches, most notably the lack of automatic data acquisition and preprocessing, that all approaches are closed-source to date, and that a key feature of such an approach should be to facilitate extension and customisation.
 
-SWMManywhere is an open-source Python package designed for the global synthesis of urban drainage networks. SWMManywhere integrates publicly available geospatial data and automates data acquisition and preprocessing, reducing the technical burden on users.
+SWMManywhere is an open-source Python package designed for the global synthesis of urban drainage networks. SWMManywhere integrates publicly available geospatial data and automates data acquisition and preprocessing, reducing the technical burden on users. Designed for both researchers and practitioners in urban water management, SWMManywhere responds to the limitations of existing methods by providing an end-to-end, open-source, and customisable solution.
 
 ## Features
 
-SWMManywhere includes a variety of key features aimed to improve useability and usefulness. A command line interface (CLI) offers a flexible workflow, providing an accessible entry point to using and customising synthesis. Its parameterized design enables detailed sensitivity analyses, allowing users to understand and manage uncertainties inherent in urban drainage modelling [@Dobson2024-dv]. By emphasizing user control, SWMManywhere allows tuning of outputs with parameters to meet local requirements, making it adaptable to a wide range of scenarios. Designed for both researchers and practitioners in urban water management, SWMManywhere responds to the limitations of existing methods by providing an end-to-end, open-source, and customisable solution.
+SWMManywhere includes a variety of key features aimed to improve useability and usefulness. A command line interface (CLI) offers a flexible workflow, providing an accessible entry point to using and customising synthesis. Its parameterized design enables detailed sensitivity analyses, allowing users to understand and manage uncertainties inherent in urban drainage modelling [@Dobson2024-dv]. By emphasizing user control, SWMManywhere allows tuning of outputs with parameters to meet local requirements, making it adaptable to a wide range of scenarios. We provide further details on the data and general approach below.
 
 ### Data
 
@@ -64,7 +64,7 @@ We visualise the example from the [extended demonstration](https://imperialcolle
 
 ## Outlook
 
-While we believe that SWMManywhere is a useful tool it has a variety of current limitations that present an exciting outlook for future research. A variety of improvements to the overall realism of the approach may be made in the future. For example,
+While we believe that SWMManywhere is a useful tool it has a variety of current limitations that present an exciting outlook for future research. Key improvements to the overall realism of the approach may be made in the future, in particular,
 
 - Foremost, based on the findings of a sensitivity analysis [@Dobson2024-dv], better identification of manhole locations and outfalls will be critical to narrowing uncertainty in simulation outputs and improving realism.
 - Capturing the gradual evolution of a network over time is known to be important in UDM synthesis [@Rauch2017-jz], and further illustrated by SWMManywhere results [@Dobson2024-dv]. We do not know of a global database that provides the information that would be necessary to capture this, but it may exist in the future or for local applications.
