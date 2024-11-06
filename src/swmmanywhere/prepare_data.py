@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
-import cdsapi
 import networkx as nx
 import osmnx as ox
 import pandas as pd
@@ -265,7 +264,12 @@ def download_precipitation(
         fields = asset.extra_fields["xarray:open_kwargs"]
         fields["engine"] = "zarr"
         del fields["chunks"]
-        df = xr.open_dataset(asset.href, **fields).sel(bbox[1],bbox[0],method="nearest").sel(time=slice(start_date, end_date)).to_dataframe()
+        df = (
+            xr.open_dataset(asset.href, **fields)
+            .sel(bbox[1], bbox[0], method="nearest")
+            .sel(time=slice(start_date, end_date))
+            .to_dataframe()
+        )
         datasets.append(df)
 
     df = pd.concat(datasets)
