@@ -234,8 +234,6 @@ def download_precipitation(
     bbox: tuple[float, float, float, float],
     start_date: str = "2015-01-01",
     end_date: str = "2015-01-05",
-    username: str = "<your_username>",
-    api_key: str = "<your_api_key>",
 ) -> pd.DataFrame:
     """Download precipitation data within bbox from ERA5.
 
@@ -248,38 +246,28 @@ def download_precipitation(
             (minx, miny, maxx, maxy).
         start_date (str, optional): Start date. Defaults to '2015-01-01'.
         end_date (str, optional): End date. Defaults to '2015-01-05'.
-        username (str, optional): CDS api username.
-            Defaults to '<your_username>'.
-        api_key (str, optional): CDS api key. Defaults to '<your_api_key>'.
 
     Returns:
         df (DataFrame): DataFrame containing downloaded data.
     """
-    # Notes for docstring:
-    # looks like api will give nearest point if not in bbox
-
-    # Define the request parameters
-    request = {
-        "product_type": "reanalysis",
-        "format": "netcdf",
-        "variable": "total_precipitation",
-        "date": "/".join([start_date, end_date]),
-        "time": "/".join([f"{str(x).zfill(2)}:00" for x in range(24)]),
-        "area": bbox,
-    }
-
-    c = cdsapi.Client(
-        url="https://cds.climate.copernicus.eu/api/v2", key=f"{username}:{api_key}"
+    catalog = pystac_client.Client.open(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        modifier=planetary_computer.sign_inplace,
     )
-    # Get data
-    c.retrieve("reanalysis-era5-single-levels", request, "download.nc")
+    search = catalog.search(
+        collections=["era5-pds"],
+    )
+    items = search.get_all_items()
+    datasets = []
+    for item in items:
+        signed_item = planetary_computer.sign(item)
+        asset = signed_item.assets["precipitation_amount_1hour_Accumulation"]
+        fields = asset.extra_fields["xarray:open_kwargs"]
+        fields["engine"] = "zarr"
+        del fields["chunks"]
+        df = xr.open_dataset(asset.href, **fields).sel(bbox[1],bbox[0],method="nearest").sel(time=slice(start_date, end_date)).to_dataframe()
+        datasets.append(df)
 
-    with xr.open_dataset("download.nc") as data:
-        # Convert the xarray Dataset to a pandas DataFrame
-        df = data.to_dataframe()
-        df["unit"] = "m/hr"
-
-    # Delete nc file
-    Path("download.nc").unlink()
+    df = pd.concat(datasets)
 
     return df
