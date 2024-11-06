@@ -20,8 +20,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-        pip install .[doc]
-        python -c "import pypandoc; pypandoc.download_pandoc()"
+          pip install .[doc]
+          python -c "import pypandoc; pypandoc.download_pandoc()"
 
       - name: Test Docs
         run: mkdocs build
@@ -125,8 +125,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-        pip install .[doc]
-        python -c "import pypandoc; pypandoc.download_pandoc()"
+          pip install .[doc]
+          python -c "import pypandoc; pypandoc.download_pandoc()"
 
       - name: Deploy Docs
         run: mkdocs gh-deploy --force
