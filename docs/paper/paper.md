@@ -32,9 +32,9 @@ Urban drainage network models (UDMs) are useful for a variety of purposes, most 
 
 ## Statement of need
 
-A variety of literature exists to derive UDMs from GIS data, producing hydraulically feasible models that closely approximate real-world systems [@Blumensaat2012-hd;@Chahinian2019-lg;@Reyes-Silva2022-pr;@Chegini2022-oo]. We identify some key limitations of these approaches, most notably the lack of automatic data acquisition and preprocessing, that all approaches are closed-source to date, and that a key feature of such an approach should be to facilitate extension and customisation. 
+A variety of literature exists to derive UDMs from GIS data, producing hydraulically feasible models that closely approximate real-world systems [@Blumensaat2012-hd;@Chahinian2019-lg;@Reyes-Silva2022-pr;@Chegini2022-oo]. We identify some key limitations of these approaches, most notably the lack of automatic data acquisition and preprocessing, that all approaches are closed-source to date, and that a key feature of such an approach should be to facilitate extension and customisation.
 
-SWMManywhere is an open-source Python package designed for the global synthesis of urban drainage networks. SWMManywhere integrates publicly available geospatial data and automates data acquisition and preprocessing, reducing the technical burden on users. 
+SWMManywhere is an open-source Python package designed for the global synthesis of urban drainage networks. SWMManywhere integrates publicly available geospatial data and automates data acquisition and preprocessing, reducing the technical burden on users.
 
 ## Features
 
