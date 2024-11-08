@@ -9,13 +9,13 @@ tags:
   - hydraulic-modelling
 authors:
   - name: "Barnaby Dobson"
-    orcid: "https://orcid.org/0000-0002-0149-4124"
+    orcid: "0000-0002-0149-4124"
     affiliation: 1
   - name: "Diego Alonso-Álvarez"
-    orcid: "https://orcid.org/0000-0002-0060-9495"
+    orcid: "0000-0002-0060-9495"
     affiliation: 1
   - name: "Taher Chegini"
-    orcid: "https://orcid.org/0000-0002-5430-6000"
+    orcid: "0000-0002-5430-6000"
     affiliation: 2
 affiliations:
  - name: Imperial College London, UK
