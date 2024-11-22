@@ -77,11 +77,15 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.doc = [
   "mkdocs",
+  "mkdocs-autorefs",
+  "mkdocs-bibtex",
+  "mkdocs-coverage",
   "mkdocs-include-markdown-plugin",
   "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-material-extensions",
   "mkdocstrings[python]",
+  "pypandoc",
 ]
 urls.Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
 urls.Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
@@ -111,7 +115,7 @@ lint.isort.required-imports = [ "from __future__ import annotations" ]
 lint.pydocstyle.convention = "google"
 
 [tool.codespell]
-skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp"
+skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*"
 ignore-words-list = "gage,gages,Carrer"
 
 [tool.pytest.ini_options]

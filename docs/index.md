@@ -6,6 +6,7 @@ derive a synthetic urban drainage network anywhere in the world.
 ## Table of contents
 <!-- markdownlint-disable MD007 -->
 - [Home](index.md)
+- [About](./paper/paper.pdf)
 - [Quickstart](quickstart.md)
 - Guides:
     - [Configuration file](config_guide.md)
@@ -24,4 +25,5 @@ derive a synthetic urban drainage network anywhere in the world.
     - [Post processing](reference-post-processing.md)
     - [Preprocessing](reference-preprocessing.md)
     - [Config](reference-defs.md)
-<!---  - [Coverage report](coverage.md)--->
+- [Coverage report](https://app.codecov.io/gh/ImperialCollegeLondon/SWMManywhere)
+<!---  --->

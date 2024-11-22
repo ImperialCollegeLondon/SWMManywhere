@@ -8,6 +8,24 @@ permissions:
   id-token: write
 
 jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install .[doc]
+          python -c "import pypandoc; pypandoc.download_pandoc()"
+
+      - name: Test Docs
+        run: mkdocs build
+
   test:
     uses: ./.github/workflows/ci_template.yml
     secrets:
@@ -73,9 +91,29 @@ jobs:
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
 
+  paper:
+    runs-on: ubuntu-latest
+    needs: publish-PyPI
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build draft PDF
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          # This should be the path to the paper within your repo.
+          paper-path: docs/paper/paper.md
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          # This is the output path where Pandoc will write the compiled
+          # PDF. Note, this should be the same directory as the input
+          # paper.md
+          path: docs/paper/paper.pdf
 
   publish-docs:
-    needs: publish-PyPI
+    needs: paper
     runs-on: ubuntu-latest
 
     steps:
@@ -86,7 +124,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install .[doc]
+        run: |
+          pip install .[doc]
+          python -c "import pypandoc; pypandoc.download_pandoc()"
 
       - name: Deploy Docs
         run: mkdocs gh-deploy --force
