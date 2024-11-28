@@ -6,6 +6,7 @@ A module to download data needed for SWMManywhere.
 from __future__ import annotations
 
 from pathlib import Path
+from packaging.version import Version
 from typing import cast
 
 import cdsapi
@@ -153,8 +154,9 @@ def download_street(
         nx.MultiDiGraph: Street network with type drive and
             ``truncate_by_edge set`` to True.
     """
-    west, south, east, north = bbox
-    bbox = (north, south, east, west)  # not sure why osmnx uses this order
+    if Version(ox.__version__) < Version("2.0.0b1"):
+            west, south, east, north = bbox
+            bbox = (north, south, east, west)
     graph = ox.graph_from_bbox(
         bbox=bbox, network_type=network_type, truncate_by_edge=True
     )
@@ -172,10 +174,12 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
         nx.MultiDiGraph: River network with type waterway and
             ``truncate_by_edge set`` to True.
     """
-    west, south, east, north = bbox
     try:
+        if Version(ox.__version__) < Version("2.0.0"):
+            west, south, east, north = bbox
+            bbox = (north, south, east, west)
         graph = ox.graph_from_bbox(
-            bbox=(north, south, east, west),
+            bbox=bbox,
             truncate_by_edge=True,
             custom_filter='["waterway"]',
             retain_all=True,
