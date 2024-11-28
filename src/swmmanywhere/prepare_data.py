@@ -175,7 +175,7 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             ``truncate_by_edge set`` to True.
     """
     try:
-        if Version(ox.__version__) < Version("2.0.0"):
+        if Version(ox.__version__) < Version("2.0.0b1"):
             west, south, east, north = bbox
             bbox = (north, south, east, west)
         graph = ox.graph_from_bbox(
