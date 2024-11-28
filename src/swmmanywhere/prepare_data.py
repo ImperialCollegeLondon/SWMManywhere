@@ -6,7 +6,6 @@ A module to download data needed for SWMManywhere.
 from __future__ import annotations
 
 from pathlib import Path
-from packaging.version import Version
 from typing import cast
 
 import cdsapi
@@ -20,6 +19,7 @@ import rioxarray
 import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
+from packaging.version import Version
 from pyarrow import RecordBatchReader
 from pyarrow.compute import field
 from pyarrow.dataset import dataset
@@ -155,8 +155,8 @@ def download_street(
             ``truncate_by_edge set`` to True.
     """
     if Version(ox.__version__) < Version("2.0.0b1"):
-            west, south, east, north = bbox
-            bbox = (north, south, east, west)
+        west, south, east, north = bbox
+        bbox = (north, south, east, west)
     graph = ox.graph_from_bbox(
         bbox=bbox, network_type=network_type, truncate_by_edge=True
     )
