@@ -56,5 +56,5 @@ jobs:
       run: pip install -e .[dev,doc]
 
     - name: Run extended demo
-      run: python -m ./docs/notebooks/extended_demo.py
+      run: python ./docs/notebooks/extended_demo.py
 
