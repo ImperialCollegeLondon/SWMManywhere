@@ -42,3 +42,19 @@ jobs:
         fail_ci_if_error: true
         token: ${{ secrets.codecov_token }}
         verbose: true
+
+  extended_demo:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -e .[dev,doc]
+
+    - name: Run extended demo
+      run: python -m ./docs/notebooks/extended_demo.py
+
