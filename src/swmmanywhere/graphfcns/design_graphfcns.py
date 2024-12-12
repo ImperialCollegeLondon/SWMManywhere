@@ -153,7 +153,7 @@ def process_successors(
     """
     anc = nx.ancestors(G, node).union([node])
     tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
-    
+
     for ix, ds_node in enumerate(G.successors(node)):
         edge = G.get_edge_data(node, ds_node, 0)
         # Find contributing area with ancestors
