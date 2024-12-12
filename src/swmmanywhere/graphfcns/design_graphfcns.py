@@ -153,14 +153,15 @@ def process_successors(
     """
     anc = nx.ancestors(G, node).union([node])
     tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
+    M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
+    Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
     
     for ix, ds_node in enumerate(G.successors(node)):
         edge = G.get_edge_data(node, ds_node, 0)
         # Find contributing area with ancestors
         # TODO - could do timearea here if i hated myself enough
 
-        M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
-        Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
+        
 
         # Design the pipe to find the diameter and invert depth
         diam, depth = design_pipe(
