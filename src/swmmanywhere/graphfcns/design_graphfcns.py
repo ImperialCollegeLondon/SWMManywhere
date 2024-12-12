@@ -151,12 +151,13 @@ def process_successors(
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
+    anc = nx.ancestors(G, node).union([node])
+    tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
+    
     for ix, ds_node in enumerate(G.successors(node)):
         edge = G.get_edge_data(node, ds_node, 0)
         # Find contributing area with ancestors
         # TODO - could do timearea here if i hated myself enough
-        anc = nx.ancestors(G, node).union([node])
-        tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
 
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
         Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
