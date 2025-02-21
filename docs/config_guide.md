@@ -52,7 +52,7 @@ parameter_overrides:
 Note that we must provide the parameter category for the parameter that we are
 changing (`subcatchment_derivation` above).
 
-As our SWMManywhere paper [link preprint](https://doi.org/10.31223/X5GT5X) demonstrates, you can capture an enormously wide range of UDM behaviours through changing parameters. However, if your system is particularly unusual, or you are testing out new behaviours then you may need to adopt a more elaborate approach.
+As our SWMManywhere paper [link preprint](https://doi.org/10.1016/j.envsoft.2025.106358) demonstrates, you can capture an enormously wide range of UDM behaviours through changing parameters. However, if your system is particularly unusual, or you are testing out new behaviours then you may need to adopt a more elaborate approach.
 
 ### Customise `graphfcns`
 
