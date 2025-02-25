@@ -11,6 +11,27 @@ authors:
     given-names: "Taher"
     orcid: "https://orcid.org/0000-0002-5430-6000"
 title: "SWMManywhere"
-doi: 10.5281/zenodo.13837741
+doi: "10.5281/zenodo.13837741"
 version: 0.1.4
 date-released: 2024-09-25
+preferred-citation:
+  type: article
+  title: "SWMManywhere: A Workflow for Generation and Sensitivity Analysis of Synthetic Urban Drainage Models, Anywhere"
+  doi: "10.1016/j.envsoft.2025.106358"
+  year: 2025
+  pages: 106358
+  journal: "Environmental Modelling & Software"
+  publisher: "Elsevier"
+  url: https://doi.org/10.1016/j.envsoft.2025.106358
+  authors:
+  - family-names: "Dobson"
+    given-names: "Barnaby"
+    orcid: "https://orcid.org/0000-0002-0149-4124"
+  - family-names: "Jovanovic"
+    given-names: "Tijana"
+  - family-names: "Alonso-Álvarez"
+    given-names: "Diego"
+    orcid: "https://orcid.org/0000-0002-0060-9495"
+  - family-names: "Chegini"
+    given-names: "Taher"
+    orcid: "https://orcid.org/0000-0002-5430-6000"
