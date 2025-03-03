@@ -28,7 +28,7 @@ bibliography: paper.bib
 
 ## Summary
 
-Urban drainage network models (UDMs) are useful for a variety of purposes, most notably simulating and alleviating pluvial flooding. Despite the clear usefulness of UDMs, they are often not used owing to the difficulty and expense of creating them. This creates a significant gap for users attempting to generate UDMs if they are not able to perform an expensive underground survey.
+Urban drainage network models (UDMs) contain pipe and manhole information for drainage networks in urban areas. When driven by precipitation timeseries data, they can be used to simulate the flow of water through the network, which is useful for a variety of purposes, most notably simulating and alleviating pluvial flooding. Despite the clear usefulness of UDMs, they are often not used owing to the difficulty and expense of creating them. This creates a significant gap for users attempting to generate UDMs if they are not able to perform an expensive underground survey.
 
 ## Statement of need
 
