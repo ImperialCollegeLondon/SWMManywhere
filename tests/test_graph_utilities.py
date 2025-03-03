@@ -709,11 +709,11 @@ def test_clip_to_catchments(street_network):
 
         # Test default clipping streamorder
         subcatchment_derivation = parameters.SubcatchmentDerivation()
-        subcatchment_derivation.subbasin_streamorder = 4
+        subcatchment_derivation.subbasin_streamorder = 2
         G_ = gu.clip_to_catchments(
             G, addresses=addresses, subcatchment_derivation=subcatchment_derivation
         )
-        assert len(G_.edges) == 2
+        assert len(G_.edges) == 3
 
         # Test clipping
         subcatchment_derivation = parameters.SubcatchmentDerivation(
