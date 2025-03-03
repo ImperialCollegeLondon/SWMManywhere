@@ -697,6 +697,7 @@ def test_clip_to_catchments(street_network):
             project_name="test",
             extension="json",
             nodes=temp_path / "nodes.geojson",
+            edges=temp_path / "edges.geojson",
             elevation=Path(__file__).parent / "test_data" / "elevation.tif",
         )
 
@@ -724,7 +725,7 @@ def test_clip_to_catchments(street_network):
         G_ = gu.clip_to_catchments(
             G, addresses=addresses, subcatchment_derivation=subcatchment_derivation
         )
-        assert len(G_.edges) == 31
+        assert len(G_.edges) == 30
 
         # Test clipping with different params
         subcatchment_derivation = parameters.SubcatchmentDerivation(
@@ -735,7 +736,7 @@ def test_clip_to_catchments(street_network):
         G_ = gu.clip_to_catchments(
             G, addresses=addresses, subcatchment_derivation=subcatchment_derivation
         )
-        assert len(G_.edges) == 38
+        assert len(G_.edges) == 34
 
         # Test no cuts
         subcatchment_derivation = parameters.SubcatchmentDerivation(
@@ -757,7 +758,7 @@ def test_clip_to_catchments(street_network):
         G_ = gu.clip_to_catchments(
             G, addresses=addresses, subcatchment_derivation=subcatchment_derivation
         )
-        assert len(G_.edges) == 28
+        assert len(G_.edges) == 30
 
         # Check streamorder adjustment
         with tempfile.NamedTemporaryFile(
