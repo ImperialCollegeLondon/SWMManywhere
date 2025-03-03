@@ -32,7 +32,7 @@ Urban drainage network models (UDMs) contain pipe and manhole information for dr
 
 ## Statement of need
 
-A variety of literature exists to derive UDMs from GIS data, producing hydraulically feasible models that closely approximate real-world systems [@Blumensaat2012-hd;@Chahinian2019-lg;@Reyes-Silva2022-pr;@Chegini2022-oo]. We identify some key limitations of these approaches, most notably the lack of automatic data acquisition and preprocessing, that all approaches are closed-source to date, and that a key feature of such an approach should be to facilitate extension and customisation.
+A variety of literature exists to derive UDMs from GIS data, producing hydraulically feasible models that closely approximate real-world systems [@Blumensaat2012-hd;@Chahinian2019-lg;@Reyes-Silva2022-pr;@Chegini2022-oo]. We identify some key limitations of these approaches, most notably the lack of automatic data acquisition and preprocessing, that all approaches are closed-source to date, and that a key feature of such an approach should be to facilitate extension and customisation. An open-source approach exists for sanitary sewer systems, however it does not provide automatic data acquisition [@sanne2024pysewer].
 
 SWMManywhere is an open-source Python package designed for the global synthesis of urban drainage networks. SWMManywhere integrates publicly available geospatial data and automates data acquisition and preprocessing, reducing the technical burden on users. Designed for both researchers and practitioners in urban water management, SWMManywhere responds to the limitations of existing methods by providing an end-to-end, open-source, and customisable solution.
 
@@ -49,7 +49,7 @@ A variety of datasets were selected to enable SWMManywhere to be applied globall
 | Data Source | Description | Reference |
 |-------------|-------------| --------- |
 | **OpenStreetMap (OSM)** | Provides global street and river data, used to define potential pipe locations and outfall points for drainage networks. | [@Boeing2017;@OpenStreetMap] |
-| **Google-Microsoft Open Buildings** | A dataset of global building footprints, used for estimating impervious surfaces essential for runoff calculations. | [@OpenStreetMap-overture] |
+| **Google-Microsoft Open Buildings** | A dataset of global building footprints, used for estimating impervious surfaces essential for runoff calculations. | [@OpenStreetMap-overture;@VIDA2023] |
 | **NASADEM** | Provides 30m resolution global digital elevation model (DEM) data to support sub-catchment delineation and slope calculation. | [@Crippen2016] |
 
 These datasets are global in their coverage, and we consider them of sufficient quality in locations that we have tested [@Dobson2025], however, we urge users to check data in their specific case study.
