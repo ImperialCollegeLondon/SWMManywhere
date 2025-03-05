@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
+
+parameter_register = {}
+
+def register_parameter_group(name: str) -> Callable:
+    def wrapper(cls: BaseModel) -> BaseModel:
+        parameter_register[name] = cls()
+        return cls
+    return wrapper
 
 
 def get_full_parameters():
     """Get the full set of parameters."""
-    return {
-        "subcatchment_derivation": SubcatchmentDerivation(),
-        "outfall_derivation": OutfallDerivation(),
-        "topology_derivation": TopologyDerivation(),
-        "hydraulic_design": HydraulicDesign(),
-        "metric_evaluation": MetricEvaluation(),
-    }
+    return parameter_register
 
 
 def get_full_parameters_flat():
@@ -31,10 +35,10 @@ def get_full_parameters_flat():
 
     return parameters_flat
 
-
+@register_parameter_group(name="subcatchment_derivation")
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
-
+    
     subbasin_streamorder: int = Field(
         default=None,
         ge=1,
@@ -85,7 +89,7 @@ class SubcatchmentDerivation(BaseModel):
         description="Distance within which to merge street nodes.",
     )
 
-
+@register_parameter_group(name="outfall_derivation")
 class OutfallDerivation(BaseModel):
     """Parameters for outfall derivation."""
 
@@ -112,7 +116,7 @@ class OutfallDerivation(BaseModel):
         description="Weight to discourage street drainage into river buffers.",
     )
 
-
+@register_parameter_group(name="topology_derivation")
 class TopologyDerivation(BaseModel):
     """Parameters for topology derivation."""
 
@@ -211,7 +215,7 @@ class TopologyDerivation(BaseModel):
                 raise ValueError(f"Missing {weight}_exponent")
         return values
 
-
+@register_parameter_group("hydraulic_design")
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
 
@@ -272,7 +276,7 @@ class HydraulicDesign(BaseModel):
         unit="m",
     )
 
-
+@register_parameter_group(name="metric_evaluation")
 class MetricEvaluation(BaseModel):
     """Parameters for metric evaluation."""
 
