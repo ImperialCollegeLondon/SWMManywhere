@@ -35,6 +35,7 @@ def test_run():
     model.with_suffix(".out").unlink()
     model.with_suffix(".rpt").unlink()
 
+
 @pytest.mark.parametrize("run", [True, False])
 def test_swmmanywhere(run):
     """Test the swmmanywhere function."""
