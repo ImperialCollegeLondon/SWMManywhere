@@ -54,6 +54,8 @@ changing (`subcatchment_derivation` above).
 
 As our SWMManywhere paper [link preprint](https://doi.org/10.1016/j.envsoft.2025.106358) demonstrates, you can capture an enormously wide range of UDM behaviours through changing parameters. However, if your system is particularly unusual, or you are testing out new behaviours then you may need to adopt a more elaborate approach.
 
+If you want to understand how parameters are implemented in more detail, and in particular if you are creating new behaviours and need to add your own parameters, see our [parameter guide](parameters_guide.md).
+
 ### Customise `graphfcns`
 
 Graph functions are the way that operations are applied to create a synthetic UDM

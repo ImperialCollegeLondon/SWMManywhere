@@ -12,7 +12,7 @@ extra_css: [custom.css]
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: true
+      execute: false
   - search
   - include-markdown
   - bibtex:
@@ -46,6 +46,7 @@ nav:
   - Guides:
     - Configuration guide: config_guide.md
     - Extended demo: ./notebooks/extended_demo.py
+    - Parameters guide: parameters_guide.md
     - Graph functions: graphfcns_guide.md
     - Metrics guide: metrics_guide.md
   - Contributing: CONTRIBUTING.md
