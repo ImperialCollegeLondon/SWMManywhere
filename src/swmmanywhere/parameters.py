@@ -9,10 +9,19 @@ from pydantic import BaseModel, Field, model_validator
 
 parameter_register = {}
 
+
 def register_parameter_group(name: str) -> Callable:
+    """Register a parameter group.
+
+    Args:
+        name (str): Name of the parameter group that it will be keyed to in
+            parameter_register.
+    """
+
     def wrapper(cls: BaseModel) -> BaseModel:
         parameter_register[name] = cls()
         return cls
+
     return wrapper
 
 
@@ -35,10 +44,11 @@ def get_full_parameters_flat():
 
     return parameters_flat
 
+
 @register_parameter_group(name="subcatchment_derivation")
 class SubcatchmentDerivation(BaseModel):
     """Parameters for subcatchment derivation."""
-    
+
     subbasin_streamorder: int = Field(
         default=None,
         ge=1,
@@ -89,6 +99,7 @@ class SubcatchmentDerivation(BaseModel):
         description="Distance within which to merge street nodes.",
     )
 
+
 @register_parameter_group(name="outfall_derivation")
 class OutfallDerivation(BaseModel):
     """Parameters for outfall derivation."""
@@ -115,6 +126,7 @@ class OutfallDerivation(BaseModel):
         unit="-",
         description="Weight to discourage street drainage into river buffers.",
     )
+
 
 @register_parameter_group(name="topology_derivation")
 class TopologyDerivation(BaseModel):
@@ -215,6 +227,7 @@ class TopologyDerivation(BaseModel):
                 raise ValueError(f"Missing {weight}_exponent")
         return values
 
+
 @register_parameter_group("hydraulic_design")
 class HydraulicDesign(BaseModel):
     """Parameters for hydraulic design."""
@@ -275,6 +288,7 @@ class HydraulicDesign(BaseModel):
         description="Depth of design storm in pipe by pipe method",
         unit="m",
     )
+
 
 @register_parameter_group(name="metric_evaluation")
 class MetricEvaluation(BaseModel):

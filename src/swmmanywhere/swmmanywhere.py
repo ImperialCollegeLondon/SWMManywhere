@@ -312,7 +312,7 @@ def check_parameter_overrides(config: dict):
 
 def import_module(module: Path):
     """Import module with importlib.
-    
+
     Args:
         module (Path): path to module.
     """
@@ -385,6 +385,7 @@ def register_custom_parameters(config: dict):
     """
     import_modules(config.get("custom_parameter_modules", []))
     return config
+
 
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
