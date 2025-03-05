@@ -12,7 +12,7 @@ extra_css: [custom.css]
 plugins:
   - mkdocstrings
   - mkdocs-jupyter: 
-      execute: false
+      execute: true
   - search
   - include-markdown
   - bibtex:
