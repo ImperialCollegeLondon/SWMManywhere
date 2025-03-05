@@ -1,18 +1,14 @@
 """Test parameters."""
+
+from pathlib import Path
+
 from swmmanywhere import parameters
+from swmmanywhere.swmmanywhere import import_module
+
 
 def test_custom_parameters():
     """Test register_parameter_group."""
-    @parameters.register_parameter_group(name="new_params")
-    class new_params(parameters.BaseModel):
-        """New parameters."""
-        new_param: int = parameters.Field(
-            default=1,
-            ge=0,
-            le=10,
-            unit="-",
-            description="A new parameter.",
-        )
-    
+    import_module(Path(__file__).parent / "test_data" / "custom_parameters.py")
+
     assert "new_params" in parameters.get_full_parameters()
     assert "new_param" in parameters.get_full_parameters_flat()

@@ -10,7 +10,7 @@ import jsonschema
 import pytest
 import yaml
 
-from swmmanywhere import swmmanywhere
+from swmmanywhere import swmmanywhere, parameters
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
 from swmmanywhere.utilities import plot_basic, plot_map
@@ -247,3 +247,22 @@ def test_custom_graphfcn():
 
         # Remove the custom graphfcn for other tests
         del graphfcns["new_graphfcn"]
+
+def test_custom_parameters(tmp_path):
+    """Test custom parameters provided by filename."""
+    config = swmmanywhere.load_config(validation=False)
+    config["custom_graphfcn_modules"] = [Path(__file__).parent / "test_data" / "custom_parameters.py"]
+
+    config_address = tmp_path / "test_config.yml"
+    config["base_dir"] = tmp_path
+    config["bbox"] = [0, 1, 0, 1]
+    del config["real"]
+
+    # Write the config
+    swmmanywhere.save_config(config, config_address)
+
+    # Load and test validation of the config
+    config = swmmanywhere.load_config(config_address)
+
+    # Check graphfcn was added
+    assert "new_params" in parameters.get_full_parameters()

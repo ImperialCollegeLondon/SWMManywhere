@@ -310,6 +310,38 @@ def check_parameter_overrides(config: dict):
     return config
 
 
+def import_module(module: Path):
+    """Import module with importlib.
+    
+    Args:
+        module (Path): path to module.
+    """
+    # Import the module
+    spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
+        module.stem, module
+    )
+    module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
+    spec.loader.exec_module(module)
+
+
+def import_modules(modules: list[str | Path]):
+    """Import modules specified in list of files.
+
+    Args:
+        modules (list): List of files
+
+    Raises:
+        ValueError: If a module does not exist.
+    """
+    for module in modules:
+        module = Path(module)
+
+        # Check that module exists
+        if not module.exists():
+            raise FileNotFoundError(f"Module not found at {module}")
+        import_module(module)
+
+
 def check_and_register_custom_graphfcns(config: dict):
     """Check, register and validate custom graphfcns in the config.
 
@@ -320,21 +352,7 @@ def check_and_register_custom_graphfcns(config: dict):
         ValueError: If a graphfcn module does not exist.
         ValueError: If a custom graphfcn is not successfully registered.
     """
-    for custom_graphfcn_module in config.get("custom_graphfcn_modules", []):
-        custom_graphfcn_module = Path(custom_graphfcn_module)
-
-        # Check that the custom graphfcn exists
-        if not custom_graphfcn_module.exists():
-            raise FileNotFoundError(
-                f"Custom graphfcn not found at {custom_graphfcn_module}"
-            )
-
-        # Import the custom graphfcn module
-        spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
-            custom_graphfcn_module.stem, custom_graphfcn_module
-        )
-        custom_graphfcn_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
-        spec.loader.exec_module(custom_graphfcn_module)
+    import_modules(config.get("custom_graphfcn_modules", []))
 
     # Validate the import
     validate_graphfcn_list(config.get("graphfcn_list", []))
@@ -351,27 +369,22 @@ def check_and_register_custom_metrics(config: dict):
     Raises:
         ValueError: If the custom metrics module does not exist.
     """
-    for custom_metric_module in config.get("custom_metric_modules", []):
-        custom_metric_module = Path(custom_metric_module)
-
-        # Check that the custom graphfcn exists
-        if not custom_metric_module.exists():
-            raise FileNotFoundError(
-                f"Custom graphfcn not found at {custom_metric_module}"
-            )
-
-        # Import the custom graphfcn module
-        spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
-            custom_metric_module.stem, custom_metric_module
-        )
-        custom_metric_module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
-        spec.loader.exec_module(custom_metric_module)
+    import_modules(config.get("custom_metric_modules", []))
 
     # Validate metric list
     validate_metric_list(config.get("metric_list", []))
 
     return config
 
+
+def register_custom_parameters(config: dict):
+    """Register custom parameter modules.
+
+    Args:
+        config (dict): The configuration.
+    """
+    import_modules(config.get("custom_parameter_modules", []))
+    return config
 
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
@@ -437,8 +450,11 @@ def load_config(
     # Check and register custom metrics
     config = check_and_register_custom_metrics(config)
 
-    # Check custom graphfcns
+    # Check and register custom graphfcns
     config = check_and_register_custom_graphfcns(config)
+
+    # Register custom parameters
+    config = register_custom_parameters(config)
 
     return config
 
