@@ -36,7 +36,8 @@ def test_run():
     model.with_suffix(".rpt").unlink()
 
 
-def test_swmmanywhere():
+@pytest.mark.parametrize("run", [True, False])
+def test_swmmanywhere(run):
     """Test the swmmanywhere function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Load the config
@@ -75,10 +76,17 @@ def test_swmmanywhere():
         config["real"]["subcatchments"] = model_dir / "subcatchments.geoparquet"
         config["real"]["inp"] = model_dir / "model_0.inp"
         config["real"]["graph"] = model_dir / "graph.parquet"
+        config["run_model"] = run
 
         # Run swmmanywhere
         os.environ["SWMMANYWHERE_VERBOSE"] = "true"
         inp, metrics = swmmanywhere.swmmanywhere(config)
+
+        if not run:
+            assert inp is not None
+            assert inp.exists()
+            assert metrics is None
+            return None
 
         # Check metrics were calculated
         assert metrics is not None
