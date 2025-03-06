@@ -21,7 +21,7 @@ Let's look at a [parameter group](reference-parameters.md#swmmanywhere.parameter
       show_docstring_returns: false
       show_docstring_raises: false
 
-We can see here three related parameters and relevant metadata, grouped together in a [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/api/base_model/) object. Parameters in SWMManywhere are grouped together because `graphfcns` that need one of them tend to need the others. Let's look at [`identify_outfalls`](reference-graphfcns.md#swmmanywhere.graphfcns.outfall_graphfcns.identify_outfalls), which needs these parameters.
+We can see here three related parameters and relevant metadata, grouped together in a [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/api/base_model/) object. Parameters in SWMManywhere are grouped together because `graphfcns` that need one of them tend to need the others. Let's look at [`identify_outfalls`](reference-graph-utilities.md#swmmanywhere.graphfcns.outfall_graphfcns.identify_outfalls), which needs these parameters.
 
 :::swmmanywhere.graphfcns.outfall_graphfcns.identify_outfalls
     handler: python
