@@ -46,7 +46,7 @@ When you create a new parameter, it will need to belong to an existing or new pa
 
 ### Creating a new parameter group(s)
 
-You create a new module that can contain multiple parameter groups. See below as a template of that module.
+You create a new module(s) that can contain multiple parameter groups. See below as a template of such a module.
 
 ```python
 {%
