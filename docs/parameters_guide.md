@@ -40,7 +40,7 @@ We can see here three related parameters and relevant metadata, grouped together
 
 When calling [`iterate_graphfcns`](reference-graph-utilities.md#swmmanywhere.graph_utilities.iterate_graphfcns), for more information see [here](graphfcns_guide.md#lists-of-graph-functions), SWMManywhere will automatically provide any parameters that have been registered to any graphfcn.
 
-## Registered parameters and registering parameters
+## Registering parameters
 
 When you create a new parameter, it will need to belong to an existing or new parameter group.
 
