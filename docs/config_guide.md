@@ -49,12 +49,12 @@ parameter_overrides:
     max_street_length: 40
 ```
 
-Note that we must provide the parameter category for the parameter that we are
+Note that we must provide the parameter group for the parameter that we are
 changing (`subcatchment_derivation` above).
 
-As our SWMManywhere paper [link preprint](https://doi.org/10.1016/j.envsoft.2025.106358) demonstrates, you can capture an enormously wide range of UDM behaviours through changing parameters. However, if your system is particularly unusual, or you are testing out new behaviours then you may need to adopt a more elaborate approach.
-
 If you want to understand how parameters are implemented in more detail, and in particular if you are creating new behaviours and need to add your own parameters, see our [parameter guide](parameters_guide.md).
+
+As our SWMManywhere paper [link preprint](https://doi.org/10.1016/j.envsoft.2025.106358) demonstrates, you can capture an enormously wide range of UDM behaviours through changing parameters. However, if your system is particularly unusual, or you are testing out new behaviours then you may need to adopt a more elaborate approach.
 
 ### Customise `graphfcns`
 
