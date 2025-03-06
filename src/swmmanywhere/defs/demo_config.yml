@@ -1,6 +1,7 @@
 base_dir: /path/to/base/directory
 project: demo
 bbox: [0.04020, 51.55759, 0.09826, 51.62050]
+run_model: true
 run_settings: 
   reporting_iters: 100
   duration: 86400

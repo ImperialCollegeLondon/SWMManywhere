@@ -149,6 +149,10 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     # Write to .inp
     synthetic_write(addresses)
 
+    # Return model if no run
+    if not config.get("run_model", True):
+        return addresses.model_paths.inp, None
+
     # Run the model
     logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.model_paths.inp, **config["run_settings"])
