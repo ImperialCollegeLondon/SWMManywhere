@@ -46,7 +46,7 @@ When you create a new parameter, it will need to belong to an existing or new pa
 
 ### Creating a new parameter group(s)
 
-You create a new module(s) that can contain multiple parameter groups. See below as a template of such a module.
+You create a new module(s) that can contain multiple parameter groups. See below as a template of such amodule.
 
 ```python
 {%
@@ -102,8 +102,8 @@ Note, in this specific example of adding custom weights, you will also have to:
 parameter_overrides:
   topology_derviation:
     weights:
-      -new_weight
-      -length
+      - new_weight
+      - length
 ```
 
 - [Create and register a `graphfcn`](graphfcns_guide.md#add-a-new-graph-function) that adds the `new_weight` parameter to the graph.
