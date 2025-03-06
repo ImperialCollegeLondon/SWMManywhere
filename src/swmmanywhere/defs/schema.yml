@@ -4,6 +4,7 @@ properties:
   project: {type: string}
   bbox: {type: array, items: {type: number}, minItems: 4, maxItems: 4}
   model_number: {type: integer}
+  run_model: {type: boolean}
   run_settings:
     type: object
     properties:
