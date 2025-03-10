@@ -98,7 +98,7 @@ def test_swmmanywhere(run):
         assert set(metrics.keys()) == set(config["metric_list"])
 
         # Check results were saved
-        assert (inp.parent / f'{config["graphfcn_list"][-1]}_graph.json').exists()
+        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
         assert inp.exists()
         assert (inp.parent / "results.parquet").exists()
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
