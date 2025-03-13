@@ -88,7 +88,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     logger.info(f"Project structure created at {addresses.project_paths.base_dir}")
     logger.info(f"Project name: {config['project']}")
     logger.info(
-        f"""Bounding box: {config['bbox']}, 
+        f"""Bounding box: {config["bbox"]}, 
                 number: {addresses.bbox_paths.bbox_number}"""
     )
     logger.info(f"Model number: {addresses.model_paths.model_number}")
@@ -279,7 +279,7 @@ def check_starting_graph(config: dict):
     if not config["starting_graph"].exists():
         raise FileNotFoundError(
             f"""starting_graph not found at 
-                                {config['starting_graph']}"""
+                                {config["starting_graph"]}"""
         )
 
     return config
