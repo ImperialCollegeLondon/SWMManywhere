@@ -7,6 +7,8 @@ from typing import Callable
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
+from swmmanywhere.logging import logger
+
 parameter_register = {}
 
 
@@ -19,6 +21,8 @@ def register_parameter_group(name: str) -> Callable:
     """
 
     def wrapper(cls: BaseModel) -> BaseModel:
+        if name in parameter_register:
+            logger.warning(f"{name} already in parameter register, overwriting.")
         parameter_register[name] = cls()
         return cls
 
