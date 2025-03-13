@@ -33,4 +33,5 @@ properties:
   parameter_overrides: {type: ['object', 'null']}
   custom_metric_modules: {type: array, items: {type: string}}
   custom_graphfcn_modules: {type: array, items: {type: string}}
+  custom_parameters_modules: {type: array, items: {type: string}}
 required: [base_dir, project, bbox]
