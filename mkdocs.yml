@@ -41,11 +41,12 @@ extra_javascript:
 
 nav:
   - Home: index.md
-  - About: ./paper/paper.pdf
+  - About: ./paper/paper.md
   - Quickstart: quickstart.md
   - Guides:
     - Configuration guide: config_guide.md
     - Extended demo: ./notebooks/extended_demo.py
+    - Parameters guide: parameters_guide.md
     - Graph functions: graphfcns_guide.md
     - Metrics guide: metrics_guide.md
   - Contributing: CONTRIBUTING.md
