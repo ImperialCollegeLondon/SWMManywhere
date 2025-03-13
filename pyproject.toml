@@ -114,7 +114,7 @@ lint.pydocstyle.convention = "google"
 
 [tool.codespell]
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*"
-ignore-words-list = "gage,gages,Carrer"
+ignore-words-list = "gage,gages,Carrer,anc"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
