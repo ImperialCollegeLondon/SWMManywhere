@@ -10,7 +10,7 @@ import jsonschema
 import pytest
 import yaml
 
-from swmmanywhere import swmmanywhere
+from swmmanywhere import parameters, swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
 from swmmanywhere.utilities import plot_basic, plot_map
@@ -98,7 +98,7 @@ def test_swmmanywhere(run):
         assert set(metrics.keys()) == set(config["metric_list"])
 
         # Check results were saved
-        assert (inp.parent / f'{config["graphfcn_list"][-1]}_graph.json').exists()
+        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
         assert inp.exists()
         assert (inp.parent / "results.parquet").exists()
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
@@ -255,3 +255,25 @@ def test_custom_graphfcn():
 
         # Remove the custom graphfcn for other tests
         del graphfcns["new_graphfcn"]
+
+
+def test_custom_parameters(tmp_path):
+    """Test custom parameters provided by filename."""
+    config = swmmanywhere.load_config(validation=False)
+    config["custom_graphfcn_modules"] = [
+        Path(__file__).parent / "test_data" / "custom_parameters.py"
+    ]
+
+    config_address = tmp_path / "test_config.yml"
+    config["base_dir"] = tmp_path
+    config["bbox"] = [0, 1, 0, 1]
+    del config["real"]
+
+    # Write the config
+    swmmanywhere.save_config(config, config_address)
+
+    # Load and test validation of the config
+    config = swmmanywhere.load_config(config_address)
+
+    # Check graphfcn was added
+    assert "new_params" in parameters.get_full_parameters()

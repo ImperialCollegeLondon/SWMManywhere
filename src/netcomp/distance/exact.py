@@ -192,8 +192,7 @@ def lambda_dist(A1, A2, k=None, p=2, kind="laplacian"):
         evals1, evals2 = [evals[::-1] for evals in [evals1, evals2]]
     else:
         raise InputError(
-            "Invalid type, choose from 'laplacian', "
-            "'laplacian_norm', and 'adjacency'."
+            "Invalid type, choose from 'laplacian', 'laplacian_norm', and 'adjacency'."
         )
     dist = la.norm(evals1[:k] - evals2[:k], ord=p)
     return dist
