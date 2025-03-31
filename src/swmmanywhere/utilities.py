@@ -57,6 +57,30 @@ def yaml_dump(o: Any, stream: Any = None, **kwargs: Any) -> str:
     )
 
 
+def load_edges_nodes(model_dir: Path) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    """Load edges and nodes from a model directory.
+
+    Args:
+        model_dir (Path): The directory containing the model files.
+
+        Returns:
+            tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]: A tuple containing the nodes and edges GeoDataFrames.
+    """
+    if (model_dir / "nodes.geoparquet").exists():
+        nodes = gpd.read_parquet(model_dir / "nodes.geoparquet")
+    elif (model_dir / "nodes.geojson").exists():
+        nodes = gpd.read_file(model_dir / "nodes.geojson")
+    else:
+        raise FileNotFoundError("No nodes found in model directory.")
+    if (model_dir / "edges.geoparquet").exists():
+        edges = gpd.read_file(model_dir / "edges.geoparquet")
+    elif (model_dir / "edges.geojson").exists():
+        edges = gpd.read_file(model_dir / "edges.geojson")
+    else:
+        raise FileNotFoundError("No edges found in model directory.")
+    
+    return nodes, edges
+
 def plot_basic(model_dir: Path):
     """Create a basic map with nodes and edges.
 
@@ -67,8 +91,7 @@ def plot_basic(model_dir: Path):
         folium.Map: The folium map.
     """
     # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
+    nodes, edges = load_edges_nodes(model_dir)
 
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326)
@@ -116,8 +139,7 @@ def plot_clickable(model_dir: Path):
         folium.Map: The folium map.
     """
     # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
+    nodes, edges = load_edges_nodes(model_dir)
     df = pd.read_parquet(model_dir / "results.parquet")
     df.id = df.id.astype(str)
     floods = df.loc[df.variable == "flooding"].groupby("id")
