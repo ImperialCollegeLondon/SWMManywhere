@@ -14,6 +14,7 @@ from typing import Any, Literal
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import swmmio
 import yaml
 
 from swmmanywhere.filepaths import FilePaths
@@ -444,3 +445,26 @@ def format_to_swmm_dict(
 
     data_dict = {key: _fill_backslash_columns(shp, key) for key, shp in shps.items()}
     return data_dict
+
+
+def shapes_to_inp(
+    edges: gpd.GeoDataFrame, nodes: gpd.GeoDataFrame, subs: gpd.GeoDataFrame, fid: Path
+):
+    """Convert shapes to SWMM input format.
+
+    Args:
+        edges (gpd.GeoDataFrame): GeoDataFrame of edges.
+        nodes (gpd.GeoDataFrame): GeoDataFrame of nodes.
+        subs (gpd.GeoDataFrame): GeoDataFrame of subcatchments.
+        fid (Path): File path to the SWMM input file.
+
+    Returns:
+        dict: Dictionary containing formatted data for SWMM input.
+    """
+    m = swmmio.Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
+
+    m.inp.edges = edges
+    m.inp.nodes = nodes
+    m.inp.subs = subs
+
+    m.inp.save(fid)
