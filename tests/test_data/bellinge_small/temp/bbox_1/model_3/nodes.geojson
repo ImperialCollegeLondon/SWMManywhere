@@ -1,0 +1,281 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583337.3699990724,
+          6132947.7901241835
+        ]
+      },
+      "properties": {
+        "id": "G72F820",
+        "x": 583337.3699990724,
+        "y": 6132947.7901241835,
+        "contributing_area": 1177.972,
+        "chamber_floor_elevation": 23.369,
+        "surface_elevation": 26.128999999999998
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583355.6999990721,
+          6132896.060124181
+        ]
+      },
+      "properties": {
+        "id": "G72F821",
+        "x": 583355.6999990721,
+        "y": 6132896.060124181,
+        "contributing_area": 1339.26,
+        "chamber_floor_elevation": 23.779,
+        "surface_elevation": 25.049
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583258.6799990733,
+          6132947.830124184
+        ]
+      },
+      "properties": {
+        "id": "G72F813",
+        "x": 583258.6799990733,
+        "y": 6132947.830124184,
+        "contributing_area": 1052.48,
+        "chamber_floor_elevation": 25.619,
+        "surface_elevation": 28.259
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583259.9499990732,
+          6132919.150124183
+        ]
+      },
+      "properties": {
+        "id": "G72F831",
+        "x": 583259.9499990732,
+        "y": 6132919.150124183,
+        "contributing_area": 401.652,
+        "chamber_floor_elevation": 25.429,
+        "surface_elevation": 28.179
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583305.1799990728,
+          6132932.250124182
+        ]
+      },
+      "properties": {
+        "id": "G72F830",
+        "x": 583305.1799990728,
+        "y": 6132932.250124182,
+        "contributing_area": 848.079,
+        "chamber_floor_elevation": 23.639,
+        "surface_elevation": 26.788999999999998
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583195.159999074,
+          6132878.470124182
+        ]
+      },
+      "properties": {
+        "id": "G72F833",
+        "x": 583195.159999074,
+        "y": 6132878.470124182,
+        "contributing_area": 1077.984,
+        "chamber_floor_elevation": 27.899,
+        "surface_elevation": 30.619
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583216.2699990737,
+          6132907.990124185
+        ]
+      },
+      "properties": {
+        "id": "G72F832",
+        "x": 583216.2699990737,
+        "y": 6132907.990124185,
+        "contributing_area": 1040.175,
+        "chamber_floor_elevation": 26.839,
+        "surface_elevation": 29.689
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583311.9499990725,
+          6132888.390124182
+        ]
+      },
+      "properties": {
+        "id": "G72F834",
+        "x": 583311.9499990725,
+        "y": 6132888.390124182,
+        "contributing_area": 350.385,
+        "chamber_floor_elevation": 23.909,
+        "surface_elevation": 26.128999999999998
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583315.3599990726,
+          6132988.350124182
+        ]
+      },
+      "properties": {
+        "id": "G72F811",
+        "x": 583315.3599990726,
+        "y": 6132988.350124182,
+        "contributing_area": 0,
+        "chamber_floor_elevation": 23.659,
+        "surface_elevation": 26.279
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583283.8799990729,
+          6133027.620124182
+        ]
+      },
+      "properties": {
+        "id": "G72F814",
+        "x": 583283.8799990729,
+        "y": 6133027.620124182,
+        "contributing_area": 1388.82,
+        "chamber_floor_elevation": 24.769,
+        "surface_elevation": 26.869
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583308.1299990726,
+          6132834.320124185
+        ]
+      },
+      "properties": {
+        "id": "G72F835",
+        "x": 583308.1299990726,
+        "y": 6132834.320124185,
+        "contributing_area": 1262.55,
+        "chamber_floor_elevation": 24.389,
+        "surface_elevation": 26.459
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583418.3599990713,
+          6133031.370124184
+        ]
+      },
+      "properties": {
+        "id": "G72F050",
+        "x": 583418.3599990713,
+        "y": 6133031.370124184,
+        "contributing_area": 958.114,
+        "chamber_floor_elevation": 19.419,
+        "surface_elevation": 22.289
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583276.309999073,
+          6133006.070124183
+        ]
+      },
+      "properties": {
+        "id": "G72F812",
+        "x": 583276.309999073,
+        "y": 6133006.070124183,
+        "contributing_area": 575.418,
+        "chamber_floor_elevation": 24.539,
+        "surface_elevation": 27.469
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583374.3599990718,
+          6133006.900124182
+        ]
+      },
+      "properties": {
+        "id": "G72F800",
+        "x": 583374.3599990718,
+        "y": 6133006.900124182,
+        "contributing_area": 0,
+        "chamber_floor_elevation": 21.849,
+        "surface_elevation": 24.649
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          583348.3699990722,
+          6132993.690124182
+        ]
+      },
+      "properties": {
+        "id": "G72F810",
+        "x": 583348.3699990722,
+        "y": 6132993.690124182,
+        "contributing_area": 1732.064,
+        "chamber_floor_elevation": 22.879,
+        "surface_elevation": 25.729000000000003
+      }
+    }
+  ],
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:EPSG::32632"
+    }
+  }
+}
