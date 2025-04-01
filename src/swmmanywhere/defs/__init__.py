@@ -2,4 +2,4 @@
 
 from __future__ import annotations
 
-from .copy_test_data import copy_test_data
+from .copy_test_data import copy_test_data  # noqa: F401
