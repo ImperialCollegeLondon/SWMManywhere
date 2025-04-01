@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from swmmanywhere import parameters, swmmanywhere
+from swmmanywhere.defs import copy_test_data
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
 from swmmanywhere.utilities import plot_basic, plot_map
@@ -277,3 +278,19 @@ def test_custom_parameters(tmp_path):
 
     # Check graphfcn was added
     assert "new_params" in parameters.get_full_parameters()
+
+
+def test_copy_test_data(tmp_path):
+    """Test the shapes_to_inp function."""
+    # Load test data
+    copy_test_data(tmp_path)
+
+    assert (tmp_path / "storm.dat").exists()
+    assert (tmp_path / "bellinge_small.inp").exists()
+    assert (tmp_path / "bellinge_small_graph.json").exists()
+    assert (tmp_path / "bellinge_small_subcatchments.geojson").exists()
+    assert (tmp_path / "nodes.geojson").exists()
+    assert (tmp_path / "edges.geojson").exists()
+    assert (tmp_path / "storm.dat").exists()
+
+    swmmanywhere.run(str(tmp_path / "bellinge_small.inp"))

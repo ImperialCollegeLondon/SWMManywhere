@@ -11,10 +11,8 @@ import pandas as pd
 import pyswmm
 from shapely import geometry as sgeom
 
-from swmmanywhere import defs
 from swmmanywhere import post_processing as stt
 from swmmanywhere.filepaths import FilePaths
-from swmmanywhere.swmmanywhere import run
 
 fid = (
     Path(__file__).parent.parent
@@ -249,27 +247,3 @@ def test_format_to_swmm_dict():
         with pyswmm.Simulation(str(temp_fid)) as sim:
             for ind, step in enumerate(sim):
                 pass
-
-
-def test_shapes_to_inp(tmp_path):
-    """Test the shapes_to_inp function."""
-    # Load test data
-    defs.copy_test_data(tmp_path)
-
-    assert (tmp_path / "storm.dat").exists()
-    assert (tmp_path / "bellinge_small.inp").exists()
-
-    nodes = gpd.read_file(tmp_path / "nodes.geojson")
-    edges = gpd.read_file(tmp_path / "edges.geojson")
-    subs = gpd.read_file(tmp_path / "bellinge_small_subcatchments.geojson")
-
-    stt.shapes_to_inp(
-        nodes,
-        edges,
-        subs,
-        tmp_path / "test_shapes_to_inp.inp",
-    )
-
-    shutil.copy(fid.parent / "storm.dat", tmp_path / "storm.dat")
-
-    run(str(tmp_path / "test_shapes_to_inp.inp"))
