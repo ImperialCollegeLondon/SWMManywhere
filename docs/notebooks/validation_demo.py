@@ -87,7 +87,8 @@ config = {
 # ## Run SWMManywhere
 #
 # We make the `swmmanywhere` call as normal, but can observe that there is an additional
-# model run (scroll to the bottom) where the real model `inp` is being run.
+# model run (scroll towards the bottom) where the real model `inp` is being run and the
+# metrics are shown to have been calculated in the log.
 # %%
 ## Run SWMManywhere
 set_verbose(True)
@@ -97,7 +98,7 @@ outputs = swmmanywhere(config)
 # ## Plot results
 #
 # We can plot the real network data and simulation (click on links for flow and nodes
-# for flooding)
+# for flooding).
 # %%
 ## View real data
 plot_map(real_dir)

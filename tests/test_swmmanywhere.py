@@ -105,7 +105,7 @@ def test_swmmanywhere(run):
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
 
         # Check the map functions
-        plot_basic(inp.parent)
+        plot_basic(inp.parent / "nodes.geoparquet", inp.parent / "edges.geoparquet")
         plot_map(inp.parent)
 
 
