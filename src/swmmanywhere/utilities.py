@@ -79,9 +79,7 @@ def plot_basic(nodes_path: Path, edges_path: Path):
     if "outfall" in nodes.columns:
         outfall = nodes.id == nodes.outfall
     else:
-        outfall = nodes.id.isin(edges.u.astype(str)) & ~nodes.id.isin(
-            edges.v.astype(str)
-        )
+        outfall = ~nodes.id.isin(edges.u.astype(str))
 
     # Plot on map
     m = folium.Map(
