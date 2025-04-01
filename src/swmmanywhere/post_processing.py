@@ -461,7 +461,9 @@ def shapes_to_inp(
     Returns:
         dict: Dictionary containing formatted data for SWMM input.
     """
-    m = swmmio.Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
+    m = swmmio.Model(
+        str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp")
+    )
 
     m.inp.edges = edges
     m.inp.nodes = nodes

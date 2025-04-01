@@ -25,6 +25,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from swmmanywhere.defs import copy_test_data
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.swmmanywhere import swmmanywhere
 from swmmanywhere.utilities import plot_map
@@ -33,58 +34,73 @@ from swmmanywhere.utilities import plot_map
 temp_dir = tempfile.TemporaryDirectory()
 base_dir = Path(temp_dir.name)
 
-bellinge_test_folder = Path(__file__).parent.parent / "tests" / "test_data" / "bellinge_small"
+# Make a folder for real data
+real_dir = base_dir / "real"
+real_dir.mkdir(exist_ok=True)
+
+# Copy test data into the real data folder
+copy_test_data(real_dir)
 
 # %% [markdown]
-# We update our config file to use new coordinates, and provide the real data. As set
-# out in the [schema](reference-defs.md#schema-for-configuration-file), a variety of
-# data entries can be provided to describe the real network, all CRS must be in the UTM
-# CRS for the project:
+# ## Create config file
+#
+# Below, we update our config file to use new coordinates, and provide the real data. As
+# set out in the [schema](reference-defs.md#schema-for-configuration-file), a variety of
+# data entries can be provided to describe the real network, all CRS of shapefiles must
+# be in the UTM CRS for the project:
 #
 # - `graph` (essential) - a graph file in JSON format created from [`nx.node_link_data`](https://networkx.org/documentation/stable/reference/readwrite/generated/networkx.readwrite.json_graph.node_link_data.html)
-# - `subcatchments` (essential) - a GeoJSON file with subcatchment outlines, with #
+# - `subcatchments` (essential) - a GeoJSON file with subcatchment outlines, with
 # headings for `id`, and `impervious_area` (only needed if calculating the metric,
 # `bias_flood_depth`).
 # - `inp` - an inp file to run the model with, matching the appropriate graph
-# and subcatchments. 
-# - `results` - a results file to compare the model with. 
+# and subcatchments.
+# - `results` - a results file to compare the model with.
 #
 # At least one of `results` or `inp` must be provided. If `inp` is provided then the
 # model will be run and the results compared to the real data, otherwise `results` will
 # be loaded directly.
+#
+# *Note* that the need to separately provide a `graph` and `subcatchments` will be
+# removed following fixing of [this](https://github.com/ImperialCollegeLondon/SWMManywhere/issues/84).
 # %%
 # Define config
 config = {
     "base_dir": base_dir,
     "project": "bellinge_small",
-    "bbox":[
-    10.308864591221067,
-    55.332756215349825,
-    10.31747911327979,
-    55.33917324071062
-  ],
+    "bbox": [10.309, 55.333, 10.317, 55.339],
     "run_settings": {"duration": 3600},
-    "real":
-    {
-        "graph": bellinge_test_folder / "graph.json", 
-        "inp": bellinge_test_folder / "bellinge_small.inp",
-        "subcatchments": bellinge_test_folder / "subcatchments.geojson",
-    }
+    "real": {
+        "graph": real_dir / "bellinge_small_graph.json",
+        "inp": real_dir / "bellinge_small.inp",
+        "subcatchments": real_dir / "bellinge_small_subcatchments.geojson",
+    },
+    "parameter_overrides": {
+        "topology_derivation": {
+            "allowable_networks": ["drive"],
+            "omit_edges": ["bridge"],
+        }
+    },
 }
 
 # %% [markdown]
+# ## Run SWMManywhere
+#
 # We make the `swmmanywhere` call as normal, but can observe that there is an additional
-# model run where the real model `inp` is being run.
+# model run (scroll to the bottom) where the real model `inp` is being run.
 # %%
 ## Run SWMManywhere
-set_verbose(True) 
+set_verbose(True)
 outputs = swmmanywhere(config)
 
 # %% [markdown]
-# We can plot the real network data and simulation
+# ## Plot results
+#
+# We can plot the real network data and simulation (click on links for flow and nodes
+# for flooding)
 # %%
 ## View real data
-plot_map(bellinge_test_folder)
+plot_map(real_dir)
 
 # %% [markdown]
 # ... and we can plot the synthesised network

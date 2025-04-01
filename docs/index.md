@@ -13,7 +13,7 @@ derive a synthetic urban drainage network anywhere in the world.
     - [Extended demo](./notebooks/extended_demo.py)
     - [Parameters guide](parameters_guide.md)
     - [Graph functions](graphfcns_guide.md)
-    - [Real-world demo](./notebooks/validation_demo.py)
+    - [Real world demo](./notebooks/validation_demo.py)
     - [Metrics guide](metrics_guide.md)
 - [Contributing](CONTRIBUTING.md)
 - [API reference](reference-overview.md)
