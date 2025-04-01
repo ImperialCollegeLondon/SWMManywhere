@@ -129,6 +129,10 @@ def plot_clickable(nodes_path: Path, edges_path: Path, results_path: Path):
     floods = df.loc[df.variable == "flooding"].groupby("id")
     flows = df.loc[df.variable == "flow"].groupby("id")
 
+    if "outfall" not in nodes.columns:
+        nodes["outfall"] = None
+        nodes.loc[~nodes.id.isin(edges.u.astype(str)), "outfall"] = nodes.id
+
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326).set_index("id")
     edges = edges.to_crs(4326).set_index("id")
