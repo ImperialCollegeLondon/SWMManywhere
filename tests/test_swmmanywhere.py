@@ -281,7 +281,7 @@ def test_custom_parameters(tmp_path):
 
 
 def test_copy_test_data(tmp_path):
-    """Test the shapes_to_inp function."""
+    """Test the copy_test_data function."""
     # Load test data
     copy_test_data(tmp_path)
 
