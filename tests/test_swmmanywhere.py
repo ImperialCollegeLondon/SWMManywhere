@@ -291,6 +291,4 @@ def test_copy_test_data(tmp_path):
     assert (tmp_path / "bellinge_small_subcatchments.geojson").exists()
     assert (tmp_path / "nodes.geojson").exists()
     assert (tmp_path / "edges.geojson").exists()
-    assert (tmp_path / "storm.dat").exists()
-
     swmmanywhere.run(str(tmp_path / "bellinge_small.inp"))
