@@ -16,7 +16,7 @@
 #
 # ## Initial setup
 #
-# We will use the same example as the [extended demo](extended_demo.py), but with a 
+# We will use the same example as the [extended demo](extended_demo.py), but with a
 # custom elevation dataset. Let's start by rerunning it.
 # %%
 # Imports
@@ -24,9 +24,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-
-import geopandas as gpd
-import pandas as pd
 
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.swmmanywhere import swmmanywhere
@@ -37,7 +34,7 @@ temp_dir = tempfile.TemporaryDirectory()
 base_dir = Path(temp_dir.name)
 
 # Define minimum viable config
-bbox = [1.52740, 42.50524, 1.54273, 42.51259]
+bbox = (1.52740, 42.50524, 1.54273, 42.51259)
 config = {
     "base_dir": base_dir,
     "project": "my_first_swmm",
@@ -73,20 +70,23 @@ plot_map(model_dir)
 # %%
 
 # Import NASADEM downloader and reprojection tools
-from swmmanywhere.prepare_data import download_elevation
-from swmmanywhere.geospatial_utilities import reproject_raster, get_utm_epsg
+from swmmanywhere.geospatial_utilities import (  # noqa: E402
+    get_utm_epsg,
+    reproject_raster,
+)
+from swmmanywhere.prepare_data import download_elevation  # noqa: E402
 
 # Download and reproject the correct elevation to UTM
-download_elevation(base_dir / "elevation.tif", config["bbox"])
+download_elevation(base_dir / "elevation.tif", bbox)
 reproject_raster(
-    get_utm_epsg(bbox[0],bbox[1])
+    get_utm_epsg(bbox[0], bbox[1]),
     base_dir / "elevation.tif",
     base_dir / "elevation_utm.tif",
 )
 
 # Flip it
-import rasterio
-import numpy as np
+import numpy as np  # noqa: E402
+import rasterio  # noqa: E402
 
 with rasterio.open(base_dir / "elevation_utm.tif") as src:
     data = np.fliplr(src.read(1))
@@ -110,4 +110,3 @@ model_dir = outputs[0].parent
 
 # %%
 plot_map(model_dir)
-
