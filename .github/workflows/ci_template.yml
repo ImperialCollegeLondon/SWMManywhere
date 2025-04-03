@@ -38,7 +38,7 @@ jobs:
         submodules: recursive
 
     - name: Run tests
-      run: pytest
+      run: pytest --ignore=tests/pywbt_source/tests
 
     - name: Upload coverage to Codecov
       if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
