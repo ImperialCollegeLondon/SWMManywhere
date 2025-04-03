@@ -33,7 +33,7 @@ which will create a SWMM input file (`.inp`) at the file location:
 
 ## Use your model
 
-If you prefer GUIs then the easiest thing now is to download the [SWMM software](https://www.epa.gov/water-research/storm-water-management-model-swmm) and load your model in there.
+If you prefer GUIs then the easiest thing now is to download the [SWMM](./misc/swmm-users-manual-version-5.2.pdf) software and load your model in there.
 The example above looks as follows:
 
 ![SWMM Model](images/andorra_swmm_screenshot.png)
