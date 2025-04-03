@@ -21,7 +21,7 @@ def design_pipe(
     edge_length: float,
     hydraulic_design: parameters.HydraulicDesign,
     Q: float,
-) -> nx.Graph:
+) -> tuple[float, float, float]:
     """Design a pipe.
 
     This function designs a pipe by iterating over a range of diameters and
@@ -42,6 +42,7 @@ def design_pipe(
     Returns:
         diam (float): The diameter of the pipe
         depth (float): The depth of the pipe
+        cost (float): The cost of the pipe
     """
     designs = product(
         hydraulic_design.diameters,
