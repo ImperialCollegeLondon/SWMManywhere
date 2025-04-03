@@ -15,7 +15,7 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture
 def wbt_path() -> str:
     """Determine the platform specific binary for whiteboxtools for testing.
-    
+
     All WBT binaries are stored in `wbt_zip` within the `tests` directory.
 
     Based on implementation in [`pywbt`](https://github.com/cheginit/pywbt).
