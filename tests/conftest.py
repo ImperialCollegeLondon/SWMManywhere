@@ -15,7 +15,7 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture
 def wbt_path() -> str:
     """Determine the platform suffix for downloading WhiteboxTools.
-    
+
     Based on implementation in [`pywbt`](https://github.com/cheginit/pywbt).
     """
     system = platform.system()
