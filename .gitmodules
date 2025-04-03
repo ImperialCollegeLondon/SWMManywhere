@@ -1,3 +1,0 @@
-[submodule "tests/pywbt_source"]
-	path = tests/pywbt_source
-	url = https://github.com/cheginit/pywbt.git

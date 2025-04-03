@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import sys
+import platform
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
 import pytest
-from pywbt_source.tests import test_pywbt
-
-pytest_plugins = ["pywbt_source.conftest"]
 
 
 def pytest_collection_modifyitems(config, items):
@@ -16,7 +12,20 @@ def pytest_collection_modifyitems(config, items):
         config.option.markexpr = "not downloads"
 
 
-@pytest.fixture()
-def wbt_path(wbt_zipfile):
-    """Fixture to provide the path to the wbt zip file."""
-    return str(Path(test_pywbt.__file__).parent / "wbt_zip" / wbt_zipfile)
+@pytest.fixture
+def wbt_path() -> str:
+    """Determine the platform suffix for downloading WhiteboxTools."""
+    system = platform.system()
+    base_name = "WhiteboxTools_{}.zip"
+    if system not in ("Windows", "Darwin", "Linux"):
+        raise ValueError(f"Unsupported operating system: {system}")
+
+    if system == "Windows":
+        suffix = "win_amd64"
+    elif system == "Darwin":
+        suffix = "darwin_m_series" if platform.machine() == "arm64" else "darwin_amd64"
+    else:
+        suffix = (
+            "linux_musl" if "musl" in platform.libc_ver()[0].lower() else "linux_amd64"
+        )
+    return str(Path(__file__).parent / "wbt_zip" / base_name.format(suffix))

@@ -24,7 +24,7 @@ import pyproj
 import rasterio as rst
 import rioxarray
 import shapely
-from pywbt.pywbt import whitebox_tools
+from pywbt import whitebox_tools
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
@@ -654,16 +654,17 @@ def flwdir_whitebox(fid: Path, wbt_path: Path | None = None) -> np.array:
             "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
             "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
         }
+        wbt_root = temp_path / "WBT"
         whitebox_tools(
             temp_path,
             wbt_args,
             save_dir=temp_path,
             verbose=verbose(),
-            wbt_root=temp_path / "WBT",
+            wbt_root=wbt_root,
             zip_path=wbt_path,
             max_procs=1,
         )
-
+        (wbt_root / "whitebox_tools.exe").unlink(missing_ok=True)
         fdir = temp_path / "fdir.tif"
         if not Path(fdir).exists():
             raise ValueError("Flow direction raster not created.")

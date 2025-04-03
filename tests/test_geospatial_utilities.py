@@ -244,10 +244,14 @@ def test_derive_subcatchments(
     set_verbose(verbose)
 
     elev_fid = test_data_dir / "elevation.tif"
+    with patch(
+        "swmmanywhere.geospatial_utilities.flwdir_whitebox", wraps=go.flwdir_whitebox
+    ) as spy:
+        polys = go.derive_subcatchments(
+            street_network, elev_fid, method=method, wbt_path=wbt_path
+        )
+        assert all(args[0] != None for args, _ in spy.call_args_list)
 
-    polys = go.derive_subcatchments(
-        street_network, elev_fid, method=method, wbt_path=wbt_path
-    )
     assert "slope" in polys.columns
     assert "area" in polys.columns
     assert "geometry" in polys.columns
