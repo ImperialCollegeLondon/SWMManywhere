@@ -136,9 +136,10 @@ m
 
 # %% [markdown]
 #
-# ## Adding data to SWMManywhere
+# ## In Summary
 #
-# Now we can see how to add our own data to SWMManywhere. This method works for any
+# This tutorial has demonstrated how we can supply our own data in place of the existing
+# files that are downloaded by SWMManywhere. This method works for any
 # [filepath](https://imperialcollegelondon.github.io/SWMManywhere/reference-filepaths/),
 # which are the files used by the current workflow.
 #
