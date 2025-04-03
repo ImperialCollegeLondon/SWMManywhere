@@ -250,7 +250,7 @@ def test_derive_subcatchments(
         polys = go.derive_subcatchments(
             street_network, elev_fid, method=method, wbt_path=wbt_path
         )
-        assert all(args[0] != None for args, _ in spy.call_args_list)
+        assert all(kwargs["wbt_path"] is not None for _, kwargs in spy.call_args_list)
 
     assert "slope" in polys.columns
     assert "area" in polys.columns
