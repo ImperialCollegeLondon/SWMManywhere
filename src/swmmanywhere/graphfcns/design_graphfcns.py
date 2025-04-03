@@ -29,6 +29,8 @@ def design_pipe(
     cost function, while also maintaining or minimising feasibility parameters
     associated with: surcharging, velocity and filling ratio.
 
+    Cost equation from: https://doi.org/10.2166/hydro.2016.105
+
     Args:
         ds_elevation (float): The downstream elevationq
         chamber_floor (float): The elevation of the chamber floor
