@@ -9,7 +9,11 @@
 #
 # %% [markdown]
 # ## Introduction
-# This script demonstrates how to use `swmmanywhere` when you have a real network.
+#
+# This script demonstrates how to use SWMManywhere when you have a real network. It
+# shows how to tell SWMManywhere where the necessary data is, and how, when this is
+# provided, a suite of metrics are calculated to compare the real network with the
+# synthesised network.
 #
 # Since this is a notebook, we will define [`config`](https://imperialcollegelondon.github.io/SWMManywhere/config_guide/)
 # as a dictionary rather than a `yaml` file, but the same principles apply.
