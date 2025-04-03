@@ -24,7 +24,7 @@ import pyproj
 import rasterio as rst
 import rioxarray
 import shapely
-from pywbt import whitebox_tools
+from pywbt.pywbt import whitebox_tools
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
@@ -561,7 +561,11 @@ def delineate_catchment_pyflwdir(
 
 
 def derive_subbasins_streamorder(
-    fid: Path, streamorder: int | None = None, x: list[float] = [], y: list[float] = []
+    fid: Path,
+    streamorder: int | None = None,
+    x: list[float] = [],
+    y: list[float] = [],
+    wbt_path: Path | None = None,
 ) -> gpd.GeoDataFrame:
     """Derive subbasins.
 
@@ -574,12 +578,13 @@ def derive_subbasins_streamorder(
         streamorder (int): The stream order to delineate subbasins for.
         x (list): X coordinates.
         y (list): Y coordinates.
+        wbt_path (Path, optional): Path to WhiteboxTools binaries. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons.
     """
     # Load and process the DEM
-    grid, flow_dir, _ = load_and_process_dem(fid)
+    grid, flow_dir, _ = load_and_process_dem(fid, wbt_path=wbt_path)
 
     flw = pyflwdir.from_array(
         flow_dir,
@@ -620,11 +625,15 @@ def derive_subbasins_streamorder(
     return gdf_bas
 
 
-def flwdir_whitebox(fid: Path) -> np.array:
+def flwdir_whitebox(fid: Path, wbt_path: Path | None = None) -> np.array:
     """Calculate flow direction using WhiteboxTools.
 
     Args:
         fid (Path): Filepath to the DEM.
+        wbt_path (Path, optional): Path to WhiteboxTools binaries. If the binaries are
+            not present, they will be downloaded. If None, the binaries will be stored
+            temporarily and removed after the function call. Defaults to None.
+
 
     Returns:
         np.array: Flow directions.
@@ -637,6 +646,9 @@ def flwdir_whitebox(fid: Path) -> np.array:
         dem = temp_path / "dem.tif"
         shutil.copy(fid, dem)
 
+        if not wbt_path:
+            wbt_path = fid.parent / "whiteboxtools_binaries.zip"
+
         # Condition
         wbt_args = {
             "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
@@ -648,7 +660,7 @@ def flwdir_whitebox(fid: Path) -> np.array:
             save_dir=temp_path,
             verbose=verbose(),
             wbt_root=temp_path / "WBT",
-            zip_path=fid.parent / "whiteboxtools_binaries.zip",
+            zip_path=wbt_path,
             max_procs=1,
         )
 
@@ -687,6 +699,7 @@ class Grid:
 def load_and_process_dem(
     fid: Path,
     method: str = "whitebox",
+    wbt_path: Path | None = None,
 ) -> tuple[Grid, np.array, np.array]:
     """Load and condition a DEM.
 
@@ -694,6 +707,7 @@ def load_and_process_dem(
         fid (Path): Filepath to the DEM.
         method (str, optional): The method to use for conditioning. Defaults to
             "whitebox".
+        wbt_path (Path, optional): Path to WhiteboxTools binaries. Defaults to None.
 
     Returns:
         tuple: A tuple containing the grid, flow directions, and cell slopes.
@@ -708,7 +722,7 @@ def load_and_process_dem(
         raise ValueError("Method must be 'whitebox' or 'pyflwdir'.")
 
     if method == "whitebox":
-        flow_dir = flwdir_whitebox(fid)
+        flow_dir = flwdir_whitebox(fid, wbt_path=wbt_path)
     elif method == "pyflwdir":
         flw = pyflwdir.from_dem(
             data=elevtn,
@@ -731,7 +745,7 @@ def load_and_process_dem(
 
 
 def derive_subcatchments(
-    G: nx.Graph, fid: Path, method: str = "whitebox"
+    G: nx.Graph, fid: Path, method: str = "whitebox", wbt_path: Path | None = None
 ) -> gpd.GeoDataFrame:
     """Derive subcatchments from the nodes on a graph and a DEM.
 
@@ -739,13 +753,14 @@ def derive_subcatchments(
         G (nx.Graph): The input graph with nodes containing 'x' and 'y'.
         fid (Path): Filepath to the DEM.
         method (str, optional): The method to use for conditioning.
+        wbt_path (Path, optional): Path to WhiteboxTools binaries. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing polygons with columns:
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
     # Load and process the DEM
-    grid, flow_dir, cell_slopes = load_and_process_dem(fid, method)
+    grid, flow_dir, cell_slopes = load_and_process_dem(fid, method, wbt_path=wbt_path)
 
     # Delineate catchments
     result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)

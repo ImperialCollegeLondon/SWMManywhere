@@ -14,16 +14,23 @@ import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
+from pywbt.conftest import wbt_zipfile
+from pywbt.tests import test_pywbt
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
+test_data_dir = Path(__file__).parent / "test_data"
+
+@pytest.fixture()
+def wbt_path(wbt_zipfile):
+    return Path(test_pywbt.__file__) / "wbt_zip" / wbt_zipfile
 
 @pytest.fixture
 def street_network():
     """Load a street network."""
-    G = ge.load_graph(Path(__file__).parent / "test_data" / "street_graph.json")
+    G = ge.load_graph(test_data_dir / "street_graph.json")
     return G
 
 
@@ -235,13 +242,15 @@ def test_burn_shape_in_raster():
     [("pyflwdir", 2498, 0.1187, 28.202), ("whitebox", 2998, 0.1102, 30.894)],
 )
 @pytest.mark.parametrize("verbose", [True, False])
-def test_derive_subcatchments(street_network, method, area, slope, width, verbose):
+def test_derive_subcatchments(wbt_path, street_network, method, area, slope, width, verbose):
     """Test the derive_subcatchments function."""
     set_verbose(verbose)
 
-    elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
+    elev_fid = test_data_dir / "elevation.tif"
 
-    polys = go.derive_subcatchments(street_network, elev_fid, method)
+    polys = go.derive_subcatchments(
+        street_network, elev_fid, method=method, wbt_path=wbt_path
+    )
     assert "slope" in polys.columns
     assert "area" in polys.columns
     assert "geometry" in polys.columns

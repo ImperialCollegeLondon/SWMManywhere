@@ -132,6 +132,13 @@ class ProjectPaths:
             "national_building", self.national / f"building.{self.extension}"
         )
 
+    @property
+    def whiteboxtools_binaries(self):
+        """The whitebox tools binaries folder."""
+        return self.overrides.get(
+            "whiteboxtools_binaries", self.project / "whitebox_tools.zip"
+        )
+
 
 class BBoxPaths:
     """Paths for the bounding box folder (within project folder)."""
