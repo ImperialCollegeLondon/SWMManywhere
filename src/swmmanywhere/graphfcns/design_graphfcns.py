@@ -74,7 +74,7 @@ def design_pipe(
         # buffers from: https://www.polypipe.com/sites/default/files/Specification_Clauses_Underground_Drainage.pdf
         average_depth = (depth + chamber_floor) / 2
         V = edge_length * (diam + 0.3) * (average_depth + 0.1)
-        cost = 1.32 / 2000 * (9579.31 * diam**0.5737 + 1153.77 * V**1.31)
+        cost = 1.32 / 2000 * (9579.31 * diam**0.5737 + 1163.77 * V**1.31)
         v_feasibility = max(hydraulic_design.min_v - v, 0) + max(
             v - hydraulic_design.max_v, 0
         )
@@ -120,7 +120,7 @@ def design_pipe(
             ],
             ascending=True,
         ).iloc[0]
-        return ideal_pipe.diam, ideal_pipe.depth
+        return ideal_pipe.diam, ideal_pipe.depth, ideal_pipe.cost
     else:
         raise Exception("something odd - no non nan pipes")
 
@@ -131,6 +131,7 @@ def process_successors(
     surface_elevations: dict[Hashable, float],
     chamber_floor: dict[Hashable, float],
     edge_diams: dict[tuple[Hashable, Hashable, int], float],
+    edge_costs: dict[tuple[Hashable, Hashable, int], float],
     hydraulic_design: parameters.HydraulicDesign,
 ) -> None:
     """Process the successors of a node.
@@ -148,6 +149,7 @@ def process_successors(
         chamber_floor (dict): A dictionary of chamber floor elevations keyed by
             node
         edge_diams (dict): A dictionary of pipe diameters keyed by edge
+        edge_costs (dict): A dictionary of pipe costs keyed by edge
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
@@ -162,7 +164,7 @@ def process_successors(
         edge = G.get_edge_data(node, ds_node, 0)
 
         # Design the pipe to find the diameter and invert depth
-        diam, depth = design_pipe(
+        diam, depth, cost = design_pipe(
             surface_elevations[ds_node],
             chamber_floor[node],
             edge["length"],
@@ -170,6 +172,7 @@ def process_successors(
             Q,
         )
         edge_diams[(node, ds_node, 0)] = diam
+        edge_costs[(node, ds_node, 0)] = cost
         chamber_floor[ds_node] = surface_elevations[ds_node] - depth
         if ix > 0:
             logger.warning(
@@ -224,6 +227,7 @@ class pipe_by_pipe(
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
         edge_diams: dict[tuple[Hashable, Hashable, int], float] = {}
+        edge_costs: dict[tuple[Hashable, Hashable, int], float] = {}
         # Iterate over nodes in topological order
         for node in tqdm(topological_order, disable=not verbose()):
             # Check if there's any nodes upstream, if not set the depth to min_depth
@@ -233,9 +237,16 @@ class pipe_by_pipe(
                 )
 
             process_successors(
-                G, node, surface_elevations, chamber_floor, edge_diams, hydraulic_design
+                G,
+                node,
+                surface_elevations,
+                chamber_floor,
+                edge_diams,
+                edge_costs,
+                hydraulic_design,
             )
 
         nx.function.set_edge_attributes(G, edge_diams, "diameter")
         nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
+        nx.function.set_edge_attributes(G, edge_costs, "cost_usd")
         return G

@@ -549,6 +549,7 @@ def test_pipe_by_pipe():
     G = gu.pipe_by_pipe(G, params)
     for u, v, d in G.edges(data=True):
         assert "diameter" in d.keys()
+        assert "cost_usd" in d.keys()
         assert d["diameter"] in params.diameters
 
     for u, d in G.nodes(data=True):
