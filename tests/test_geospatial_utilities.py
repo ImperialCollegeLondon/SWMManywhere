@@ -14,8 +14,6 @@ import rasterio as rst
 from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
-from pywbt.conftest import wbt_zipfile
-from pywbt.tests import test_pywbt
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import graph_utilities as ge
 from swmmanywhere.logging import set_verbose
@@ -23,9 +21,6 @@ from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
 
 test_data_dir = Path(__file__).parent / "test_data"
 
-@pytest.fixture()
-def wbt_path(wbt_zipfile):
-    return Path(test_pywbt.__file__) / "wbt_zip" / wbt_zipfile
 
 @pytest.fixture
 def street_network():
@@ -242,7 +237,9 @@ def test_burn_shape_in_raster():
     [("pyflwdir", 2498, 0.1187, 28.202), ("whitebox", 2998, 0.1102, 30.894)],
 )
 @pytest.mark.parametrize("verbose", [True, False])
-def test_derive_subcatchments(wbt_path, street_network, method, area, slope, width, verbose):
+def test_derive_subcatchments(
+    wbt_path, street_network, method, area, slope, width, verbose
+):
     """Test the derive_subcatchments function."""
     set_verbose(verbose)
 

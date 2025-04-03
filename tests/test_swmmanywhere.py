@@ -10,16 +10,11 @@ import jsonschema
 import pytest
 import yaml
 
-from pywbt.conftest import wbt_zipfile
-from pywbt.tests import test_pywbt
 from swmmanywhere import parameters, swmmanywhere
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
 from swmmanywhere.utilities import plot_basic, plot_map
 
-@pytest.fixture()
-def wbt_path(wbt_zipfile):
-    return Path(test_pywbt.__file__) / "wbt_zip" / wbt_zipfile
 
 def test_run():
     """Test the run function."""
@@ -57,7 +52,7 @@ def test_swmmanywhere(run, wbt_path):
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
-        "whiteboxtools_binaries": wbt_path,
+            "whiteboxtools_binaries": wbt_path,
         }
         config["parameter_overrides"] = {
             "subcatchment_derivation": {"subbasin_streamorder": 5}
