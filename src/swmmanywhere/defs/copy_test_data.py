@@ -23,7 +23,7 @@ def copy_test_data(fid: Path):
         "bellinge_small.inp",
         "bellinge_small_graph.json",
         "bellinge_small_subcatchments.geojson",
-        "storm.dat"
+        "storm.dat",
     ]
     for filename in files:
         copyfile(defs_dir / filename, fid / filename)
