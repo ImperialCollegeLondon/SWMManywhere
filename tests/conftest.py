@@ -13,7 +13,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
-def wbt_path() -> str:
+def wbt_path() -> Path:
     """Determine the platform specific binary for whiteboxtools for testing.
 
     All WBT binaries are stored in `wbt_zip` within the `tests` directory.
@@ -33,4 +33,4 @@ def wbt_path() -> str:
         suffix = (
             "linux_musl" if "musl" in platform.libc_ver()[0].lower() else "linux_amd64"
         )
-    return str(Path(__file__).parent / "wbt_zip" / base_name.format(suffix))
+    return Path(__file__).parent / "wbt_zip" / base_name.format(suffix)
