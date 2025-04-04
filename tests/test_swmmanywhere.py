@@ -53,7 +53,7 @@ def test_swmmanywhere(run, wbt_path):
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
-            "whiteboxtools_binaries": wbt_path,
+            "whiteboxtools_binaries": str(wbt_path),
         }
         config["parameter_overrides"] = {
             "subcatchment_derivation": {"subbasin_streamorder": 5}
