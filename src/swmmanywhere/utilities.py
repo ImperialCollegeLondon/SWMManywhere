@@ -57,25 +57,29 @@ def yaml_dump(o: Any, stream: Any = None, **kwargs: Any) -> str:
     )
 
 
-def plot_basic(model_dir: Path):
+def plot_basic(nodes_path: Path, edges_path: Path):
     """Create a basic map with nodes and edges.
 
     Args:
-        model_dir (Path): The directory containing the model files.
+        nodes_path (Path): The path to the nodes file.
+        edges_path (Path): The path to the edges file.
 
     Returns:
         folium.Map: The folium map.
     """
     # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
+    nodes = gpd.read_file(nodes_path)
+    edges = gpd.read_file(edges_path)
 
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326)
     edges = edges.to_crs(4326)
 
     # Identify outfalls
-    outfall = nodes.id == nodes.outfall
+    if "outfall" in nodes.columns:
+        outfall = nodes.id == nodes.outfall
+    else:
+        outfall = ~nodes.id.isin(edges.u.astype(str))
 
     # Plot on map
     m = folium.Map(
@@ -106,22 +110,28 @@ def plot_basic(model_dir: Path):
     return m
 
 
-def plot_clickable(model_dir: Path):
+def plot_clickable(nodes_path: Path, edges_path: Path, results_path: Path):
     """Create a clickable map with nodes, edges and results.
 
     Args:
-        model_dir (Path): The directory containing the model files.
+        nodes_path (Path): The path to the nodes file.
+        edges_path (Path): The path to the edges file.
+        results_path (Path): The path to the results file.
 
     Returns:
         folium.Map: The folium map.
     """
     # Load and inspect results
-    nodes = gpd.read_file(model_dir / "nodes.geoparquet")
-    edges = gpd.read_file(model_dir / "edges.geoparquet")
-    df = pd.read_parquet(model_dir / "results.parquet")
+    nodes = gpd.read_file(nodes_path)
+    edges = gpd.read_file(edges_path)
+    df = pd.read_parquet(results_path)
     df.id = df.id.astype(str)
     floods = df.loc[df.variable == "flooding"].groupby("id")
     flows = df.loc[df.variable == "flow"].groupby("id")
+
+    if "outfall" not in nodes.columns:
+        nodes["outfall"] = None
+        nodes.loc[~nodes.id.isin(edges.u.astype(str)), "outfall"] = nodes.id
 
     # Convert to EPSG 4326 for plotting
     nodes = nodes.to_crs(4326).set_index("id")
@@ -168,7 +178,7 @@ def plot_clickable(model_dir: Path):
         img.seek(0)
         img_base64 = base64.b64encode(img.read()).decode()
         img_html = f'<img src="data:image/png;base64,{img_base64}">'
-        if row.outfall == node:
+        if row.get("outfall") == node:
             color = "red"
         else:
             color = "black"
@@ -194,11 +204,21 @@ def plot_map(model_dir: Path):
     Returns:
         folium.Map: The folium map.
     """
-    if not (any(model_dir.glob("nodes.*")) and any(model_dir.glob("edges.*"))):
+    nodes_fids = list(model_dir.glob("nodes.*"))
+    if not any(nodes_fids):
         raise FileNotFoundError("No nodes or edges found in model directory.")
+    nodes = nodes_fids[0]
 
-    if any(model_dir.glob("results.*")):
-        m = plot_clickable(model_dir)
+    edges_fids = list(model_dir.glob("edges.*"))
+    if not any(edges_fids):
+        raise FileNotFoundError("No edges found in model directory.")
+    edges = edges_fids[0]
+
+    results_fids = list(model_dir.glob("*results.*"))
+
+    if results_fids:
+        results = results_fids[0]
+        m = plot_clickable(nodes, edges, results)
     else:
-        m = plot_basic(model_dir)
+        m = plot_basic(nodes, edges)
     return m
