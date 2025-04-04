@@ -6,6 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import geopandas as gpd
 import jsonschema
 import pytest
 import yaml
@@ -82,6 +83,18 @@ def test_swmmanywhere(run):
         os.environ["SWMMANYWHERE_VERBOSE"] = "true"
         inp, metrics = swmmanywhere.swmmanywhere(config)
 
+        # Check what was generated
+        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
+        assert inp.exists()
+
+        assert (inp.parent / "edges.geoparquet").exists()
+        assert (inp.parent / "nodes.geoparquet").exists()
+
+        # Check cost separately since it isn't implicitly checked by running the model
+        edges = gpd.read_file(inp.parent / "edges.geoparquet")
+        assert "cost_usd" in edges.columns
+        assert edges.cost_usd.min() > 0
+
         if not run:
             assert inp is not None
             assert inp.exists()
@@ -98,8 +111,6 @@ def test_swmmanywhere(run):
         assert set(metrics.keys()) == set(config["metric_list"])
 
         # Check results were saved
-        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
-        assert inp.exists()
         assert (inp.parent / "results.parquet").exists()
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
 
