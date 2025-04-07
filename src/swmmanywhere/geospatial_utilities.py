@@ -24,7 +24,7 @@ import pyproj
 import rasterio as rst
 import rioxarray
 import shapely
-from pywbt import whitebox_tools, prepare_wbt
+from pywbt import prepare_wbt, whitebox_tools
 from rasterio import features
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
@@ -658,7 +658,7 @@ def flwdir_whitebox(fid: Path, wbt_zip_path: Path | None = None) -> np.array:
             "BreachDepressions": ["-i=dem.tif", "--fillpits", "-o=dem_corr.tif"],
             "D8Pointer": ["-i=dem_corr.tif", "-o=fdir.tif"],
         }
-        
+
         whitebox_tools(
             temp_path,
             wbt_args,
@@ -767,7 +767,9 @@ def derive_subcatchments(
             'geometry', 'area', 'id', 'width', and 'slope'.
     """
     # Load and process the DEM
-    grid, flow_dir, cell_slopes = load_and_process_dem(fid, method, wbt_zip_path=wbt_zip_path)
+    grid, flow_dir, cell_slopes = load_and_process_dem(
+        fid, method, wbt_zip_path=wbt_zip_path
+    )
 
     # Delineate catchments
     result_polygons = delineate_catchment_pyflwdir(grid, flow_dir, G)
