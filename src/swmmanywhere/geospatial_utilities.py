@@ -630,9 +630,9 @@ def flwdir_whitebox(fid: Path, wbt_zip_path: Path | None = None) -> np.array:
 
     Args:
         fid (Path): Filepath to the DEM.
-        wbt_zip_path (Path, optional): Path to WhiteboxTools binaries. If the binaries are
-            not present, they will be downloaded. If None, the binaries will be stored
-            temporarily and removed after the function call. Defaults to None.
+        wbt_zip_path (Path, optional): Path to WhiteboxTools binaries. If the binaries
+            are not present, they will be downloaded. If None, the binaries will be
+            stored temporarily and removed after the function call. Defaults to None.
 
 
     Returns:
