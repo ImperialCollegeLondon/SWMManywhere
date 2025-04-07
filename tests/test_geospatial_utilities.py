@@ -238,7 +238,7 @@ def test_burn_shape_in_raster():
 )
 @pytest.mark.parametrize("verbose", [True, False])
 def test_derive_subcatchments(
-    wbt_path, street_network, method, area, slope, width, verbose
+    wbt_zip_path, street_network, method, area, slope, width, verbose
 ):
     """Test the derive_subcatchments function."""
     set_verbose(verbose)
@@ -248,9 +248,11 @@ def test_derive_subcatchments(
         "swmmanywhere.geospatial_utilities.flwdir_whitebox", wraps=go.flwdir_whitebox
     ) as spy:
         polys = go.derive_subcatchments(
-            street_network, elev_fid, method=method, wbt_path=wbt_path
+            street_network, elev_fid, method=method, wbt_zip_path=wbt_zip_path
         )
-        assert all(kwargs["wbt_path"] is not None for _, kwargs in spy.call_args_list)
+        assert all(
+            kwargs["wbt_zip_path"] is not None for _, kwargs in spy.call_args_list
+        )
 
     assert "slope" in polys.columns
     assert "area" in polys.columns
