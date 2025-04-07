@@ -71,7 +71,7 @@ class clip_to_catchments(
             subcatchment_derivation.subbasin_streamorder,
             x=list(nx.get_node_attributes(G, "x").values()),
             y=list(nx.get_node_attributes(G, "y").values()),
-            wbt_path=addresses.project_paths.whiteboxtools_binaries,
+            wbt_zip_path=addresses.project_paths.whiteboxtools_binaries_zip,
         )
 
         if verbose():
@@ -234,7 +234,7 @@ class calculate_contributing_area(
 
             # Derive
             subs_gdf = go.derive_subcatchments(
-                G, temp_fid, wbt_path=addresses.project_paths.whiteboxtools_binaries
+                G, temp_fid, wbt_zip_path=addresses.project_paths.whiteboxtools_binaries_zip
             )
             if verbose():
                 subs_gdf.to_file(addresses.model_paths.subcatchments, driver="GeoJSON")

@@ -133,10 +133,10 @@ class ProjectPaths:
         )
 
     @property
-    def whiteboxtools_binaries(self):
-        """The whitebox tools binaries folder."""
+    def whiteboxtools_binaries_zip(self):
+        """The zipped whitebox tools binaries folder."""
         return self.overrides.get(
-            "whiteboxtools_binaries", self.project / "whitebox_tools.zip"
+            "whiteboxtools_binaries_zip", self.project / "whitebox_tools.zip"
         )
 
 
