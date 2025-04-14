@@ -648,10 +648,7 @@ def flwdir_whitebox(fid: Path, wbt_zip_path: Path | None = None) -> np.array:
 
         wbt_root = temp_path / "WBT"
 
-        if wbt_zip_path:
-            prepare_wbt(wbt_root, wbt_zip_path, refresh_download=False)
-        else:
-            prepare_wbt(wbt_root)
+        prepare_wbt(wbt_root, zip_path=wbt_zip_path)
 
         # Condition
         wbt_args = {
