@@ -20,8 +20,6 @@ def wbt_zip_path() -> Path:
 
     Based on implementation in [`pywbt`](https://github.com/cheginit/pywbt).
     """
-    base_name = "WhiteboxTools_{}.zip"
-
     _, suffix, _ = _get_platform_suffix()
 
-    return Path(__file__).parent / "wbt_zip" / base_name.format(suffix)
+    return Path(__file__).parent / "wbt_zip" / f"WhiteboxTools_{suffix}.zip"
