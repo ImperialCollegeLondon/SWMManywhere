@@ -185,7 +185,7 @@ def download_river(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
             retain_all=True,
         )
     except ValueError as e:
-        if str(e) == "Found no graph nodes within the requested polygon":
+        if "Found no graph nodes within the requested polygon" in str(e):
             logger.warning("No water network found within the bounding box.")
             return nx.MultiDiGraph()
         else:
