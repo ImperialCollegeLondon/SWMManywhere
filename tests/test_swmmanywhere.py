@@ -38,7 +38,7 @@ def test_run():
 
 
 @pytest.mark.parametrize("run", [True, False])
-def test_swmmanywhere(run):
+def test_swmmanywhere(run, wbt_zip_path):
     """Test the swmmanywhere function."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Load the config
@@ -53,6 +53,7 @@ def test_swmmanywhere(run):
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
+            "whiteboxtools_binaries_zip": str(wbt_zip_path),
         }
         config["parameter_overrides"] = {
             "subcatchment_derivation": {"subbasin_streamorder": 5}
