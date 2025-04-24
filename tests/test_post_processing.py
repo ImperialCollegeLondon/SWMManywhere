@@ -124,7 +124,7 @@ def generate_data_dict():
             "length": [1, (50**2 + 50**2) ** 0.5],
             "roughness": [0.01, 0.01],
             "shape_swmm": ["CIRCULAR", "CIRCULAR"],
-            "diameter": [1, 15],
+            "diameter": [1, 1],
             "capacity": [1e10, 1e10],
         }
     )
