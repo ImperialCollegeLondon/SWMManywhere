@@ -15,9 +15,89 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import yaml
+from swmmio import Model
 
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
+
+
+def _fill_backslash_columns(df: pd.DataFrame | None, key: str) -> pd.DataFrame | None:
+    if df is None:
+        return None
+
+    # Load conversion mapping from YAML file
+    with (Path(__file__).parent / "defs" / "swmm_conversion.yml").open("r") as file:
+        conversion_dict = yaml.safe_load(file)
+
+    data = {}
+    for sa, sio in zip(
+        conversion_dict[key]["columns"], conversion_dict[key]["iwcolumns"]
+    ):
+        if sio.startswith("/"):
+            data[sa] = sio[1:]
+        else:
+            data[sa] = df[sio]
+
+    return pd.DataFrame(data)
+
+
+io_registry = {}
+"""Registry for input/output functions."""
+
+
+def register_io(func):
+    """Decorator to register input/output functions."""
+
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    io_registry[func.__name__] = wrapper
+    return wrapper
+
+
+@register_io
+def apply_nodes(m: Model, addresses: FilePaths, **kw):
+    """Apply edges to the model.
+
+    Args:
+        m (Model): The SWMMIO model to apply edges to.
+        addresses (FilePaths): A dictionary of file paths.
+        **kw: Additional keyword arguments are ignored.
+    """
+    nodes = gpd.read_file(addresses.model_paths.nodes)
+    nodes = nodes[["id", "x", "y", "chamber_floor_elevation", "surface_elevation"]]
+
+    # Nodes
+    nodes["id"] = nodes["id"].astype(str)
+    nodes["max_depth"] = nodes.surface_elevation - nodes.chamber_floor_elevation
+    nodes["surcharge_depth"] = 0
+    nodes["flooded_area"] = 100  # TODO arbitrary... not sure how to calc this
+    nodes["manhole_area"] = 0.5
+
+    m.inp.storage = _fill_backslash_columns(nodes, "STORAGE")
+    m.inp.coordinates = _fill_backslash_columns(nodes, "COORDINATES")
+    return m
+
+
+def iterate_io(
+    io_list: list[str],
+    params: dict,
+    addresses: FilePaths,
+):
+    """Iterate a list of input/output functions over a model."""
+    # Load a starting model
+    m = Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
+
+    for function in io_list:
+        if function not in io_registry:
+            raise ValueError(f"""Function {function} not registered in io_registry""")
+
+        # Call the function with the model and parameters
+        m = io_registry[function](m, addresses, **params)
+
+        logger.info(f"io: {function} completed.")
+
+    m.inp.save(str(addresses.model_paths.inp))
 
 
 def synthetic_write(addresses: FilePaths):
