@@ -40,13 +40,13 @@ def _fill_backslash_columns(df: pd.DataFrame, key: str) -> pd.DataFrame:
         conversion_dict = yaml.safe_load(file)
 
     data = {}
-    for sa, sio in zip(
+    for swmmio_key, swmmanywhere_key in zip(
         conversion_dict[key]["columns"], conversion_dict[key]["iwcolumns"]
     ):
-        if sio.startswith("/"):
-            data[sa] = sio[1:]
+        if swmmanywhere_key.startswith("/"):
+            data[swmmio_key] = swmmanywhere_key[1:]
         else:
-            data[sa] = df[sio]
+            data[swmmio_key] = df[swmmanywhere_key]
 
     return pd.DataFrame(data)
 
