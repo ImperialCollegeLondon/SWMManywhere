@@ -97,7 +97,9 @@ class set_chahinian_slope(
 ):
     """set_chahinian_slope class."""
 
-    def __call__(self, G: nx.Graph, **kwargs) -> nx.Graph:
+    def __call__(
+        self, G: nx.Graph, topology_derivation: parameters.TopologyDerivation, **kwargs
+    ) -> nx.Graph:
         """set_chahinian_slope class.
 
         This function sets the Chahinian slope for each edge. The Chahinian slope is
@@ -106,6 +108,8 @@ class set_chahinian_slope(
 
         Args:
             G (nx.Graph): A graph
+            topology_derivation (parameters.TopologyDerivation): A TopologyDerivation
+                parameter object
             **kwargs: Additional keyword arguments are ignored.
 
         Returns:
@@ -114,16 +118,16 @@ class set_chahinian_slope(
         G = G.copy()
 
         # Values where the weight of the slope can be matched to the values
-        # in weights - e.g., a slope of 0.3% has 0 weight (preferred), while
-        # a slope of <=-1% has a weight of 1 (not preferred)
-        slope_points = [-1, 0.3, 0.7, 10]
+        # in weights - e.g., for the default chahinian_slope_points ([-1,0.3,0.7,10]),
+        # a slope of 0.3% has 0 weight (preferred), while a slope of <=-1% has a weight
+        # of 1 (not preferred).
         weights = [1, 0, 0, 1]
 
         # Calculate weights
         slope = nx.get_edge_attributes(G, "surface_slope")
         weights = np.interp(
             np.asarray(list(slope.values())) * 100,
-            slope_points,
+            topology_derivation.chahinian_slope_points,
             weights,
             left=1,
             right=1,

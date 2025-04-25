@@ -221,6 +221,14 @@ class TopologyDerivation(BaseModel):
         description="Exponent to apply to contributing area in topo derivation",
     )
 
+    chahinian_slope_points: list = Field(
+        default=[-1, 0.3, 0.7, 10],
+        min_items=4,
+        max_items=4,
+        unit="%",
+        description="Points to apply to surface slope in topo derivation",
+    )
+
     @model_validator(mode="after")
     def check_weights(cls, values):
         """Check that weights have associated scaling and exponents."""
