@@ -563,6 +563,7 @@ def test_pipe_by_pipe():
 
     assert G.nodes[107733]["chamber_floor_elevation"] < -1
 
+
 def get_edge_types(G):
     """Get the edge types in the graph."""
     edge_types = set()
