@@ -545,7 +545,7 @@ def test_pipe_by_pipe():
         d["contributing_area"] = ix
 
     # 107738 and 107734 join to 107733. Since 107738 has fewer ancestors, it is
-    # processed first. We articifially set it to a lower elevation than 107734 to ensure
+    # processed first. We artificially set it to a lower elevation than 107734 to ensure
     # that the design of 107734 does not overwrite this lower required depth from 107738
     G.nodes[107738]["surface_elevation"] = -1
 
