@@ -51,6 +51,8 @@ def register_io(func):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
 
+    if func.__name__ in io_registry:
+        logger.warning(f"{func.__name__} already in io register, overwriting.")
     io_registry[func.__name__] = wrapper
     return wrapper
 

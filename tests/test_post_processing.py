@@ -17,6 +17,7 @@ from swmmanywhere import post_processing as stt
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.parameters import get_full_parameters
 from swmmanywhere.post_processing import io_registry
+from swmmanywhere.swmmanywhere import import_module
 
 fid = (
     Path(__file__).parent.parent
@@ -101,6 +102,13 @@ def test_iterate_io(filepaths):
         filepaths,
     )
     assert filepaths.model_paths.inp.exists()
+
+
+def test_custom_io():
+    """Test register_parameter_group."""
+    import_module(Path(__file__).parent / "test_data" / "custom_io.py")
+
+    assert "new_io" in io_registry.keys()
 
 
 def test_overwrite_section():
