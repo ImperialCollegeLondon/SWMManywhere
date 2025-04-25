@@ -21,10 +21,20 @@ from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
 
 
-def _fill_backslash_columns(df: pd.DataFrame | None, key: str) -> pd.DataFrame | None:
-    if df is None:
-        return None
+def _fill_backslash_columns(df: pd.DataFrame, key: str) -> pd.DataFrame:
+    """Format the data into the swmmio columns.
 
+    Use the schema set out in defs/swmm_conversion.yml. Not all columns in `df` need to
+    be used, but all non-backslash columns in the `iwcolumns` list in
+    swmm_conversion.yml must be present.
+
+    Args:
+        df (pd.DataFrame): DataFrame to be formatted.
+        key (str): Key to look up in swmm_conversion.yml.
+
+    Returns:
+        pd.DataFrame: Formatted DataFrame
+    """
     # Load conversion mapping from YAML file
     with (Path(__file__).parent / "defs" / "swmm_conversion.yml").open("r") as file:
         conversion_dict = yaml.safe_load(file)
