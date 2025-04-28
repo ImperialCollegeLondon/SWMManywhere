@@ -62,6 +62,10 @@ We visualise the example from the [extended demonstration](https://imperialcolle
 
 ![Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.png)
 
+### Comparisons with real networks
+
+When comparing synthesised UDMs of an actual location with a known UDM, it is not trivial to evaluate the efficacy of the synthesis algorithm because pipes do not line up [@Chahinian2019-lg]. Thus, SWMManywhere contains an extensive evaluation framework that contains a high number of metrics for quantifying comparisons. Because each graph function in SWMManywhere depends on the output of the previous, we evaluate different types of metrics that span the synthesis process (broadly categorised to systemic, topographical, and design properties) in addition to the more conventional simulation comparisons at the network outfall and flooding across the network. This multi‐tiered approach not only validates model realism against observed networks but also facilitates understanding of where in the SWMManywhere workflow the synthetic and real UDM diverge, thereby transforming UDM synthesis into an explicit, uncertainty‐driven workflow.
+
 ## Outlook
 
 While we believe that SWMManywhere is a useful tool it has a variety of current limitations that present an exciting outlook for future research. Key improvements to the overall realism of the approach may be made in the future, in particular,
