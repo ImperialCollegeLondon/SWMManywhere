@@ -462,7 +462,7 @@ def test_remove_intersections():
 def test_graph_to_geojson(street_network):
     """Test the graph_to_geojson function."""
     crs = street_network.graph["crs"]
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
         go.graph_to_geojson(
             street_network,
