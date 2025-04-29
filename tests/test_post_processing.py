@@ -30,7 +30,7 @@ def test_overwrite_section():
     """
     # Copy the example file to a temporary file
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_fname = Path(temp_dir) / "temp.inp"
         shutil.copy(fid, temp_fname)
         data = [
@@ -49,7 +49,7 @@ def test_overwrite_section():
 def test_change_flow_routing():
     """Test the change_flow_routing function."""
     # Copy the example file to a temporary file
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_fid = Path(temp_dir) / "temp.inp"
         shutil.copy(fid, temp_fid)
         new_routing = "STEADY"
@@ -72,7 +72,7 @@ def test_data_input_dict_to_inp():
         ]
     }
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_fid = Path(temp_dir) / "temp.inp"
         shutil.copy(fid, temp_fid)
         stt.data_dict_to_inp(data_dict, fid, temp_fid)
@@ -124,7 +124,7 @@ def generate_data_dict():
             "length": [1, (50**2 + 50**2) ** 0.5],
             "roughness": [0.01, 0.01],
             "shape_swmm": ["CIRCULAR", "CIRCULAR"],
-            "diameter": [1, 15],
+            "diameter": [1, 1],
             "capacity": [1e10, 1e10],
         }
     )
@@ -157,7 +157,7 @@ def generate_data_dict():
 def test_synthetic_write():
     """Test the synthetic_write function."""
     data_dict = generate_data_dict()
-    with tempfile.TemporaryDirectory() as model_dir:
+    with tempfile.TemporaryDirectory(dir=".") as model_dir:
         model_dir = Path(model_dir)
         addresses = FilePaths(
             base_dir=model_dir,
@@ -239,7 +239,7 @@ def test_format_to_swmm_dict():
     rain_fid = (
         Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs" / "storm.dat"
     )
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_dir = Path(temp_dir)
         shutil.copy(rain_fid, temp_dir / "storm.dat")
         temp_fid = temp_dir / "temp.inp"
