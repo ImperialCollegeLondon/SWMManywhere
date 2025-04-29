@@ -6,6 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import geopandas as gpd
 import jsonschema
 import pytest
 import yaml
@@ -38,9 +39,9 @@ def test_run():
 
 
 @pytest.mark.parametrize("run", [True, False])
-def test_swmmanywhere(run):
+def test_swmmanywhere(run, wbt_zip_path):
     """Test the swmmanywhere function."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         # Load the config
         test_data_dir = Path(__file__).parent / "test_data"
         defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
@@ -53,6 +54,7 @@ def test_swmmanywhere(run):
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
+            "whiteboxtools_binaries_zip": str(wbt_zip_path),
         }
         config["parameter_overrides"] = {
             "subcatchment_derivation": {"subbasin_streamorder": 5}
@@ -83,6 +85,18 @@ def test_swmmanywhere(run):
         os.environ["SWMMANYWHERE_VERBOSE"] = "true"
         inp, metrics = swmmanywhere.swmmanywhere(config)
 
+        # Check what was generated
+        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
+        assert inp.exists()
+
+        assert (inp.parent / "edges.geoparquet").exists()
+        assert (inp.parent / "nodes.geoparquet").exists()
+
+        # Check cost separately since it isn't implicitly checked by running the model
+        edges = gpd.read_file(inp.parent / "edges.geoparquet")
+        assert "cost_usd" in edges.columns
+        assert edges.cost_usd.min() > 0
+
         if not run:
             assert inp is not None
             assert inp.exists()
@@ -99,8 +113,6 @@ def test_swmmanywhere(run):
         assert set(metrics.keys()) == set(config["metric_list"])
 
         # Check results were saved
-        assert (inp.parent / f"{config['graphfcn_list'][-1]}_graph.json").exists()
-        assert inp.exists()
         assert (inp.parent / "results.parquet").exists()
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
 
@@ -111,7 +123,7 @@ def test_swmmanywhere(run):
 
 def test_load_config_file_validation():
     """Test the file validation of the config."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
         base_dir = Path(temp_dir)
 
@@ -138,7 +150,7 @@ def test_load_config_file_validation():
 
 def test_load_config_schema_validation():
     """Test the schema validation of the config."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
         base_dir = Path(temp_dir)
 
@@ -160,7 +172,7 @@ def test_load_config_schema_validation():
 
 def test_save_config():
     """Test the save_config function."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_dir = Path(temp_dir)
         defs_dir = Path(__file__).parent.parent / "src" / "swmmanywhere" / "defs"
 
@@ -182,7 +194,7 @@ def test_save_config():
 @pytest.mark.downloads
 def test_minimal_req():
     """Test SWMManywhere with minimal info."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         config = {
             "base_dir": Path(temp_dir),
             "project": "my_test",
@@ -194,7 +206,7 @@ def test_minimal_req():
 
 def test_custom_metric():
     """Test adding a custom metric."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         # Load the config
         gf_module = str(Path(__file__).parent / "test_data" / "custom_metrics.py")
 
@@ -227,7 +239,7 @@ def test_custom_metric():
 
 def test_custom_graphfcn():
     """Test adding a custom graphfcn."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         # Load the config
         gf_module = str(Path(__file__).parent / "test_data" / "custom_graphfcns.py")
 
