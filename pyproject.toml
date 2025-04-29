@@ -94,6 +94,11 @@ urls.Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 only-include = [ "src" ]
 sources = [ "src" ]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "*.zip",
+]
+
 [tool.hatch.metadata]
 license = "BSD-3-clause"                                 # Or your primary license name
 license-files = [ "LICENSE", "src/netcomp/LICENSE.txt" ]
