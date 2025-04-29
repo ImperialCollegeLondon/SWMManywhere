@@ -36,7 +36,7 @@ from swmmanywhere.swmmanywhere import swmmanywhere
 from swmmanywhere.utilities import plot_map
 
 # Create temporary directory
-temp_dir = tempfile.TemporaryDirectory(dir=".")
+temp_dir = tempfile.TemporaryDirectory()
 base_dir = Path(temp_dir.name)
 
 # Define minimum viable config (with shorter duration so better inspect results)

@@ -56,7 +56,7 @@ def test_building_downloader_download():
     # Coordinates for small country (VAT)
     x = 7.41839
     y = 43.73205
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.parquet"
         # Download
         response = downloaders.download_buildings(temp_fid, x, y)
@@ -78,7 +78,7 @@ def test_building_bbox_downloader_download():
     """Check buildings are downloaded."""
     # Coordinates for small country (VAT)
     bbox = (-0.17929, 51.49638, -0.17383, 51.49846)
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.parquet"
         # Download
         downloaders.download_buildings_bbox(temp_fid, bbox)
@@ -118,7 +118,7 @@ def test_elevation_downloader_download():
     """Check elevation downloads, writes, contains data, and a known elevation."""
     bbox = (-0.17929, 51.49638, -0.17383, 51.49846)
 
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.tif"
 
         # Download
@@ -176,7 +176,7 @@ def test_building_downloader(setup_mocks):
     x = -0.1276
     y = 51.5074
 
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.parquet"
         mock_response = mock.Mock()
         mock_response.status_code = 200
@@ -231,7 +231,7 @@ def test_download_elevation():
     """Check elevation downloads, writes, contains data, and a known elevation."""
     bbox = (-0.17929, 51.49638, -0.17383, 51.49846)
 
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         temp_fid = Path(temp_dir) / "temp.tif"
 
         # Mock the external dependencies

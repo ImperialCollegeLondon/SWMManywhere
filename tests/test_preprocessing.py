@@ -10,7 +10,7 @@ from swmmanywhere.filepaths import FilePaths, filepaths_from_yaml
 
 def test_getattr():
     """Test the __getattr__ method."""
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         filepath = Path(temp_dir)
         addresses = FilePaths(
             base_dir=filepath, bbox_bounds=[0, 1, 0, 1], project_name="test"
@@ -54,7 +54,7 @@ def test_getattr():
 
 def test_to_yaml_normal():
     """Test the to_yaml and from_yaml methods."""
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
         addresses = FilePaths(base_dir, "test", [0, 1, 0, 1])
 
@@ -93,7 +93,7 @@ def test_to_yaml_normal():
 
 def test_to_yaml_normal_with_overrides():
     """Test the to_yaml and from_yaml methods."""
-    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         base_dir = Path(temp_dir)
         dummy_file = base_dir / "dummy.txt"
         dummy_file.touch()

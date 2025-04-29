@@ -240,7 +240,7 @@ def validate_graphfcn_list(
         )
 
 
-with tempfile.TemporaryDirectory(dir=".") as temp_dir:
+with tempfile.TemporaryDirectory() as temp_dir:
     temp_addresses = FilePaths(
         base_dir=Path(temp_dir), bbox_bounds=(0, 1, 0, 1), project_name="temp"
     )
