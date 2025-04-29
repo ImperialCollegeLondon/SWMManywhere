@@ -19,13 +19,14 @@ def copy_test_data(fid: Path):
         raise FileNotFoundError(f"Directory does not exist: {fid}")
 
     defs_dir = Path(__file__).parent
-    copyfile(defs_dir / "bellinge_small.inp", fid / "bellinge_small.inp")
-    copyfile(defs_dir / "bellinge_small_graph.json", fid / "bellinge_small_graph.json")
-    copyfile(
-        defs_dir / "bellinge_small_subcatchments.geojson",
-        fid / "bellinge_small_subcatchments.geojson",
-    )
-    copyfile(defs_dir / "storm.dat", fid / "storm.dat")
+    files = [
+        "bellinge_small.inp",
+        "bellinge_small_graph.json",
+        "bellinge_small_subcatchments.geojson",
+        "storm.dat",
+    ]
+    for filename in files:
+        copyfile(defs_dir / filename, fid / filename)
 
     G = load_graph(fid / "bellinge_small_graph.json")
     graph_to_geojson(G, fid / "nodes.geojson", fid / "edges.geojson", G.graph["crs"])

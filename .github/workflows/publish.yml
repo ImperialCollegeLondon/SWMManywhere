@@ -70,6 +70,7 @@ jobs:
       with:
         repository-url: https://test.pypi.org/legacy/
         skip-existing: true
+        verbose: true
 
   publish-PyPI:
     needs: publish-TestPyPI

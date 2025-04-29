@@ -66,7 +66,7 @@ def prepare_elevation(
     if addresses.bbox_paths.elevation.exists():
         return
     logger.info(f"downloading elevation to {addresses.bbox_paths.elevation}")
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         fid = Path(temp_dir) / "elevation.tif"
         prepare_data.download_elevation(
             fid,

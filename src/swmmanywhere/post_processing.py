@@ -81,7 +81,7 @@ def synthetic_write(addresses: FilePaths):
     new_edges["u"] = outfalls["id"].str.replace("_outfall", "").values
     new_edges["v"] = outfalls["id"].values
     new_edges["id"] = [f"{u}-{v}" for u, v in zip(new_edges["u"], new_edges["v"])]
-    new_edges["diameter"] = 15  # TODO .. big pipe to enable all outfall...
+    new_edges["diameter"] = edges.diameter.max()
     new_edges["length"] = (50**2 + 50**2) ** 0.5
     new_edges["roughness"] = 0.01
     new_edges["capacity"] = 1e10
