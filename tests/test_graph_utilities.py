@@ -41,7 +41,7 @@ def test_save_load(street_network):
     """Test the save_graph and load_graph functions."""
     G, _ = street_network
     # Load a street network
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         # Save the graph
         save_graph(G, Path(temp_dir) / "test_graph.json")
         # Load the graph
@@ -72,7 +72,7 @@ def test_calculate_streetcover(street_network):
     """Test the calculate_streetcover function."""
     G, _ = street_network
     params = parameters.SubcatchmentDerivation()
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         addresses = FilePaths(
             base_dir=Path(temp_dir),
             bbox_bounds=[0, 1, 0, 1],
@@ -115,7 +115,7 @@ def test_split_long_edges(street_network):
 
 def test_derive_subcatchments(street_network):
     """Test the derive_subcatchments function."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
         addresses = FilePaths(
             base_dir=Path(temp_dir),
@@ -156,7 +156,7 @@ def test_derive_subcatchments(street_network):
 def test_set_elevation_and_slope(street_network):
     """Test the set_elevation, set_surface_slope, chahinian_slope function."""
     G, _ = street_network
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         addresses = FilePaths(
             base_dir=Path(temp_dir),
             bbox_bounds=[0, 1, 0, 1],
@@ -230,7 +230,7 @@ def test_identify_outfalls_no_river(street_network):
     G, _ = street_network
     G = gu.assign_id(G)
     G = gu.double_directed(G)
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         addresses = FilePaths(
             base_dir=Path(temp_dir),
             bbox_bounds=[0, 1, 0, 1],
@@ -257,7 +257,7 @@ def test_identify_outfalls_sg(street_network):
     G = gu.assign_id(G)
     G = gu.double_directed(G)
     elev_fid = Path(__file__).parent / "test_data" / "elevation.tif"
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         addresses = FilePaths(
             base_dir=Path(temp_dir),
             bbox_bounds=[0, 1, 0, 1],
@@ -597,7 +597,7 @@ def test_iterate_graphfcns():
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
     params = parameters.get_full_parameters()
     params["topology_derivation"].omit_edges = ["primary", "bridge"]
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
         addresses = FilePaths(
             base_dir=temp_path,
@@ -634,7 +634,7 @@ def test_iterate_graphfcns_noedges():
     """Test the iterate_graphfcns function for a graph with no edges."""
     G = load_graph(Path(__file__).parent / "test_data" / "graph_topo_derived.json")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
         addresses = FilePaths(
             base_dir=temp_path,
@@ -696,7 +696,7 @@ def test_clip_to_catchments(street_network):
     """Test the clip_to_catchments function."""
     G, _ = street_network
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         os.environ["SWMMANYWHERE_VERBOSE"] = "true"
         temp_path = Path(temp_dir)
         addresses = FilePaths(

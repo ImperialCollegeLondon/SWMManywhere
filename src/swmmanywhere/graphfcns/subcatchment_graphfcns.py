@@ -223,7 +223,7 @@ class calculate_contributing_area(
         # Carve
         # TODO I guess we don't need to keep this 'carved' file..
         # maybe could add verbose/debug option to keep it
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(dir=".") as temp_dir:
             temp_fid = Path(temp_dir) / "carved.tif"
             go.burn_shape_in_raster(
                 [d["geometry"] for u, v, d in G.edges(data=True)],

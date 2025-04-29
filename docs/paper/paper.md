@@ -62,6 +62,10 @@ We visualise the example from the [extended demonstration](https://imperialcolle
 
 ![Example of output customisation with SWMManywhere. Black nodes are manholes, black lines are pipes, red nodes are outfalls.\label{fig:fig1}](extended_demo.png)
 
+### Comparisons with real networks
+
+Because manhole and pipe locations rarely coincide between a synthetic and survey-derived UDM, direct element-by-element comparisons are infeasible [@Chahinian2019-lg]. SWMManywhere therefore implements a comprehensive suite of metrics mapped to each stage of the synthesis pipeline: system description (e.g., pipe lengths, counts), topological structure (e.g., Laplacian and vertex–edge distances, betweenness distributions), hydraulic design (e.g., diameter and depth statistics), and simulation performance (e.g., outfall flows and network flooding volumes). This multi‐tiered approach validates model realism against observed networks and facilitates understanding of where in the SWMManywhere workflow the synthetic and real UDM diverge, thereby transforming UDM synthesis into an explicit, uncertainty‐driven workflow.
+
 ## Outlook
 
 While we believe that SWMManywhere is a useful tool it has a variety of current limitations that present an exciting outlook for future research. Key improvements to the overall realism of the approach may be made in the future, in particular,
