@@ -544,6 +544,11 @@ def test_pipe_by_pipe():
         d["surface_elevation"] = ix
         d["contributing_area"] = ix
 
+    # 107738 and 107734 join to 107733. Since 107738 has fewer ancestors, it is
+    # processed first. We artificially set it to a lower elevation than 107734 to ensure
+    # that the design of 107734 does not overwrite this lower required depth from 107738
+    G.nodes[107738]["surface_elevation"] = -1
+
     params = parameters.HydraulicDesign()
 
     G = gu.pipe_by_pipe(G, params)
@@ -555,6 +560,8 @@ def test_pipe_by_pipe():
     for u, d in G.nodes(data=True):
         assert "chamber_floor_elevation" in d.keys()
         assert math.isfinite(d["chamber_floor_elevation"])
+
+    assert G.nodes[107733]["chamber_floor_elevation"] < -1
 
 
 def get_edge_types(G):

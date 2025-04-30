@@ -176,7 +176,9 @@ def process_successors(
         )
         edge_diams[(node, ds_node, 0)] = diam
         edge_costs[(node, ds_node, 0)] = cost
-        chamber_floor[ds_node] = surface_elevations[ds_node] - depth
+        chamber_floor[ds_node] = min(
+            surface_elevations[ds_node] - depth, chamber_floor.get(ds_node, np.inf)
+        )
         if ix > 0:
             logger.warning(
                 """a node has multiple successors, 
