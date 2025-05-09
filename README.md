@@ -40,6 +40,8 @@ Alternatively, it can be installed using `mamba` (`conda` or `micromamba`):
 mamba install -c conda-forge swmmanywhere
 ```
 
+SWMManywhere dependencies may be viewed in the [`pyproject.toml`](https://github.com/ImperialCollegeLondon/SWMManywhere/blob/11dad1525c57a397914945b3d1f681066a054b0d/pyproject.toml#L36).
+
 ## Documentation and Quickstart
 
 Once installed, you can simply run SWMManywhere from the command line giving a
