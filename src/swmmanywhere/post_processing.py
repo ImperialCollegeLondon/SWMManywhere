@@ -100,9 +100,11 @@ def iterate_io(
     # Load a starting model
     m = Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
 
+    not_found = [f for f in io_list if f not in io_registry]
+    if not_found:
+        raise ValueError(f"""Functions {not_found} not registered in io_registry""")
+
     for function in io_list:
-        if function not in io_registry:
-            raise ValueError(f"""Function {function} not registered in io_registry""")
 
         # Call the function with the model and parameters
         m = io_registry[function](m, addresses, **params)
