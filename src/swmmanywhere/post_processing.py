@@ -144,8 +144,6 @@ def synthetic_write(addresses: FilePaths):
     # Nodes
     nodes["id"] = nodes["id"].astype(str)
     nodes["max_depth"] = nodes.surface_elevation - nodes.chamber_floor_elevation
-    nodes["surcharge_depth"] = 0
-    nodes["flooded_area"] = 100  # TODO arbitrary... not sure how to calc this
     nodes["manhole_area"] = 0.5
 
     # Subs
