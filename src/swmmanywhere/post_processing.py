@@ -105,7 +105,6 @@ def iterate_io(
         raise ValueError(f"""Functions {not_found} not registered in io_registry""")
 
     for function in io_list:
-
         # Call the function with the model and parameters
         m = io_registry[function](m, addresses, **params)
 
