@@ -68,11 +68,11 @@ def register_io(func):
 
 
 @register_io
-def apply_nodes(m: Model, addresses: FilePaths, **kw):
+def apply_nodes(model: Model, addresses: FilePaths, **kw):
     """Apply edges to the model.
 
     Args:
-        m (Model): The SWMMIO model to apply edges to.
+        model (Model): The SWMMIO model to apply edges to.
         addresses (FilePaths): A dictionary of file paths.
         **kw: Additional keyword arguments are ignored.
     """
@@ -86,9 +86,9 @@ def apply_nodes(m: Model, addresses: FilePaths, **kw):
     nodes["flooded_area"] = 100  # TODO arbitrary... not sure how to calc this
     nodes["manhole_area"] = 0.5
 
-    m.inp.storage = _fill_backslash_columns(nodes, "STORAGE")
-    m.inp.coordinates = _fill_backslash_columns(nodes, "COORDINATES")
-    return m
+    model.inp.storage = _fill_backslash_columns(nodes, "STORAGE")
+    model.inp.coordinates = _fill_backslash_columns(nodes, "COORDINATES")
+    return model
 
 
 def iterate_io(
@@ -98,7 +98,7 @@ def iterate_io(
 ):
     """Iterate a list of input/output functions over a model."""
     # Load a starting model
-    m = Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
+    model = Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
 
     not_found = [f for f in io_list if f not in io_registry]
     if not_found:
@@ -106,11 +106,11 @@ def iterate_io(
 
     for function in io_list:
         # Call the function with the model and parameters
-        m = io_registry[function](m, addresses, **params)
+        model = io_registry[function](model, addresses, **params)
 
         logger.info(f"io: {function} completed.")
 
-    m.inp.save(str(addresses.model_paths.inp))
+    model.inp.save(str(addresses.model_paths.inp))
 
 
 def synthetic_write(addresses: FilePaths):
