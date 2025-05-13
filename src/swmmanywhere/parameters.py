@@ -305,3 +305,14 @@ class MetricEvaluation(BaseModel):
         unit="m",
         description="Scale of the grid for metric evaluation",
     )
+
+
+@register_parameter_group(name="post_processing")
+class PostProcessing(BaseModel):
+    """Parameters for post processing.
+
+    These parameters are applied or used during the post processing steps. They may be
+    direct SWMM parameters, or control other factors during post processing.
+    """
+
+    pass

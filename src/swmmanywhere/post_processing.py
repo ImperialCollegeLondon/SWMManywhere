@@ -15,9 +15,102 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import yaml
+from swmmio import Model
 
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
+
+
+def _fill_backslash_columns(df: pd.DataFrame, key: str) -> pd.DataFrame:
+    """Format the data into the swmmio columns.
+
+    Use the schema set out in defs/swmm_conversion.yml. Not all columns in `df` need to
+    be used, but all non-backslash columns in the `iwcolumns` list in
+    swmm_conversion.yml must be present.
+
+    Args:
+        df (pd.DataFrame): DataFrame to be formatted.
+        key (str): Key to look up in swmm_conversion.yml.
+
+    Returns:
+        pd.DataFrame: Formatted DataFrame
+    """
+    # Load conversion mapping from YAML file
+    with (Path(__file__).parent / "defs" / "swmm_conversion.yml").open("r") as file:
+        conversion_dict = yaml.safe_load(file)
+
+    data = {}
+    for swmmio_key, swmmanywhere_key in zip(
+        conversion_dict[key]["columns"], conversion_dict[key]["iwcolumns"]
+    ):
+        if swmmanywhere_key.startswith("/"):
+            data[swmmio_key] = swmmanywhere_key[1:]
+        else:
+            data[swmmio_key] = df[swmmanywhere_key]
+
+    return pd.DataFrame(data)
+
+
+io_registry = {}
+"""Registry for input/output functions."""
+
+
+def register_io(func):
+    """Decorator to register input/output functions."""
+
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    if func.__name__ in io_registry:
+        logger.warning(f"{func.__name__} already in io register, overwriting.")
+    io_registry[func.__name__] = wrapper
+    return wrapper
+
+
+@register_io
+def apply_nodes(model: Model, addresses: FilePaths, **kw):
+    """Apply edges to the model.
+
+    Args:
+        model (Model): The SWMMIO model to apply edges to.
+        addresses (FilePaths): A dictionary of file paths.
+        **kw: Additional keyword arguments are ignored.
+    """
+    nodes = gpd.read_file(addresses.model_paths.nodes)
+    nodes = nodes[["id", "x", "y", "chamber_floor_elevation", "surface_elevation"]]
+
+    # Nodes
+    nodes["id"] = nodes["id"].astype(str)
+    nodes["max_depth"] = nodes.surface_elevation - nodes.chamber_floor_elevation
+    nodes["surcharge_depth"] = 0
+    nodes["flooded_area"] = 100  # TODO arbitrary... not sure how to calc this
+    nodes["manhole_area"] = 0.5
+
+    model.inp.storage = _fill_backslash_columns(nodes, "STORAGE")
+    model.inp.coordinates = _fill_backslash_columns(nodes, "COORDINATES")
+    return model
+
+
+def iterate_io(
+    io_list: list[str],
+    params: dict,
+    addresses: FilePaths,
+):
+    """Iterate a list of input/output functions over a model."""
+    # Load a starting model
+    model = Model(str(Path(__file__).parent / "defs" / "basic_drainage_all_bits.inp"))
+
+    not_found = [f for f in io_list if f not in io_registry]
+    if not_found:
+        raise ValueError(f"""Functions {not_found} not registered in io_registry""")
+
+    for function in io_list:
+        # Call the function with the model and parameters
+        model = io_registry[function](model, addresses, **params)
+
+        logger.info(f"io: {function} completed.")
+
+    model.inp.save(str(addresses.model_paths.inp))
 
 
 def synthetic_write(addresses: FilePaths):
@@ -51,8 +144,6 @@ def synthetic_write(addresses: FilePaths):
     # Nodes
     nodes["id"] = nodes["id"].astype(str)
     nodes["max_depth"] = nodes.surface_elevation - nodes.chamber_floor_elevation
-    nodes["surcharge_depth"] = 0
-    nodes["flooded_area"] = 100  # TODO arbitrary... not sure how to calc this
     nodes["manhole_area"] = 0.5
 
     # Subs
