@@ -730,3 +730,21 @@ def test_align_by_shape_and_median_coef(subs, results):
     # Test median coef
     meds = mu.median_coef_by_group(aligned, "sub_id", mu.nse)
     assert_close(meds, 0.1111)
+
+
+def test_apply_warmup():
+    """Test the apply_warmup function."""
+    # Create a DataFrame with a date range
+    df = pd.DataFrame(
+        {
+            "date": pd.date_range(start="2021-01-01", periods=100, freq="s"),
+            "value": range(100),
+        }
+    )
+
+    # Apply warmup
+    df_warmup = mu.apply_warmup(df, 0.5)
+
+    # Check the result
+    assert df_warmup.shape[0] == 50
+    assert df_warmup.date.iloc[0] == pd.to_datetime("2021-01-01 00:00:50")

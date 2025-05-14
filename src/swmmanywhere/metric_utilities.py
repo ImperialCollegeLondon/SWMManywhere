@@ -95,6 +95,26 @@ def validate_metric_list(metric_list: list[str]) -> None:
         raise ValueError(f"Metrics are not registered:\n{', '.join(not_exists)}")
 
 
+def apply_warmup(results: pd.DataFrame, warmup: float) -> pd.DataFrame:
+    """Apply warmup to results.
+
+    Apply a warmup period to the results dataframe. The warmup period is
+    defined as the time between the start of the simulation and the time
+    when the results are considered valid.
+
+    Args:
+        results (pd.DataFrame): The results dataframe.
+        warmup (float): The warmup period in seconds.
+
+    Returns:
+        pd.DataFrame: The results dataframe with the warmup period applied.
+    """
+    return results.loc[
+        results.date
+        >= (results.date.min() + warmup * (results.date.max() - results.date.min()))
+    ]
+
+
 def iterate_metrics(
     synthetic_results: pd.DataFrame | None = None,
     synthetic_subs: gpd.GeoDataFrame | None = None,
@@ -124,6 +144,9 @@ def iterate_metrics(
         return {}
 
     validate_metric_list(metric_list)
+
+    if metric_evaluation is not None:
+        synthetic_results = apply_warmup(synthetic_results, metric_evaluation.warmup)
 
     kwargs = {
         "synthetic_results": synthetic_results,
