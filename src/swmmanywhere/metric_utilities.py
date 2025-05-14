@@ -98,13 +98,13 @@ def validate_metric_list(metric_list: list[str]) -> None:
 def apply_warmup(results: pd.DataFrame, warmup: float) -> pd.DataFrame:
     """Apply warmup to results.
 
-    Apply a warmup period to the results dataframe. The warmup period is
-    defined as the time between the start of the simulation and the time
-    when the results are considered valid.
+    Apply a warmup period to the results dataframe. Removes all data during the
+    warmup period.
+
 
     Args:
         results (pd.DataFrame): The results dataframe.
-        warmup (float): The warmup period in seconds.
+        warmup (float): The warmup period as a fraction of the total time period.
 
     Returns:
         pd.DataFrame: The results dataframe with the warmup period applied.
