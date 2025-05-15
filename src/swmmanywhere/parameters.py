@@ -310,7 +310,7 @@ class MetricEvaluation(BaseModel):
         default=0,
         ge=0,
         le=1,
-        unit="%/100",
+        unit="fraction",
         description="""Warmup period as a fraction of the total simulation time. This
             is used to exclude the initial part of the simulation from the metric
             calculations.""",
