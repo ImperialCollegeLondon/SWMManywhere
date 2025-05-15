@@ -156,14 +156,6 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
     # Run the model
     logger.info("Running the synthetic model.")
     synthetic_results = run(addresses.model_paths.inp, **config["run_settings"])
-
-    # Check results exist
-    if synthetic_results.empty:
-        raise ValueError(
-            f"""Synthetic results empty. 
-            Check the model at {addresses.model_paths.inp}"""
-        )
-
     logger.info("Writing synthetic results.")
     if verbose():
         synthetic_results.to_parquet(addresses.model_paths.model / "results.parquet")

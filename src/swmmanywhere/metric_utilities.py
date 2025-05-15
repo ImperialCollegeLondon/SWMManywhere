@@ -145,7 +145,7 @@ def iterate_metrics(
 
     validate_metric_list(metric_list)
 
-    if metric_evaluation is not None:
+    if (metric_evaluation is not None) and (synthetic_results is not None):
         synthetic_results = apply_warmup(synthetic_results, metric_evaluation.warmup)
 
     kwargs = {
