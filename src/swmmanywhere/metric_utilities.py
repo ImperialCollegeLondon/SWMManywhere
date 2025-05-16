@@ -109,10 +109,7 @@ def apply_warmup(results: pd.DataFrame, warmup: float) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The results dataframe with the warmup period applied.
     """
-    return results.loc[
-        results.date
-        >= (results.date.min() + warmup * (results.date.max() - results.date.min()))
-    ]
+    return results.iloc[int(warmup * results.shape[0]):]
 
 
 def iterate_metrics(
