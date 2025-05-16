@@ -117,7 +117,7 @@ class pipe_by_pipe(
         else:
             raise ValueError("No non nan pipes designed. Shouldn't happen.")
 
-    def get_designs(self, hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
+    def get_designs(self, hydraulic_design: parameters.HydraulicDesign) -> product:
         """Get the designs for the pipe.
 
         This function generates a grid of designs for the pipe based on the
@@ -129,7 +129,7 @@ class pipe_by_pipe(
                 object
 
         Returns:
-            designs (np.ndarray): A numpy array of the designs for the pipe
+            product: An iterable product object containing the designs
         """
         return product(
             hydraulic_design.diameters,
@@ -147,7 +147,7 @@ class pipe_by_pipe(
         Q: float,
         diam: float,
         depth: float,
-    ):
+    ) -> dict[Hashable, float]:
         """Evaluate the design of a pipe.
 
         This function evaluates the design of a pipe by calculating the cost,
@@ -164,7 +164,7 @@ class pipe_by_pipe(
             diam (float): The diameter of the pipe
             depth (float): The depth of the pipe
         Returns:
-            dict: A dictionary containing the design parameters and their values
+            dict: A dictionary containing the designed pipe's parameters and values
         """
         A = np.pi * diam**2 / 4
         n = 0.012  # mannings n
