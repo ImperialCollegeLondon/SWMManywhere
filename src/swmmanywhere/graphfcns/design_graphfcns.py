@@ -237,7 +237,8 @@ def process_successors(
     This function processes the successors of a node. It designs a pipe to the
     downstream node and sets the diameter and downstream invert level of the
     pipe. It also sets the downstream invert level of the downstream node. It
-    returns None but modifies the edge_diams and chamber_floor dictionaries.
+    returns None but modifies the hydraulic_design.edge_design_parameters and node
+    chamber_floor dictionaries.
 
     Args:
         G (nx.Graph): A graph
