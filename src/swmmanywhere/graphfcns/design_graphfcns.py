@@ -20,7 +20,7 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> product:
 
     This function generates a grid of designs for the pipe based on the
     diameters and depths specified in the hydraulic design parameters. It
-    returns a numpy array of the designs.
+    returns an iterable product of the designs.
 
     Args:
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
@@ -32,8 +32,10 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> product:
     return product(
         hydraulic_design.diameters,
         np.linspace(
-            hydraulic_design.min_depth, hydraulic_design.max_depth, 10
-        ),  # TODO should 10 be a param?
+            hydraulic_design.min_depth,
+            hydraulic_design.max_depth,
+            hydraulic_design.depth_nbins,
+        ),
     )
 
 
@@ -229,7 +231,7 @@ def process_successors(
     node: Hashable,
     surface_elevations: dict[Hashable, float],
     chamber_floor: dict[Hashable, float],
-    edge_designs: dict[tuple[Hashable, Hashable, int], dict[Hashable, float]],
+    edge_designs: dict[str, dict[tuple[Hashable, Hashable, int], float]],
     hydraulic_design: parameters.HydraulicDesign,
 ) -> None:
     """Process the successors of a node.
@@ -237,8 +239,8 @@ def process_successors(
     This function processes the successors of a node. It designs a pipe to the
     downstream node and sets the diameter and downstream invert level of the
     pipe. It also sets the downstream invert level of the downstream node. It
-    returns None but modifies the hydraulic_design.edge_design_parameters and node
-    chamber_floor dictionaries.
+    returns None but modifies the hydraulic_design.edge_design_parameters entries inside
+    edge_designs and node chamber_floor dictionaries.
 
     Args:
         G (nx.Graph): A graph
@@ -247,7 +249,8 @@ def process_successors(
             node
         chamber_floor (dict): A dictionary of chamber floor elevations keyed by
             node
-        edge_designs (dict): A dictionary of pipe designs keyed by edge
+        edge_designs (dict): A dictionary of pipe designs keyed by parameter and then
+            edge
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
@@ -325,7 +328,7 @@ class pipe_by_pipe(
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
 
-        edge_designs: dict[tuple[Hashable, Hashable, int], dict[Hashable, float]] = {
+        edge_designs: dict[str, dict[tuple[Hashable, Hashable, int], float]] = {
             parameter: {} for parameter in hydraulic_design.edge_design_parameters
         }
 

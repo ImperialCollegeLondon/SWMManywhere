@@ -292,7 +292,13 @@ class HydraulicDesign(BaseModel):
         description="Depth of design storm in pipe by pipe method",
         unit="m",
     )
-    edge_design_parameters: list = Field(
+    depth_nbins: int = Field(
+        default=10,
+        ge=1,
+        unit="-",
+        description="Number of bins to discretise depth for in pipe by pipe method",
+    )
+    edge_design_parameters: list[str] = Field(
         default=["diameter", "cost_usd"],
         min_items=1,
         unit="-",
