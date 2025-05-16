@@ -296,7 +296,8 @@ class HydraulicDesign(BaseModel):
         default=["diameter", "cost_usd"],
         min_items=1,
         unit="-",
-        description="Edge design parameters to consider in pipe by pipe method",
+        description="""Edge parameters calculated by the design process to retain in the
+                    graph after the pipe_by_pipe graphfcn has been applied.""",
     )
 
 
