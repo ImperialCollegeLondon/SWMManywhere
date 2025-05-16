@@ -15,6 +15,143 @@ from swmmanywhere.graph_utilities import BaseGraphFunction, register_graphfcn
 from swmmanywhere.logging import logger, verbose
 
 
+def get_designs(hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
+    """Get the designs for the pipe.
+
+    This function generates a grid of designs for the pipe based on the
+    diameters and depths specified in the hydraulic design parameters. It
+    returns a numpy array of the designs.
+
+    Args:
+        hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
+            object  
+
+    Returns:
+        designs (np.ndarray): A numpy array of the designs for the pipe
+    """
+    return product(
+        hydraulic_design.diameters,
+        np.linspace(
+            hydraulic_design.min_depth, hydraulic_design.max_depth, 10
+        ),  # TODO should 10 be a param?
+    )
+
+def evaluate_design(
+    ds_elevation: float,
+    chamber_floor: float,
+    edge_length: float,
+    hydraulic_design: parameters.HydraulicDesign,
+    Q: float,
+    diam: float,
+    depth: float,
+    ):
+    """Evaluate the design of a pipe.
+
+    This function evaluates the design of a pipe by calculating the cost,
+    velocity, filling ratio, and feasibility parameters. It returns a dictionary
+    containing the design parameters and their values.
+
+    Args:
+        ds_elevation (float): The downstream elevation
+        chamber_floor (float): The elevation of the chamber floor
+        edge_length (float): The length of the edge
+        hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
+            object
+        Q (float): The flow rate
+        diam (float): The diameter of the pipe
+        depth (float): The depth of the pipe
+    Returns:
+        dict: A dictionary containing the design parameters and their values
+    """
+    A = np.pi * diam**2 / 4
+    n = 0.012  # mannings n
+    R = A / (np.pi * diam)  # hydraulic radius
+    # TODO... presumably need to check depth > (diam + min_depth)
+
+    elev_diff = chamber_floor - (ds_elevation - depth)
+    slope = elev_diff / edge_length
+    # Always pick a pipe that is feasible without surcharging
+    # if available
+    surcharge_feasibility = 0.0
+    # Use surcharged elevation
+    while slope <= 0:
+        surcharge_feasibility += 0.05
+        slope = (
+            chamber_floor + surcharge_feasibility - (ds_elevation - depth)
+        ) / edge_length
+        # TODO could make the feasibility penalisation increase
+        # when you get above surface_elevation[node]... but
+        # then you'd need a feasibility tracker and an offset
+        # tracker
+    v = (slope**0.5) * (R ** (2 / 3)) / n
+    filling_ratio = Q / (v * A)
+    # buffers from: https://www.polypipe.com/sites/default/files/Specification_Clauses_Underground_Drainage.pdf
+    average_depth = (depth + chamber_floor) / 2
+    V = edge_length * (diam + 0.3) * (average_depth + 0.1)
+    cost = 1.32 / 2000 * (9579.31 * diam**0.5737 + 1163.77 * V**1.31)
+    v_feasibility = max(hydraulic_design.min_v - v, 0) + max(
+        v - hydraulic_design.max_v, 0
+    )
+    fr_feasibility = max(filling_ratio - hydraulic_design.max_fr, 0)
+    """
+    TODO shear stress... got confused here
+    density = 1000
+    dyn_visc = 0.001
+    hydraulic_diameter = 4 * (A * filling_ratio**2) / \
+        (np.pi * diam * filling_ratio)
+    Re = density * v * 2 * (diam / 4) * (filling_ratio ** 2) / dyn_visc
+    fd = 64 / Re
+    shear_stress = fd * density * v**2 / fd
+    shear_feasibility = max(min_shear - shear_stress, 0)
+    """
+    slope = (chamber_floor - (ds_elevation - depth)) / edge_length
+    return {
+                "diam": diam,
+                "depth": depth,
+                "slope": slope,
+                "v": v,
+                "fr": filling_ratio,
+                # 'tau' : shear_stress,
+                "cost": cost,
+                "v_feasibility": v_feasibility,
+                "fr_feasibility": fr_feasibility,
+                "surcharge_feasibility": surcharge_feasibility,
+                # 'shear_feasibility' : shear_feasibility
+            }
+
+
+def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
+    """Select the ideal design from the dataframe.
+    
+    This function selects the ideal design from the dataframe by sorting the
+    dataframe based on the feasibility parameters and cost. It returns the
+    diameter, depth, and cost of the ideal design.
+    
+    Args:
+        pipes_df (pd.DataFrame): A dataframe containing the designs and their
+            parameters
+    
+    Returns:
+        tuple: A tuple containing the diameter, depth, and cost of the ideal
+            design
+    """
+    if pipes_df.shape[0] > 0:
+        ideal_pipe = pipes_df.sort_values(
+            by=[
+                "surcharge_feasibility",
+                "v_feasibility",
+                "fr_feasibility",
+                # 'shear_feasibility',
+                "depth",
+                "cost",
+            ],
+            ascending=True,
+        ).iloc[0]
+        return ideal_pipe.diam, ideal_pipe.depth, ideal_pipe.cost
+    else:
+        raise ValueError("No non nan pipes designed. Shouldn't happen.")
+        
+
 def design_pipe(
     ds_elevation: float,
     chamber_floor: float,
@@ -44,89 +181,48 @@ def design_pipe(
         depth (float): The depth of the pipe
         cost (float): The cost of the pipe
     """
-    designs = product(
-        hydraulic_design.diameters,
-        np.linspace(
-            hydraulic_design.min_depth, hydraulic_design.max_depth, 10
-        ),  # TODO should 10 be a param?
-    )
-    pipes = []
-    for diam, depth in designs:
-        A = np.pi * diam**2 / 4
-        n = 0.012  # mannings n
-        R = A / (np.pi * diam)  # hydraulic radius
-        # TODO... presumably need to check depth > (diam + min_depth)
+    # Generate designs
+    designs = get_designs(hydraulic_design)
 
-        elev_diff = chamber_floor - (ds_elevation - depth)
-        slope = elev_diff / edge_length
-        # Always pick a pipe that is feasible without surcharging
-        # if available
-        surcharge_feasibility = 0.0
-        # Use surcharged elevation
-        while slope <= 0:
-            surcharge_feasibility += 0.05
-            slope = (
-                chamber_floor + surcharge_feasibility - (ds_elevation - depth)
-            ) / edge_length
-            # TODO could make the feasibility penalisation increase
-            # when you get above surface_elevation[node]... but
-            # then you'd need a feasibility tracker and an offset
-            # tracker
-        v = (slope**0.5) * (R ** (2 / 3)) / n
-        filling_ratio = Q / (v * A)
-        # buffers from: https://www.polypipe.com/sites/default/files/Specification_Clauses_Underground_Drainage.pdf
-        average_depth = (depth + chamber_floor) / 2
-        V = edge_length * (diam + 0.3) * (average_depth + 0.1)
-        cost = 1.32 / 2000 * (9579.31 * diam**0.5737 + 1163.77 * V**1.31)
-        v_feasibility = max(hydraulic_design.min_v - v, 0) + max(
-            v - hydraulic_design.max_v, 0
+    # Evaluate designs
+    pipes = [
+        evaluate_design(
+            ds_elevation,
+            chamber_floor,
+            edge_length,
+            hydraulic_design,
+            Q,
+            diam,
+            depth,
         )
-        fr_feasibility = max(filling_ratio - hydraulic_design.max_fr, 0)
-        """
-        TODO shear stress... got confused here
-        density = 1000
-        dyn_visc = 0.001
-        hydraulic_diameter = 4 * (A * filling_ratio**2) / \
-            (np.pi * diam * filling_ratio)
-        Re = density * v * 2 * (diam / 4) * (filling_ratio ** 2) / dyn_visc
-        fd = 64 / Re
-        shear_stress = fd * density * v**2 / fd
-        shear_feasibility = max(min_shear - shear_stress, 0)
-        """
-        slope = (chamber_floor - (ds_elevation - depth)) / edge_length
-        pipes.append(
-            {
-                "diam": diam,
-                "depth": depth,
-                "slope": slope,
-                "v": v,
-                "fr": filling_ratio,
-                # 'tau' : shear_stress,
-                "cost": cost,
-                "v_feasibility": v_feasibility,
-                "fr_feasibility": fr_feasibility,
-                "surcharge_feasibility": surcharge_feasibility,
-                # 'shear_feasibility' : shear_feasibility
-            }
-        )
+        for diam, depth in designs
+    ]
 
-    pipes_df = pd.DataFrame(pipes).dropna()
-    if pipes_df.shape[0] > 0:
-        ideal_pipe = pipes_df.sort_values(
-            by=[
-                "surcharge_feasibility",
-                "v_feasibility",
-                "fr_feasibility",
-                # 'shear_feasibility',
-                "depth",
-                "cost",
-            ],
-            ascending=True,
-        ).iloc[0]
-        return ideal_pipe.diam, ideal_pipe.depth, ideal_pipe.cost
-    else:
-        raise Exception("something odd - no non nan pipes")
+    # Return selected design
+    return select_design(pd.DataFrame(pipes).dropna())
 
+
+def calculate_flow(G: nx.Graph, node: Hashable, design_precipitation) -> float:
+    """Calculate the flow to a node.
+
+    This function calculates the flow to a node by summing the flow from its
+    predecessors. It returns the total flow to the node.
+
+    Args:
+        G (nx.Graph): A graph
+        node (Hashable): A node
+        design_precipitation (float): The design precipitation
+
+    Returns:
+        float: The total flow to the node
+    """
+    # Find contributing area with ancestors
+    # TODO - could do timearea here if i hated myself enough
+    anc = nx.ancestors(G, node).union([node])
+    tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
+    M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
+    
+    return tot * design_precipitation * M3_PER_HR_TO_M3_PER_S
 
 def process_successors(
     G: nx.Graph,
@@ -156,12 +252,7 @@ def process_successors(
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
-    # Find contributing area with ancestors
-    # TODO - could do timearea here if i hated myself enough
-    anc = nx.ancestors(G, node).union([node])
-    tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
-    M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
-    Q = tot * hydraulic_design.precipitation * M3_PER_HR_TO_M3_PER_S
+    Q = calculate_flow(G, node, hydraulic_design.precipitation)
 
     for ix, ds_node in enumerate(G.successors(node)):
         edge = G.get_edge_data(node, ds_node, 0)
