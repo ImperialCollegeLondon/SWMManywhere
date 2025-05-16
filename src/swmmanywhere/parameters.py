@@ -292,6 +292,12 @@ class HydraulicDesign(BaseModel):
         description="Depth of design storm in pipe by pipe method",
         unit="m",
     )
+    edge_design_parameters: list = Field(
+        default=["diameter", "cost_usd"],
+        min_items=1,
+        unit="-",
+        description="Edge design parameters to consider in pipe by pipe method",
+    )
 
 
 @register_parameter_group(name="metric_evaluation")

@@ -107,13 +107,13 @@ def evaluate_design(
     """
     slope = (chamber_floor - (ds_elevation - depth)) / edge_length
     return {
-        "diam": diam,
+        "diameter": diam,
         "depth": depth,
         "slope": slope,
         "v": v,
         "fr": filling_ratio,
         # 'tau' : shear_stress,
-        "cost": cost,
+        "cost_usd": cost,
         "v_feasibility": v_feasibility,
         "fr_feasibility": fr_feasibility,
         "surcharge_feasibility": surcharge_feasibility,
@@ -121,7 +121,7 @@ def evaluate_design(
     }
 
 
-def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
+def select_design(pipes_df: pd.DataFrame) -> dict[Hashable, float]:
     """Select the ideal design from the dataframe.
 
     This function selects the ideal design from the dataframe by sorting the
@@ -133,8 +133,7 @@ def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
             parameters
 
     Returns:
-        tuple: A tuple containing the diameter, depth, and cost of the ideal
-            design
+        dict: A dictionary containing the ideal design
     """
     if pipes_df.shape[0] > 0:
         ideal_pipe = pipes_df.sort_values(
@@ -144,11 +143,11 @@ def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
                 "fr_feasibility",
                 # 'shear_feasibility',
                 "depth",
-                "cost",
+                "cost_usd",
             ],
             ascending=True,
         ).iloc[0]
-        return ideal_pipe.diam, ideal_pipe.depth, ideal_pipe.cost
+        return ideal_pipe.to_dict()
     else:
         raise ValueError("No non nan pipes designed. Shouldn't happen.")
 
@@ -159,7 +158,7 @@ def design_pipe(
     edge_length: float,
     hydraulic_design: parameters.HydraulicDesign,
     Q: float,
-) -> tuple[float, float, float]:
+) -> dict[Hashable, float]:
     """Design a pipe.
 
     This function designs a pipe by iterating over a range of diameters and
@@ -178,9 +177,7 @@ def design_pipe(
         Q (float): The flow rate
 
     Returns:
-        diam (float): The diameter of the pipe
-        depth (float): The depth of the pipe
-        cost (float): The cost of the pipe
+        dict: A dictionary containing the selected design
     """
     # Generate designs
     designs = get_designs(hydraulic_design)
@@ -231,8 +228,7 @@ def process_successors(
     node: Hashable,
     surface_elevations: dict[Hashable, float],
     chamber_floor: dict[Hashable, float],
-    edge_diams: dict[tuple[Hashable, Hashable, int], float],
-    edge_costs: dict[tuple[Hashable, Hashable, int], float],
+    edge_designs: dict[tuple[Hashable, Hashable, int], dict[Hashable, float]],
     hydraulic_design: parameters.HydraulicDesign,
 ) -> None:
     """Process the successors of a node.
@@ -249,8 +245,7 @@ def process_successors(
             node
         chamber_floor (dict): A dictionary of chamber floor elevations keyed by
             node
-        edge_diams (dict): A dictionary of pipe diameters keyed by edge
-        edge_costs (dict): A dictionary of pipe costs keyed by edge
+        edge_designs (dict): A dictionary of pipe designs keyed by edge
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
             object
     """
@@ -260,17 +255,20 @@ def process_successors(
         edge = G.get_edge_data(node, ds_node, 0)
 
         # Design the pipe to find the diameter and invert depth
-        diam, depth, cost = design_pipe(
+        pipe = design_pipe(
             surface_elevations[ds_node],
             chamber_floor[node],
             edge["length"],
             hydraulic_design,
             Q,
         )
-        edge_diams[(node, ds_node, 0)] = diam
-        edge_costs[(node, ds_node, 0)] = cost
+
+        for parameter in hydraulic_design.edge_design_parameters:
+            edge_designs[parameter][(node, ds_node, 0)] = pipe[parameter]
+
         chamber_floor[ds_node] = min(
-            surface_elevations[ds_node] - depth, chamber_floor.get(ds_node, np.inf)
+            surface_elevations[ds_node] - pipe["depth"],
+            chamber_floor.get(ds_node, np.inf),
         )
         if ix > 0:
             logger.warning(
@@ -324,8 +322,11 @@ class pipe_by_pipe(
         surface_elevations = nx.get_node_attributes(G, "surface_elevation")
         topological_order = list(nx.topological_sort(G))
         chamber_floor = {}
-        edge_diams: dict[tuple[Hashable, Hashable, int], float] = {}
-        edge_costs: dict[tuple[Hashable, Hashable, int], float] = {}
+
+        edge_designs: dict[tuple[Hashable, Hashable, int], dict[Hashable, float]] = {
+            parameter: {} for parameter in hydraulic_design.edge_design_parameters
+        }
+
         # Iterate over nodes in topological order
         for node in tqdm(topological_order, disable=not verbose()):
             # Check if there's any nodes upstream, if not set the depth to min_depth
@@ -339,12 +340,12 @@ class pipe_by_pipe(
                 node,
                 surface_elevations,
                 chamber_floor,
-                edge_diams,
-                edge_costs,
+                edge_designs,
                 hydraulic_design,
             )
 
-        nx.function.set_edge_attributes(G, edge_diams, "diameter")
+        for parameter in hydraulic_design.edge_design_parameters:
+            nx.function.set_edge_attributes(G, edge_designs[parameter], parameter)
+
         nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
-        nx.function.set_edge_attributes(G, edge_costs, "cost_usd")
         return G
