@@ -15,7 +15,7 @@ from swmmanywhere.graph_utilities import BaseGraphFunction, register_graphfcn
 from swmmanywhere.logging import logger, verbose
 
 
-def get_designs(hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
+def get_designs(hydraulic_design: parameters.HydraulicDesign) -> product:
     """Get the designs for the pipe.
 
     This function generates a grid of designs for the pipe based on the
@@ -27,7 +27,7 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
             object
 
     Returns:
-        designs (np.ndarray): A numpy array of the designs for the pipe
+        product: An iterable product object containing the designs
     """
     return product(
         hydraulic_design.diameters,
@@ -45,7 +45,7 @@ def evaluate_design(
     Q: float,
     diam: float,
     depth: float,
-):
+) -> dict[Hashable, float]:
     """Evaluate the design of a pipe.
 
     This function evaluates the design of a pipe by calculating the cost,
@@ -61,8 +61,9 @@ def evaluate_design(
         Q (float): The flow rate
         diam (float): The diameter of the pipe
         depth (float): The depth of the pipe
+
     Returns:
-        dict: A dictionary containing the design parameters and their values
+        dict: A dictionary containing the designed pipe's parameters and values
     """
     A = np.pi * diam**2 / 4
     n = 0.012  # mannings n
