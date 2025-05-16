@@ -116,7 +116,7 @@ class pipe_by_pipe(
             return ideal_pipe.to_dict()
         else:
             raise ValueError("No non nan pipes designed. Shouldn't happen.")
-    
+
     def get_designs(self, hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
         """Get the designs for the pipe.
 
@@ -137,7 +137,6 @@ class pipe_by_pipe(
                 hydraulic_design.min_depth, hydraulic_design.max_depth, 10
             ),  # TODO should 10 be a param?
         )
-
 
     def evaluate_design(
         self,
@@ -223,7 +222,6 @@ class pipe_by_pipe(
             # 'shear_feasibility' : shear_feasibility
         }
 
-
     def design_pipe(
         self,
         ds_elevation: float,
@@ -272,8 +270,9 @@ class pipe_by_pipe(
         # Return selected design
         return self.select_design(pd.DataFrame(pipes).dropna())
 
-
-    def calculate_flow(self, G: nx.Graph, node: Hashable, design_precipitation) -> float:
+    def calculate_flow(
+        self, G: nx.Graph, node: Hashable, design_precipitation
+    ) -> float:
         """Calculate the flow to a node.
 
         This function calculates the flow to a node by summing the flow from its
@@ -294,7 +293,6 @@ class pipe_by_pipe(
         M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
 
         return tot * design_precipitation * M3_PER_HR_TO_M3_PER_S
-
 
     def process_successors(
         self,
