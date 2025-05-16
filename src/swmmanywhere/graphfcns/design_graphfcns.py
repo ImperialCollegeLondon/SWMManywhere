@@ -24,7 +24,7 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
 
     Args:
         hydraulic_design (parameters.HydraulicDesign): A HydraulicDesign parameter
-            object  
+            object
 
     Returns:
         designs (np.ndarray): A numpy array of the designs for the pipe
@@ -36,6 +36,7 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> np.ndarray:
         ),  # TODO should 10 be a param?
     )
 
+
 def evaluate_design(
     ds_elevation: float,
     chamber_floor: float,
@@ -44,7 +45,7 @@ def evaluate_design(
     Q: float,
     diam: float,
     depth: float,
-    ):
+):
     """Evaluate the design of a pipe.
 
     This function evaluates the design of a pipe by calculating the cost,
@@ -106,31 +107,31 @@ def evaluate_design(
     """
     slope = (chamber_floor - (ds_elevation - depth)) / edge_length
     return {
-                "diam": diam,
-                "depth": depth,
-                "slope": slope,
-                "v": v,
-                "fr": filling_ratio,
-                # 'tau' : shear_stress,
-                "cost": cost,
-                "v_feasibility": v_feasibility,
-                "fr_feasibility": fr_feasibility,
-                "surcharge_feasibility": surcharge_feasibility,
-                # 'shear_feasibility' : shear_feasibility
-            }
+        "diam": diam,
+        "depth": depth,
+        "slope": slope,
+        "v": v,
+        "fr": filling_ratio,
+        # 'tau' : shear_stress,
+        "cost": cost,
+        "v_feasibility": v_feasibility,
+        "fr_feasibility": fr_feasibility,
+        "surcharge_feasibility": surcharge_feasibility,
+        # 'shear_feasibility' : shear_feasibility
+    }
 
 
 def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
     """Select the ideal design from the dataframe.
-    
+
     This function selects the ideal design from the dataframe by sorting the
     dataframe based on the feasibility parameters and cost. It returns the
     diameter, depth, and cost of the ideal design.
-    
+
     Args:
         pipes_df (pd.DataFrame): A dataframe containing the designs and their
             parameters
-    
+
     Returns:
         tuple: A tuple containing the diameter, depth, and cost of the ideal
             design
@@ -150,7 +151,7 @@ def select_design(pipes_df: pd.DataFrame) -> tuple[float, float, float]:
         return ideal_pipe.diam, ideal_pipe.depth, ideal_pipe.cost
     else:
         raise ValueError("No non nan pipes designed. Shouldn't happen.")
-        
+
 
 def design_pipe(
     ds_elevation: float,
@@ -221,8 +222,9 @@ def calculate_flow(G: nx.Graph, node: Hashable, design_precipitation) -> float:
     anc = nx.ancestors(G, node).union([node])
     tot = sum([G.nodes[anc_node]["contributing_area"] for anc_node in anc])
     M3_PER_HR_TO_M3_PER_S = 1 / 60 / 60
-    
+
     return tot * design_precipitation * M3_PER_HR_TO_M3_PER_S
+
 
 def process_successors(
     G: nx.Graph,
