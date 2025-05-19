@@ -157,7 +157,7 @@ def select_design(pipes_df: pd.DataFrame) -> dict[Hashable, float]:
     """
     if pipes_df.shape[0] <= 0:
         raise ValueError("No non nan pipes designed. Shouldn't happen.")
-    
+
     ideal_pipe = pipes_df.sort_values(
         by=[
             "surcharge_feasibility",
@@ -169,9 +169,8 @@ def select_design(pipes_df: pd.DataFrame) -> dict[Hashable, float]:
         ],
         ascending=True,
     ).iloc[0]
-    
+
     return ideal_pipe.to_dict()
-        
 
 
 def design_pipe(
