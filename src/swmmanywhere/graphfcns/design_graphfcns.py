@@ -39,6 +39,23 @@ def get_designs(hydraulic_design: parameters.HydraulicDesign) -> product:
     )
 
 
+def calculate_cost(V: float, diam: float) -> float:
+    """Calculate the cost of the pipe.
+
+    This function calculates the cost of the pipe based on the excavation volume and
+    diameter.
+
+    Cost equation from: https://doi.org/10.2166/hydro.2016.105
+
+    Args:
+        V (float): The excavation volume of the pipe
+        diam (float): The diameter of the pipe
+    Returns:
+        float: The cost of the pipe in USD
+    """
+    return 1.32 / 2000 * (9579.31 * diam**0.5737 + 1163.77 * V**1.31)
+
+
 def evaluate_design(
     ds_elevation: float,
     chamber_floor: float,
@@ -92,7 +109,7 @@ def evaluate_design(
     # buffers from: https://www.polypipe.com/sites/default/files/Specification_Clauses_Underground_Drainage.pdf
     average_depth = (depth + chamber_floor) / 2
     V = edge_length * (diam + 0.3) * (average_depth + 0.1)
-    cost = 1.32 / 2000 * (9579.31 * diam**0.5737 + 1163.77 * V**1.31)
+    cost = calculate_cost(V, diam)
     v_feasibility = max(hydraulic_design.min_v - v, 0) + max(
         v - hydraulic_design.max_v, 0
     )
@@ -138,21 +155,23 @@ def select_design(pipes_df: pd.DataFrame) -> dict[Hashable, float]:
     Returns:
         dict: A dictionary containing the ideal design
     """
-    if pipes_df.shape[0] > 0:
-        ideal_pipe = pipes_df.sort_values(
-            by=[
-                "surcharge_feasibility",
-                "v_feasibility",
-                "fr_feasibility",
-                # 'shear_feasibility',
-                "depth",
-                "cost_usd",
-            ],
-            ascending=True,
-        ).iloc[0]
-        return ideal_pipe.to_dict()
-    else:
+    if pipes_df.shape[0] <= 0:
         raise ValueError("No non nan pipes designed. Shouldn't happen.")
+    
+    ideal_pipe = pipes_df.sort_values(
+        by=[
+            "surcharge_feasibility",
+            "v_feasibility",
+            "fr_feasibility",
+            # 'shear_feasibility',
+            "depth",
+            "cost_usd",
+        ],
+        ascending=True,
+    ).iloc[0]
+    
+    return ideal_pipe.to_dict()
+        
 
 
 def design_pipe(
@@ -168,8 +187,6 @@ def design_pipe(
     depths. It returns the diameter and depth of the pipe that minimises the
     cost function, while also maintaining or minimising feasibility parameters
     associated with: surcharging, velocity and filling ratio.
-
-    Cost equation from: https://doi.org/10.2166/hydro.2016.105
 
     Args:
         ds_elevation (float): The downstream elevationq
