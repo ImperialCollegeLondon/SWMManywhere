@@ -292,6 +292,19 @@ class HydraulicDesign(BaseModel):
         description="Depth of design storm in pipe by pipe method",
         unit="m",
     )
+    depth_nbins: int = Field(
+        default=10,
+        ge=1,
+        unit="-",
+        description="Number of bins to discretise depth for in pipe by pipe method",
+    )
+    edge_design_parameters: list[str] = Field(
+        default=["diameter", "cost_usd"],
+        min_items=1,
+        unit="-",
+        description="""Edge parameters calculated by the design process to retain in the
+                    graph after the pipe_by_pipe graphfcn has been applied.""",
+    )
 
 
 @register_parameter_group(name="metric_evaluation")
@@ -305,8 +318,17 @@ class MetricEvaluation(BaseModel):
         unit="m",
         description="Scale of the grid for metric evaluation",
     )
+    warmup: float = Field(
+        default=0,
+        ge=0,
+        lt=1,
+        unit="fraction",
+        description="""Warmup period as a fraction of the total simulation time. This
+            is used to exclude the initial part of the simulation from the metric
+            calculations.""",
+    )
 
-
+      
 @register_parameter_group(name="post_processing")
 class PostProcessing(BaseModel):
     """Parameters for post processing.
