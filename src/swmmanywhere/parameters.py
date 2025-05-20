@@ -328,7 +328,7 @@ class MetricEvaluation(BaseModel):
             calculations.""",
     )
 
-      
+
 @register_parameter_group(name="post_processing")
 class PostProcessing(BaseModel):
     """Parameters for post processing.
