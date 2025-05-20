@@ -391,6 +391,16 @@ def register_custom_parameters(config: dict):
     return config
 
 
+def register_custom_io(config: dict):
+    """Register custom IO modules.
+
+    Args:
+        config (dict): The configuration.
+    """
+    import_modules(config.get("custom_io_modules", []))
+    return config
+
+
 def save_config(config: dict, config_path: Path):
     """Save the configuration to a file.
 
@@ -460,6 +470,9 @@ def load_config(
 
     # Register custom parameters
     config = register_custom_parameters(config)
+
+    # Register custom IO
+    config = register_custom_io(config)
 
     return config
 
