@@ -10,11 +10,13 @@ derive a synthetic urban drainage network anywhere in the world.
 - [Quickstart](quickstart.md)
 - Guides:
     - [Configuration file](config_guide.md)
-    - [Extended demo](./notebooks/extended_demo.py)
     - [Parameters guide](parameters_guide.md)
     - [Graph functions](graphfcns_guide.md)
-    - [Real world demo](./notebooks/validation_demo.py)
     - [Metrics guide](metrics_guide.md)
+- Notebooks:
+    - [Extended demo](./notebooks/extended_demo.py)
+    - [Real world demo](./notebooks/validation_demo.py)
+    - [Using custom data](./notebooks/custom_data_demo.py)
 - [Contributing](CONTRIBUTING.md)
 - [API reference](reference-overview.md)
     - [SWMManywhere](reference.md)
