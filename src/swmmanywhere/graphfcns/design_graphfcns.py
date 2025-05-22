@@ -111,7 +111,8 @@ class pipe_by_pipe(
             ),
         )
 
-    def calculate_cost(self, V: float, diam: float) -> float:
+    @staticmethod
+    def calculate_cost(V: float, diam: float) -> float:
         """Calculate the cost of the pipe.
 
         This function calculates the cost of the pipe based on the excavation volume and
