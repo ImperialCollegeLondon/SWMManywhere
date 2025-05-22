@@ -289,8 +289,9 @@ class pipe_by_pipe(
         # Return selected design
         return self.select_design(pd.DataFrame(pipes).dropna())
 
+    @staticmethod
     def calculate_flow(
-        self, G: nx.Graph, node: Hashable, design_precipitation
+        G: nx.Graph, node: Hashable, design_precipitation
     ) -> float:
         """Calculate the flow to a node.
 
