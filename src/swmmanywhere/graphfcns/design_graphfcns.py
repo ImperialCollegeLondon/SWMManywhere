@@ -87,7 +87,8 @@ class pipe_by_pipe(
         nx.function.set_node_attributes(G, chamber_floor, "chamber_floor_elevation")
         return G
 
-    def get_designs(self, hydraulic_design: parameters.HydraulicDesign) -> product:
+    @staticmethod
+    def get_designs(hydraulic_design: parameters.HydraulicDesign) -> product:
         """Get the designs for the pipe.
 
         This function generates a grid of designs for the pipe based on the
