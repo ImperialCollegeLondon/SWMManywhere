@@ -59,7 +59,7 @@ As our SWMManywhere paper [link preprint](https://doi.org/10.1016/j.envsoft.2025
 ### Customise `graphfcns`
 
 Graph functions are the way that operations are applied to create a synthetic UDM
-in SWMManywhere. You can read more about them [here](graphfcns_guide.md), but a primary feature of
+in SWMManywhere. You can read more about them in the [graphfcns guide](graphfcns_guide.md), but a primary feature of
 the `config` file is to provide a `graphfcn_list`. By default `graphfcn_list` is
 selected from [`demo_config.yml`](reference-defs.md#demo-configuration-file).
 Although we believe that the default list makes sense, you may instead provide
@@ -134,7 +134,7 @@ the synthetic model...
 
 The SWMManywhere package comes with a wide variety of performance
 metrics that can be used to make this comparison, explained
-[here](metrics_guide.md). In the `config`
+in the [metrics guide](metrics_guide.md). In the `config`
 file you can specify which metrics should be calculated under the `metric_list`
 entry. The [`demo_config.yml`](reference-defs.md#demo-configuration-file)
 `metric_list` contains all metrics that come with SWMManywhere, although you may

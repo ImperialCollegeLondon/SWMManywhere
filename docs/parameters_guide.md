@@ -38,7 +38,7 @@ We can see here three related parameters and relevant metadata, grouped together
       show_docstring_returns: false
       show_docstring_raises: false
 
-When calling [`iterate_graphfcns`](reference-graph-utilities.md#swmmanywhere.graph_utilities.iterate_graphfcns), for more information see [here](graphfcns_guide.md#lists-of-graph-functions), SWMManywhere will automatically provide any parameters that have been registered to any graphfcn.
+When calling [`iterate_graphfcns`](reference-graph-utilities.md#swmmanywhere.graph_utilities.iterate_graphfcns), for more information see [lists of graphfcns](graphfcns_guide.md#lists-of-graph-functions), SWMManywhere will automatically provide any parameters that have been registered to any graphfcn.
 
 ## Registering parameters
 
