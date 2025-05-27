@@ -97,6 +97,8 @@ address_overrides:
   elevation: /new/path/to/elevation.tif
 ```
 
+We provide a more extensive demo to illustrate this in [using custom data](./notebooks/custom_data_demo.py)
+
 ## Evaluating your synthetic UDM
 
 If you are lucky enough to have a pre-existing UDM for your region, then you may
