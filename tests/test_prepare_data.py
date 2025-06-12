@@ -139,6 +139,21 @@ def test_elevation_downloader_download():
         assert data.max().max() > 25, "Elevation data should be higher."
 
 
+@pytest.mark.downloads
+def test_download_precipitation():
+    """Check a UK point."""
+    # Coordinates for London, UK
+    x = -0.1276
+    y = 51.5074
+
+    df = downloaders.download_precipitation((x, y, x, y))
+
+    assert df.shape[0] > 0
+    assert df.shape[1] > 0
+    assert "precipitation_amount_1hour_Accumulation" in df.columns
+    assert df["precipitation_amount_1hour_Accumulation"].max() > 0
+
+
 @pytest.fixture
 def setup_mocks():
     """Set up get_country mock for the tests."""
