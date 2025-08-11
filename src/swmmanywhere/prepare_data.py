@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
-import cdsapi
 import networkx as nx
 import osmnx as ox
 import pandas as pd
@@ -25,6 +24,7 @@ from pyarrow.compute import field
 from pyarrow.dataset import dataset
 from pyarrow.fs import S3FileSystem
 from pyarrow.parquet import ParquetWriter
+from tqdm.auto import tqdm
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
@@ -238,52 +238,54 @@ def download_precipitation(
     bbox: tuple[float, float, float, float],
     start_date: str = "2015-01-01",
     end_date: str = "2015-01-05",
-    username: str = "<your_username>",
-    api_key: str = "<your_api_key>",
 ) -> pd.DataFrame:
     """Download precipitation data within bbox from ERA5.
 
-    Register for an account and API key at: https://cds.climate.copernicus.eu.
-    Produces hourly gridded data (31km grid) in CRS EPSG:4326.
-    More information at: https://github.com/ecmwf/cdsapi.
+    Use Planetary Computer to download ERA5 precipitation data to find
+    the nearest grid point to the specified bounding box an download the
+    hourly timeseries for that point. Based on example in:
+    https://planetarycomputer.microsoft.com/dataset/era5-pds#Example-Notebook
+
 
     Args:
         bbox (tuple): Bounding box coordinates in the format
             (minx, miny, maxx, maxy).
         start_date (str, optional): Start date. Defaults to '2015-01-01'.
         end_date (str, optional): End date. Defaults to '2015-01-05'.
-        username (str, optional): CDS api username.
-            Defaults to '<your_username>'.
-        api_key (str, optional): CDS api key. Defaults to '<your_api_key>'.
 
     Returns:
         df (DataFrame): DataFrame containing downloaded data.
     """
-    # Notes for docstring:
-    # looks like api will give nearest point if not in bbox
-
-    # Define the request parameters
-    request = {
-        "product_type": "reanalysis",
-        "format": "netcdf",
-        "variable": "total_precipitation",
-        "date": "/".join([start_date, end_date]),
-        "time": "/".join([f"{str(x).zfill(2)}:00" for x in range(24)]),
-        "area": bbox,
-    }
-
-    c = cdsapi.Client(
-        url="https://cds.climate.copernicus.eu/api/v2", key=f"{username}:{api_key}"
+    yearmonths = pd.date_range(start_date, end_date, freq="MS").strftime("%Y-%m")
+    catalog = pystac_client.Client.open(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        modifier=planetary_computer.sign_inplace,
     )
-    # Get data
-    c.retrieve("reanalysis-era5-single-levels", request, "download.nc")
+    datasets = []
+    for yearmonth in tqdm(yearmonths):
+        search = catalog.search(
+            collections=["era5-pds"],
+            query={
+                "era5:kind": {
+                    "eq": "fc",
+                }
+            },
+            datetime=yearmonth,
+        )
+        item = list(search.get_all_items())[0]
 
-    with xr.open_dataset("download.nc") as data:
-        # Convert the xarray Dataset to a pandas DataFrame
-        df = data.to_dataframe()
-        df["unit"] = "m/hr"
+        signed_item = planetary_computer.sign(item)
+        asset = signed_item.assets["precipitation_amount_1hour_Accumulation"]
+        fields = asset.extra_fields["xarray:open_kwargs"]
+        fields["engine"] = "zarr"
+        del fields["chunks"]
+        df = (
+            xr.open_dataset(asset.href, **fields)
+            .sel(lat=bbox[1], lon=bbox[0], method="nearest")
+            .to_dataframe()
+        )
+        datasets.append(df)
 
-    # Delete nc file
-    Path("download.nc").unlink()
+    df = pd.concat(datasets)
 
     return df
