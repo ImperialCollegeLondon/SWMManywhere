@@ -5,13 +5,13 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.12.11"
+    rev: "v0.13.1"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.17.1"
+    rev: "v1.18.2"
     hooks:
       - id: mypy
         additional_dependencies:
@@ -37,7 +37,7 @@ repos:
       name: Apply a consistent format to pyproject.toml
   
   - repo: https://github.com/dosisod/refurb
-    rev: v2.1.0
+    rev: v2.2.0
     hooks:
     - id: refurb
       name: Modernizing Python codebases using Refurb
