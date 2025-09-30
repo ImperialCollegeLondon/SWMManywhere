@@ -68,7 +68,7 @@ def get_country(x: float, y: float) -> dict[int, str]:
 def _record_batch_reader(bbox: tuple[float, float, float, float]) -> RecordBatchReader:
     """Get a pyarrow batch reader this for bounding box and s3 path."""
     s3_region = "us-west-2"
-    version = "2024-07-22.0"
+    version = "2025-08-20.0"
     path = f"overturemaps-{s3_region}/release/{version}/theme=buildings/type=building/"
     xmin, ymin, xmax, ymax = bbox
     ds_filter = (
