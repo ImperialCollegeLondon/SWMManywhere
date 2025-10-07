@@ -6,6 +6,8 @@ A module to download data needed for SWMManywhere.
 from __future__ import annotations
 
 import json
+import operator
+from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import cast
@@ -95,7 +97,7 @@ def _get_latest_s3_url() -> tuple[str, str]:
             return s3_region, url
 
         # If we have the release date and it's been less than 28 days, keep using it
-        try:
+        with suppress(Exception):
             release_date = datetime.strptime(cache["release"].split(".")[0], "%Y-%m-%d")
             if (datetime.now() - release_date).days < 28:
                 url = (
@@ -103,8 +105,6 @@ def _get_latest_s3_url() -> tuple[str, str]:
                     "/type=building/"
                 )
                 return s3_region, url
-        except Exception:
-            pass
 
     response = requests.get("https://stac.overturemaps.org/catalog.json")
     catalog = response.json()
@@ -114,7 +114,7 @@ def _get_latest_s3_url() -> tuple[str, str]:
         for link in catalog["links"]
         if link["rel"] == "child" and "release" in link.get("title", "").lower()
     ]
-    releases.sort(key=lambda x: x["href"], reverse=True)
+    releases.sort(key=operator.itemgetter("href"), reverse=True)
     latest = str(Path(releases[0]["href"].rstrip("/")).parent)
     cache_file.write_text(
         json.dumps({"release": latest, "timestamp": datetime.now().isoformat()})
