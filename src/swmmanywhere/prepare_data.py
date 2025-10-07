@@ -5,6 +5,10 @@ A module to download data needed for SWMManywhere.
 
 from __future__ import annotations
 
+import json
+import operator
+from contextlib import suppress
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import cast
 
@@ -13,6 +17,10 @@ import networkx as nx
 import osmnx as ox
 import pandas as pd
 import planetary_computer
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 import pystac_client
 import requests
 import rioxarray
@@ -20,11 +28,7 @@ import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
 from packaging.version import Version
-from pyarrow import RecordBatchReader
-from pyarrow.compute import field
-from pyarrow.dataset import dataset
-from pyarrow.fs import S3FileSystem
-from pyarrow.parquet import ParquetWriter
+from pyarrow import fs
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
@@ -65,30 +69,58 @@ def get_country(x: float, y: float) -> dict[int, str]:
     return {2: iso_country_code, 3: data.get(iso_country_code, "")}
 
 
-def _record_batch_reader(bbox: tuple[float, float, float, float]) -> RecordBatchReader:
-    """Get a pyarrow batch reader this for bounding box and s3 path."""
+def _get_latest_s3_url() -> tuple[str, str]:
+    """Get S3 URL with caching based on Overture's monthly release policy.
+
+    Returns:
+    -------
+    s3_region : str
+        The S3 region
+    s3_url : str
+        The S3 url with the latest overturmaps' version
+    """
+    cache_file = Path(".cache/overture_release.json")
+    cache_file.parent.mkdir(exist_ok=True)
     s3_region = "us-west-2"
-    version = "2024-07-22.0"
-    path = f"overturemaps-{s3_region}/release/{version}/theme=buildings/type=building/"
-    xmin, ymin, xmax, ymax = bbox
-    ds_filter = (
-        (field("bbox", "xmin") < xmax)
-        & (field("bbox", "xmax") > xmin)
-        & (field("bbox", "ymin") < ymax)
-        & (field("bbox", "ymax") > ymin)
-    )
 
-    ds = dataset(path, filesystem=S3FileSystem(anonymous=True, region=s3_region))
-    batches = ds.to_batches(filter=ds_filter)
-    non_empty_batches = (b for b in batches if b.num_rows > 0)
+    # Check cache (valid for 72 hours given monthly releases)
+    if cache_file.exists():
+        cache = json.loads(cache_file.read_text())
+        cached_time = datetime.fromisoformat(cache["timestamp"])
 
-    geoarrow_schema = ds.schema.set(
-        ds.schema.get_field_index("geometry"),
-        ds.schema.field("geometry").with_metadata(
-            {b"ARROW:extension:name": b"geoarrow.wkb"}
-        ),
+        # If cache is less than 72 hours old, use it
+        if datetime.now() - cached_time < timedelta(hours=72):
+            url = (
+                f"overturemaps-us-west-2/release/{cache['release']}/theme=buildings"
+                "/type=building/"
+            )
+            return s3_region, url
+
+        # If we have the release date and it's been less than 28 days, keep using it
+        with suppress(Exception):
+            release_date = datetime.strptime(cache["release"].split(".")[0], "%Y-%m-%d")
+            if (datetime.now() - release_date).days < 28:
+                url = (
+                    f"overturemaps-us-west-2/release/{cache['release']}/theme=buildings"
+                    "/type=building/"
+                )
+                return s3_region, url
+
+    response = requests.get("https://stac.overturemaps.org/catalog.json")
+    catalog = response.json()
+
+    releases = [
+        link
+        for link in catalog["links"]
+        if link["rel"] == "child" and "release" in link.get("title", "").lower()
+    ]
+    releases.sort(key=operator.itemgetter("href"), reverse=True)
+    latest = str(Path(releases[0]["href"].rstrip("/")).parent)
+    cache_file.write_text(
+        json.dumps({"release": latest, "timestamp": datetime.now().isoformat()})
     )
-    return RecordBatchReader.from_batches(geoarrow_schema, non_empty_batches)
+    url = f"overturemaps-{s3_region}/release/{latest}/theme=buildings/type=building/"
+    return s3_region, url
 
 
 def download_buildings_bbox(
@@ -103,10 +135,33 @@ def download_buildings_bbox(
         bbox (tuple): Bounding box coordinates (xmin, ymin, xmax, ymax)
         file_address (Path): File address to save the downloaded data.
     """
-    reader = _record_batch_reader(bbox)
-    with ParquetWriter(file_address, reader.schema) as writer:
+    s3_region, s3_url = _get_latest_s3_url()
+    xmin, ymin, xmax, ymax = bbox
+    filter = (
+        (pc.field("bbox", "xmin") < xmax)
+        & (pc.field("bbox", "xmax") > xmin)
+        & (pc.field("bbox", "ymin") < ymax)
+        & (pc.field("bbox", "ymax") > ymin)
+    )
+
+    dataset = ds.dataset(
+        s3_url, filesystem=fs.S3FileSystem(anonymous=True, region=s3_region)
+    )
+    batches = dataset.to_batches(filter=filter)
+    non_empty_batches = (b for b in batches if b.num_rows > 0)
+
+    geoarrow_schema = dataset.schema.set(
+        dataset.schema.get_field_index("geometry"),
+        dataset.schema.field("geometry").with_metadata(
+            {b"ARROW:extension:name": b"geoarrow.wkb"}
+        ),
+    )
+    reader = pa.RecordBatchReader.from_batches(geoarrow_schema, non_empty_batches)
+
+    with pq.ParquetWriter(file_address, reader.schema) as writer:
         for batch in reader:
-            writer.write_batch(batch)
+            if batch.num_rows > 0:
+                writer.write_batch(batch)
 
 
 def download_buildings(file_address: Path, x: float, y: float) -> int:
