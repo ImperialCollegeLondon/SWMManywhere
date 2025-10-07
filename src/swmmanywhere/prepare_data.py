@@ -26,10 +26,7 @@ import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
 from packaging.version import Version
-from pyarrow import RecordBatchReader, fs
-from pyarrow.compute import field
-from pyarrow.dataset import dataset
-from pyarrow.fs import S3FileSystem
+from pyarrow import fs
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
@@ -68,32 +65,6 @@ def get_country(x: float, y: float) -> dict[int, str]:
 
     # Return a dictionary with the two and three letter ISO codes
     return {2: iso_country_code, 3: data.get(iso_country_code, "")}
-
-
-def _record_batch_reader(bbox: tuple[float, float, float, float]) -> RecordBatchReader:
-    """Get a pyarrow batch reader this for bounding box and s3 path."""
-    s3_region = "us-west-2"
-    version = "2025-08-20.0"
-    path = f"overturemaps-{s3_region}/release/{version}/theme=buildings/type=building/"
-    xmin, ymin, xmax, ymax = bbox
-    ds_filter = (
-        (field("bbox", "xmin") < xmax)
-        & (field("bbox", "xmax") > xmin)
-        & (field("bbox", "ymin") < ymax)
-        & (field("bbox", "ymax") > ymin)
-    )
-
-    ds = dataset(path, filesystem=S3FileSystem(anonymous=True, region=s3_region))
-    batches = ds.to_batches(filter=ds_filter)
-    non_empty_batches = (b for b in batches if b.num_rows > 0)
-
-    geoarrow_schema = ds.schema.set(
-        ds.schema.get_field_index("geometry"),
-        ds.schema.field("geometry").with_metadata(
-            {b"ARROW:extension:name": b"geoarrow.wkb"}
-        ),
-    )
-    return RecordBatchReader.from_batches(geoarrow_schema, non_empty_batches)
 
 
 def _get_latest_s3_url() -> tuple[str, str]:
