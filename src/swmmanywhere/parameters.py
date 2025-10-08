@@ -58,32 +58,36 @@ class SubcatchmentDerivation(BaseModel):
         ge=1,
         le=20,
         description="Stream order for subbasin derivation.",
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
     )
 
     subbasin_membership: float = Field(
         default=0.5,
         ge=0,
         le=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Membership threshold for subbasin derivation.",
     )
 
     subbasin_clip_method: str = Field(
         default="subbasin",
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Method to clip subbasins, can be `subbasin` or `community`.",
     )
 
     lane_width: float = Field(
-        default=3.5, ge=2.0, le=5.0, json_schema_extra={"unit":"m"}, description="Width of a road lane."
+        default=3.5,
+        ge=2.0,
+        le=5.0,
+        json_schema_extra={"unit": "m"},
+        description="Width of a road lane.",
     )
 
     carve_depth: float = Field(
         default=2.0,
         ge=1.0,
         le=3.0,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Depth of road/river carve for flow accumulation.",
     )
 
@@ -91,7 +95,7 @@ class SubcatchmentDerivation(BaseModel):
         default=60.0,
         ge=40.0,
         le=100.0,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Distance to split streets into segments.",
     )
 
@@ -99,7 +103,7 @@ class SubcatchmentDerivation(BaseModel):
         default=10,
         ge=1,
         le=39.9,  # should be less than max_street_length
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Distance within which to merge street nodes.",
     )
 
@@ -110,7 +114,7 @@ class OutfallDerivation(BaseModel):
 
     method: str = Field(
         default="separate",
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="""Method to derive outfall locations, 
             can be 'separate' or 'withtopo'.""",
     )
@@ -119,7 +123,7 @@ class OutfallDerivation(BaseModel):
         default=150.0,
         ge=10.0,
         le=500.0,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Buffer distance to link rivers to streets.",
     )
 
@@ -127,7 +131,7 @@ class OutfallDerivation(BaseModel):
         default=40.0,
         ge=0.0,
         le=600.0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Weight to discourage street drainage into river buffers.",
     )
 
@@ -139,21 +143,21 @@ class TopologyDerivation(BaseModel):
     allowable_networks: list = Field(
         default=["walk", "drive"],
         min_items=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="OSM networks to consider",
     )
 
     weights: list = Field(
         default=["chahinian_slope", "chahinian_angle", "length", "contributing_area"],
         min_items=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Weights for topo derivation",
     )
 
     omit_edges: list = Field(
         default=["motorway", "motorway_link", "bridge", "tunnel", "corridor"],
         min_items=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="OSM paths pipes are not allowed under",
     )
 
@@ -161,7 +165,7 @@ class TopologyDerivation(BaseModel):
         default=1,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Constant to apply to surface slope in topo derivation",
     )
 
@@ -169,7 +173,7 @@ class TopologyDerivation(BaseModel):
         default=0,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Constant to apply to chahinian angle in topo derivation",
     )
 
@@ -177,7 +181,7 @@ class TopologyDerivation(BaseModel):
         default=0.1,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Constant to apply to length in topo derivation",
     )
 
@@ -185,7 +189,7 @@ class TopologyDerivation(BaseModel):
         default=0.1,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Constant to apply to contributing area in topo derivation",
     )
 
@@ -193,7 +197,7 @@ class TopologyDerivation(BaseModel):
         default=1,
         le=2,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Exponent to apply to surface slope in topo derivation",
     )
 
@@ -201,7 +205,7 @@ class TopologyDerivation(BaseModel):
         default=1,
         le=2,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Exponent to apply to chahinian angle in topo derivation",
     )
 
@@ -209,7 +213,7 @@ class TopologyDerivation(BaseModel):
         default=1,
         le=2,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Exponent to apply to length in topo derivation",
     )
 
@@ -217,7 +221,7 @@ class TopologyDerivation(BaseModel):
         default=1,
         le=2,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Exponent to apply to contributing area in topo derivation",
     )
 
@@ -254,7 +258,7 @@ class HydraulicDesign(BaseModel):
     diameters: list = Field(
         default=np.linspace(0.15, 3, int((3 - 0.15) / 0.075) + 1).tolist(),
         min_items=1,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="""Diameters to consider in 
                             pipe by pipe method""",
     )
@@ -262,42 +266,42 @@ class HydraulicDesign(BaseModel):
         default=0.8,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Maximum filling ratio in pipe by pipe method",
     )
     min_shear: float = Field(
         default=2,
         le=3,
         ge=0,
-        json_schema_extra={"unit":"Pa"},
+        json_schema_extra={"unit": "Pa"},
         description="Minimum wall shear stress in pipe by pipe method",
     )
     min_v: float = Field(
         default=0.75,
         le=2,
         ge=0,
-        json_schema_extra={"unit":"m/s"},
+        json_schema_extra={"unit": "m/s"},
         description="Minimum velocity in pipe by pipe method",
     )
     max_v: float = Field(
         default=5,
         le=10,
         ge=3,
-        json_schema_extra={"unit":"m/s"},
+        json_schema_extra={"unit": "m/s"},
         description="Maximum velocity in pipe by pipe method",
     )
     min_depth: float = Field(
         default=0.5,
         le=1,
         ge=0,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Minimum excavation depth in pipe by pipe method",
     )
     max_depth: float = Field(
         default=5,
         le=10,
         ge=2,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Maximum excavation depth in pipe by pipe method",
     )
     precipitation: float = Field(
@@ -305,18 +309,18 @@ class HydraulicDesign(BaseModel):
         le=0.010,
         ge=0.001,
         description="Depth of design storm in pipe by pipe method",
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
     )
     depth_nbins: int = Field(
         default=10,
         ge=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="Number of bins to discretise depth for in pipe by pipe method",
     )
     edge_design_parameters: list[str] = Field(
         default=["diameter", "cost_usd"],
         min_items=1,
-        json_schema_extra={"unit":"-"},
+        json_schema_extra={"unit": "-"},
         description="""Edge parameters calculated by the design process to retain in the
                     graph after the pipe_by_pipe graphfcn has been applied.""",
     )
@@ -330,7 +334,7 @@ class MetricEvaluation(BaseModel):
         default=100,
         le=5000,
         ge=10,
-        json_schema_extra={"unit":"m"},
+        json_schema_extra={"unit": "m"},
         description="Scale of the grid for metric evaluation",
     )
 
@@ -338,7 +342,7 @@ class MetricEvaluation(BaseModel):
         default=0,
         ge=0,
         lt=1,
-        json_schema_extra={"unit":"fraction"},
+        json_schema_extra={"unit": "fraction"},
         description="""Warmup period as a fraction of the total simulation time. This
             is used to exclude the initial part of the simulation from the metric
             calculations.""",
