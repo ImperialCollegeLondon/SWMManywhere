@@ -36,7 +36,7 @@ COORDINATES:
   iwcolumns: [id, x, y]
 VERTICES: 
   columns: [Name, X, Y]
-  columns: [id, x, y]
+  iwcolumns: [id, x, y]
 Polygons: 
   columns: [Name, X, Y]
   iwcolumns: [subcatchment, x, y]
