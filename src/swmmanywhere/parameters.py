@@ -142,21 +142,21 @@ class TopologyDerivation(BaseModel):
 
     allowable_networks: list = Field(
         default=["walk", "drive"],
-        min_items=1,
+        min_length=1,
         json_schema_extra={"unit": "-"},
         description="OSM networks to consider",
     )
 
     weights: list = Field(
         default=["chahinian_slope", "chahinian_angle", "length", "contributing_area"],
-        min_items=1,
+        min_length=1,
         json_schema_extra={"unit": "-"},
         description="Weights for topo derivation",
     )
 
     omit_edges: list = Field(
         default=["motorway", "motorway_link", "bridge", "tunnel", "corridor"],
-        min_items=1,
+        min_length=1,
         json_schema_extra={"unit": "-"},
         description="OSM paths pipes are not allowed under",
     )
@@ -226,29 +226,14 @@ class TopologyDerivation(BaseModel):
     )
 
     @model_validator(mode="after")
-    def check_weights(cls, values):
-        """Check that weights have associated scaling and exponents.
-
-        Values may be a plain dict (during validation) or a model/ValidationInfo
-        object. Branch simply on the type and validate accordingly.
-        """
-        # If a dict is passed (e.g. during initial validation), check keys.
-        if isinstance(values, dict):
-            for weight in values.get("weights", []):
-                if f"{weight}_scaling" not in values:
-                    raise ValueError(f"Missing {weight}_scaling")
-                if f"{weight}_exponent" not in values:
-                    raise ValueError(f"Missing {weight}_exponent")
-            return values
-
-        # Otherwise assume a model instance (or ValidationInfo with `.model`).
-        model = getattr(values, "model", values)
-        for weight in getattr(model, "weights", []):
-            if not hasattr(model, f"{weight}_scaling"):
+    def check_weights(self) -> TopologyDerivation:
+        """Check that weights have associated scaling and exponents."""
+        for weight in self.weights:
+            if not hasattr(self, f"{weight}_scaling"):
                 raise ValueError(f"Missing {weight}_scaling")
-            if not hasattr(model, f"{weight}_exponent"):
+            if not hasattr(self, f"{weight}_exponent"):
                 raise ValueError(f"Missing {weight}_exponent")
-        return model
+        return self
 
 
 @register_parameter_group("hydraulic_design")
@@ -257,7 +242,7 @@ class HydraulicDesign(BaseModel):
 
     diameters: list = Field(
         default=np.linspace(0.15, 3, int((3 - 0.15) / 0.075) + 1).tolist(),
-        min_items=1,
+        min_length=1,
         json_schema_extra={"unit": "m"},
         description="""Diameters to consider in 
                             pipe by pipe method""",
@@ -319,7 +304,7 @@ class HydraulicDesign(BaseModel):
     )
     edge_design_parameters: list[str] = Field(
         default=["diameter", "cost_usd"],
-        min_items=1,
+        min_length=1,
         json_schema_extra={"unit": "-"},
         description="""Edge parameters calculated by the design process to retain in the
                     graph after the pipe_by_pipe graphfcn has been applied.""",
