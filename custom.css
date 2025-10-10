@@ -1,0 +1,15 @@
+:root {
+    --md-primary-fg-color: #00BCD4;
+    --md-accent-fg-color: #00BCD4;
+  }
+
+.jupyter-wrapper .jp-OutputArea {
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 5px;
+}
+
+.jupyter-wrapper .jp-OutputArea-child {
+    display: block; /* Make sure child elements are block-level to avoid flex wrapping issues */
+}
