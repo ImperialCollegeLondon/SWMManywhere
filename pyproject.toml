@@ -61,6 +61,7 @@ dependencies = [
   "rioxarray",
   "scipy",
   "shapely",
+  "swmmio",
   "tqdm",
   "xarray",
 ]
