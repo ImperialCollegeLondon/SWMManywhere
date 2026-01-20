@@ -34,8 +34,14 @@ def synthetic_write(addresses: FilePaths):
     Args:
         addresses (FilePaths): A dictionary of file paths.
     """
-    nodes = gpd.read_file(addresses.model_paths.nodes)
-    edges = gpd.read_file(addresses.model_paths.edges)
+    if addresses.model_paths.nodes.suffix == ".geoparquet":
+        nodes = gpd.read_parquet(addresses.model_paths.nodes)
+    else:
+        nodes = gpd.read_file(addresses.model_paths.nodes)
+    if addresses.model_paths.edges.suffix == ".geoparquet":
+        edges = gpd.read_parquet(addresses.model_paths.edges)
+    else:
+        edges = gpd.read_file(addresses.model_paths.edges)
 
     if addresses.model_paths.subcatchments.suffix == ".geoparquet":
         subs = gpd.read_parquet(addresses.model_paths.subcatchments)

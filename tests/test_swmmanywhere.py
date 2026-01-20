@@ -204,6 +204,37 @@ def test_minimal_req():
         swmmanywhere.swmmanywhere(config)
 
 
+def test_mvc(tmp_path):
+    """Test SWMManywhere with the minimum viable config from quickstart guide."""
+    # Match the exact config from docs/quickstart.md and
+    # docs/snippets/minimum_viable_template.yml
+    config = {
+        "base_dir": tmp_path,
+        "project": "my_first_swmm",
+        "extension": "parquet",
+        "bbox": [1.52740, 42.50524, 1.54273, 42.51259],
+    }
+    inp, metrics = swmmanywhere.swmmanywhere(config)
+
+    # Verify the output file is created at the expected location from quickstart.md
+    # Expected: <base_dir>/<project>/bbox_1/model_1/model_1.inp
+    expected_inp = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "model_1.inp"
+    assert inp == expected_inp
+    assert inp.exists()
+
+    # Verify geoparquet files were created and can be read
+    edges_path = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "edges.geoparquet"
+    nodes_path = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "nodes.geoparquet"
+    assert edges_path.exists()
+    assert nodes_path.exists()
+    
+    # Read the files to verify they're valid (using read_file like other tests)
+    edges = gpd.read_parquet(edges_path)
+    nodes = gpd.read_parquet(nodes_path)
+    assert len(edges) > 0
+    assert len(nodes) > 0
+
+
 def test_custom_metric():
     """Test adding a custom metric."""
     with tempfile.TemporaryDirectory(dir=".") as temp_dir:
