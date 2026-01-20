@@ -39,6 +39,11 @@ def load_graph(fid: Path) -> nx.Graph:
             geometry_coords = data["geometry"]
             line_string = shapely.LineString(shapely.wkt.loads(geometry_coords))
             data["geometry"] = line_string
+        else:
+            # Use a straight line between the nodes
+            data["geometry"] = shapely.LineString(
+                [(G.nodes[u]["x"], G.nodes[u]["y"]), (G.nodes[v]["x"], G.nodes[v]["y"])]
+            )
     return G
 
 
@@ -279,7 +284,7 @@ def iterate_graphfcns(
 
         if verbose():
             save_graph(G, addresses.model_paths.model / f"{function}_graph.json")
-            go.graph_to_geojson(
+            go.graph_to_file(
                 graphfcns.fix_geometries(G),
                 addresses.model_paths.model / f"{function}_nodes.geojson",
                 addresses.model_paths.model / f"{function}_edges.geojson",

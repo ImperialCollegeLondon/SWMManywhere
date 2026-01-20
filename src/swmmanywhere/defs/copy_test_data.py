@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from shutil import copyfile
 
-from swmmanywhere.geospatial_utilities import graph_to_geojson
+from swmmanywhere.geospatial_utilities import graph_to_file
 from swmmanywhere.graph_utilities import load_graph
 
 
@@ -29,4 +29,4 @@ def copy_test_data(fid: Path):
         copyfile(defs_dir / filename, fid / filename)
 
     G = load_graph(fid / "bellinge_small_graph.json")
-    graph_to_geojson(G, fid / "nodes.geojson", fid / "edges.geojson", G.graph["crs"])
+    graph_to_file(G, fid / "nodes.geojson", fid / "edges.geojson", G.graph["crs"])

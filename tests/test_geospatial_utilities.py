@@ -459,23 +459,32 @@ def test_remove_intersections():
     assert polys_.set_index("id")[["area"]].equals(targets.set_index("id")[["area"]])
 
 
-def test_graph_to_geojson(street_network):
-    """Test the graph_to_geojson function."""
+@pytest.mark.parametrize("suffix", [".geojson", ".geoparquet"])
+def test_graph_to_file(street_network, suffix):
+    """Test the graph_to_file function."""
     crs = street_network.graph["crs"]
     with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
-        go.graph_to_geojson(
+        go.graph_to_file(
             street_network,
-            temp_path / "graph_nodes.geojson",
-            temp_path / "graph_edges.geojson",
+            temp_path / f"graph_nodes{suffix}",
+            temp_path / f"graph_edges{suffix}",
             crs,
         )
-        gdf = gpd.read_file(temp_path / "graph_nodes.geojson")
-        assert gdf.crs == crs
-        assert gdf.shape[0] == len(street_network.nodes)
+        if suffix == ".geojson":
+            gdf = gpd.read_file(temp_path / f"graph_nodes{suffix}")
+            assert gdf.crs == crs
+            assert gdf.shape[0] == len(street_network.nodes)
 
-        gdf = gpd.read_file(temp_path / "graph_edges.geojson")
-        assert gdf.shape[0] == len(street_network.edges)
+            gdf = gpd.read_file(temp_path / f"graph_edges{suffix}")
+            assert gdf.shape[0] == len(street_network.edges)
+        else:
+            gdf = gpd.read_parquet(temp_path / f"graph_nodes{suffix}")
+            assert gdf.crs == crs
+            assert gdf.shape[0] == len(street_network.nodes)
+
+            gdf = gpd.read_parquet(temp_path / f"graph_edges{suffix}")
+            assert gdf.shape[0] == len(street_network.edges)
 
 
 def test_merge_points(street_network):

@@ -136,7 +136,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Save the final graph
     logger.info("Saving final graph and writing inp file.")
-    go.graph_to_geojson(
+    go.graph_to_file(
         G, addresses.model_paths.nodes, addresses.model_paths.edges, G.graph["crs"]
     )
     save_graph(G, addresses.model_paths.graph)
