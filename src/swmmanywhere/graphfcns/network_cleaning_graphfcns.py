@@ -15,6 +15,7 @@ from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import BaseGraphFunction, register_graphfcn
+from swmmanywhere.utilities import write_df
 
 
 def get_osmid_id(data: dict) -> Hashable:
@@ -214,10 +215,7 @@ class calculate_streetcover(
         lines_gdf = gpd.GeoDataFrame(
             lines_df, geometry=lines_df.geometry, crs=G.graph["crs"]
         )
-        if addresses.model_paths.streetcover.suffix in (".geoparquet", ".parquet"):
-            lines_gdf.to_parquet(addresses.model_paths.streetcover)
-        else:
-            lines_gdf.to_file(addresses.model_paths.streetcover, driver="GeoJSON")
+        write_df(lines_gdf, addresses.model_paths.streetcover)
 
         return G
 

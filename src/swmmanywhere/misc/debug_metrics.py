@@ -14,7 +14,6 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 
-from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.metric_utilities import (
     align_by_shape,
     best_outfall_match,
@@ -24,6 +23,7 @@ from swmmanywhere.metric_utilities import (
 )
 from swmmanywhere.parameters import MetricEvaluation
 from swmmanywhere.swmmanywhere import load_config
+from swmmanywhere.utilities import load_graph
 
 if __name__ == "main":
     project = "cranbrook"

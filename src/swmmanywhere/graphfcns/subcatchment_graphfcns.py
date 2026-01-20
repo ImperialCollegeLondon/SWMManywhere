@@ -14,6 +14,7 @@ from swmmanywhere import parameters
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import BaseGraphFunction, register_graphfcn
 from swmmanywhere.logging import logger, verbose
+from swmmanywhere.utilities import read_df, write_df
 
 
 @register_graphfcn
@@ -75,10 +76,7 @@ class clip_to_catchments(
         )
 
         if verbose():
-            subbasins.to_file(
-                str(addresses.model_paths.nodes).replace("nodes", "subbasins"),
-                driver="GeoJSON",
-            )
+            write_df(subbasins, addresses.model_paths.subbasins)
 
         # Extract street network
         street = G.copy()
@@ -239,26 +237,17 @@ class calculate_contributing_area(
                 wbt_zip_path=addresses.project_paths.whiteboxtools_binaries_zip,
             )
             if verbose():
-                subs_gdf.to_file(addresses.model_paths.subcatchments, driver="GeoJSON")
+                write_df(subs_gdf, addresses.model_paths.subcatchments)
 
         # Calculate runoff coefficient (RC)
-        if addresses.bbox_paths.building.suffix in (".geoparquet", ".parquet"):
-            buildings = gpd.read_parquet(addresses.bbox_paths.building)
-        else:
-            buildings = gpd.read_file(addresses.bbox_paths.building)
-        if addresses.model_paths.streetcover.suffix in (".geoparquet", ".parquet"):
-            streetcover = gpd.read_parquet(addresses.model_paths.streetcover)
-        else:
-            streetcover = gpd.read_file(addresses.model_paths.streetcover)
+        buildings = read_df(addresses.bbox_paths.building)
+        streetcover = read_df(addresses.model_paths.streetcover)
 
         subs_rc = go.derive_rc(subs_gdf, buildings, streetcover)
 
         # Write subs
         # TODO - could just attach subs to nodes where each node has a list of subs
-        if addresses.model_paths.subcatchments.suffix in (".geoparquet", ".parquet"):
-            subs_rc.to_parquet(addresses.model_paths.subcatchments)
-        else:
-            subs_rc.to_file(addresses.model_paths.subcatchments, driver="GeoJSON")
+        write_df(subs_rc, addresses.model_paths.subcatchments)
 
         # Assign contributing area
         imperv_lookup = subs_rc.set_index("id").impervious_area.to_dict()

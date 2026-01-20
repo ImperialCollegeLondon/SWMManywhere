@@ -21,12 +21,14 @@ from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import (
     filter_streets,
     iterate_graphfcns,
-    load_graph,
-    save_graph,
     validate_graphfcn_list,
 )
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.logging import logger
+from swmmanywhere.utilities import (
+    load_graph,
+    save_graph,
+)
 
 
 @pytest.fixture

@@ -6,66 +6,17 @@ utilities (such as save/load functions).
 
 from __future__ import annotations
 
-import json
 import tempfile
-import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, List, Optional
 
 import networkx as nx
-import shapely
 
-from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import parameters
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger, verbose
-
-
-def load_graph(fid: Path) -> nx.Graph:
-    """Load a graph from a file saved with save_graph.
-
-    Args:
-        fid (Path): The path to the file
-
-    Returns:
-        G (nx.Graph): A graph
-    """
-    json_data = json.loads(fid.read_text())
-
-    G = nx.node_link_graph(json_data, directed=True)
-    for u, v, data in G.edges(data=True):
-        if "geometry" in data:
-            geometry_coords = data["geometry"]
-            line_string = shapely.LineString(shapely.wkt.loads(geometry_coords))
-            data["geometry"] = line_string
-        else:
-            # Use a straight line between the nodes
-            data["geometry"] = shapely.LineString(
-                [(G.nodes[u]["x"], G.nodes[u]["y"]), (G.nodes[v]["x"], G.nodes[v]["y"])]
-            )
-    return G
-
-
-def _serialize_line_string(obj):
-    if isinstance(obj, shapely.LineString):
-        return obj.wkt
-    return obj
-
-
-def save_graph(G: nx.Graph, fid: Path) -> None:
-    """Save a graph to a file.
-
-    Args:
-        G (nx.Graph): A graph
-        fid (Path): The path to the file
-    """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        json_data = nx.node_link_data(G)
-
-    with fid.open("w") as file:
-        json.dump(json_data, file, default=_serialize_line_string)
+from swmmanywhere.utilities import save_graph, save_graph_to_features
 
 
 class BaseGraphFunction(ABC):
@@ -284,7 +235,7 @@ def iterate_graphfcns(
 
         if verbose():
             save_graph(G, addresses.model_paths.model / f"{function}_graph.json")
-            go.graph_to_file(
+            save_graph_to_features(
                 graphfcns.fix_geometries(G),
                 addresses.model_paths.model / f"{function}_nodes.geojson",
                 addresses.model_paths.model / f"{function}_edges.geojson",

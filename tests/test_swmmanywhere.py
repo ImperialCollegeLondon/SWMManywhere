@@ -227,7 +227,7 @@ def test_mvc(tmp_path):
     nodes_path = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "nodes.geoparquet"
     assert edges_path.exists()
     assert nodes_path.exists()
-    
+
     # Read the files to verify they're valid (using read_file like other tests)
     edges = gpd.read_parquet(edges_path)
     nodes = gpd.read_parquet(nodes_path)
