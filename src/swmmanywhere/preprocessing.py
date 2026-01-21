@@ -16,7 +16,7 @@ from swmmanywhere import geospatial_utilities as go
 from swmmanywhere import prepare_data
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
-from swmmanywhere.utilities import load_graph, save_graph
+from swmmanywhere.utilities import load_graph, read_df, save_graph, write_df
 
 
 def prepare_precipitation(
@@ -35,7 +35,6 @@ def prepare_precipitation(
     )
     precip = precip.reset_index()
     precip = go.reproject_df(precip, source_crs, target_crs)
-    from swmmanywhere.utilities import write_df
 
     write_df(precip, addresses.bbox_paths.precipitation)
 
@@ -66,11 +65,8 @@ def prepare_building(
     logger.info(f"downloading buildings to {addresses.bbox_paths.building}")
     prepare_data.download_buildings_bbox(addresses.bbox_paths.building, bbox)
 
-    from swmmanywhere.utilities import read_df
-
     buildings = read_df(addresses.bbox_paths.building)
     buildings = buildings.to_crs(target_crs)
-    from swmmanywhere.utilities import write_df
 
     write_df(buildings, addresses.bbox_paths.building)
 

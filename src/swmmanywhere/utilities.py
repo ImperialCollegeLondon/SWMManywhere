@@ -201,11 +201,6 @@ def plot_clickable(nodes_path: Path, edges_path: Path, results_path: Path):
     return m
 
 
-# ============================================================================
-# File I/O functions
-# ============================================================================
-
-
 def read_df(fid: Path) -> pd.DataFrame | gpd.GeoDataFrame:
     """Read a DataFrame from a file.
 
@@ -250,11 +245,6 @@ def write_df(df: pd.DataFrame | gpd.GeoDataFrame, fid: Path):
             df.to_json(fid)
     else:
         raise ValueError(f"Unsupported file extension: {fid.suffix}")
-
-
-# ============================================================================
-# Graph save/load functions
-# ============================================================================
 
 
 def _serialize_line_string(obj):
@@ -312,11 +302,6 @@ def load_graph(fid: Path) -> nx.Graph:
                 ]
             )
     return G
-
-
-# ============================================================================
-# Graph to features functions
-# ============================================================================
 
 
 def nodes_to_features(G: nx.Graph):
