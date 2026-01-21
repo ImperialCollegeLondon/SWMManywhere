@@ -15,9 +15,9 @@ from scipy.interpolate import RegularGridInterpolator
 from shapely import geometry as sgeom
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere import graph_utilities as ge
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
+from swmmanywhere.utilities import save_graph_to_features, load_graph
 
 test_data_dir = Path(__file__).parent / "test_data"
 
@@ -25,7 +25,7 @@ test_data_dir = Path(__file__).parent / "test_data"
 @pytest.fixture
 def street_network():
     """Load a street network."""
-    G = ge.load_graph(test_data_dir / "street_graph.json")
+    G = load_graph(test_data_dir / "street_graph.json")
     return G
 
 
@@ -465,7 +465,7 @@ def test_graph_to_file(street_network, suffix):
     crs = street_network.graph["crs"]
     with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
-        go.graph_to_file(
+        save_graph_to_features(
             street_network,
             temp_path / f"graph_nodes{suffix}",
             temp_path / f"graph_edges{suffix}",
