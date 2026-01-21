@@ -15,7 +15,7 @@ from swmmanywhere import parameters, swmmanywhere
 from swmmanywhere.defs import copy_test_data
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
-from swmmanywhere.utilities import plot_basic, plot_map
+from swmmanywhere.utilities import plot_basic, plot_map, read_df
 
 
 def test_run():
@@ -93,7 +93,7 @@ def test_swmmanywhere(run, wbt_zip_path):
         assert (inp.parent / "nodes.geoparquet").exists()
 
         # Check cost separately since it isn't implicitly checked by running the model
-        edges = gpd.read_file(inp.parent / "edges.geoparquet")
+        edges = read_df(inp.parent / "edges.geoparquet")
         assert "cost_usd" in edges.columns
         assert edges.cost_usd.min() > 0
 

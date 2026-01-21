@@ -788,7 +788,7 @@ def test_clip_to_catchments(street_network):
             assert """WARNING""" in ftext
             logger.remove()
             os.environ["SWMMANYWHERE_VERBOSE"] = "false"
-        assert (addresses.model_paths.nodes.parent / "subbasins.geojson").exists()
+        assert addresses.model_paths.subbasins.exists()
 
 
 def test_filter_streets():

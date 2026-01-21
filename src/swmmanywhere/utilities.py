@@ -304,6 +304,31 @@ def load_graph(fid: Path) -> nx.Graph:
     return G
 
 
+def _make_json_serializable(value):
+    """Convert a value to a JSON-serializable type.
+
+    Args:
+        value: The value to convert.
+
+    Returns:
+        A JSON-serializable value.
+    """
+    if isinstance(value, (list, tuple, np.ndarray)):
+        return [_make_json_serializable(v) for v in value]
+    elif isinstance(value, (np.integer, np.floating)):
+        return value.item()
+    elif isinstance(value, np.bool_):
+        return bool(value)
+    elif isinstance(value, (set, frozenset)):
+        return list(value)
+    elif isinstance(value, dict):
+        return {k: _make_json_serializable(v) for k, v in value.items()}
+    elif hasattr(value, "__dict__"):
+        return str(value)
+
+    return value
+
+
 def nodes_to_features(G: nx.Graph):
     """Convert a graph to a GeoJSON node feature collection.
 
@@ -315,10 +340,14 @@ def nodes_to_features(G: nx.Graph):
     """
     features = []
     for node, data in G.nodes(data=True):
+        # Make properties JSON-serializable
+        properties = {"id": node}
+        for key, value in data.items():
+            properties[key] = _make_json_serializable(value)
         feature = {
             "type": "Feature",
             "geometry": sgeom.mapping(sgeom.Point(data["x"], data["y"])),
-            "properties": {"id": node, **data},
+            "properties": properties,
         }
         features.append(feature)
     return features
@@ -335,15 +364,20 @@ def edges_to_features(G: nx.Graph):
     """
     features = []
     for u, v, data in G.edges(data=True):
-        if "geometry" not in data:
+        data_copy = data.copy()
+        if "geometry" not in data_copy:
             geom = None
         else:
-            geom = sgeom.mapping(data["geometry"])
-            del data["geometry"]
+            geom = sgeom.mapping(data_copy["geometry"])
+            del data_copy["geometry"]
+        # Make properties JSON-serializable
+        properties = {"u": u, "v": v}
+        for key, value in data_copy.items():
+            properties[key] = _make_json_serializable(value)
         feature = {
             "type": "Feature",
             "geometry": geom,
-            "properties": {"u": u, "v": v, **data},
+            "properties": properties,
         }
         features.append(feature)
     return features
