@@ -17,7 +17,7 @@ from shapely import geometry as sgeom
 from swmmanywhere import geospatial_utilities as go
 from swmmanywhere.logging import set_verbose
 from swmmanywhere.misc.debug_derive_rc import derive_rc_alt
-from swmmanywhere.utilities import save_graph_to_features, load_graph
+from swmmanywhere.utilities import load_graph, save_graph_to_features
 
 test_data_dir = Path(__file__).parent / "test_data"
 
