@@ -204,9 +204,8 @@ def plot_clickable(nodes_path: Path, edges_path: Path, results_path: Path):
 def read_df(fid: Path) -> pd.DataFrame | gpd.GeoDataFrame:
     """Read a DataFrame from a file.
 
-    Read a DataFrame from a file. The file type is determined by the file
-    extension. For geoparquet/parquet files, attempts to read as GeoDataFrame
-    first, falls back to DataFrame if that fails.
+    Read a DataFrame or GeoDataFrame from a file. The file type is determined by the
+    file extension.
 
     Args:
         fid (Path): Path to the file.
@@ -257,8 +256,7 @@ def _serialize_line_string(obj):
 def save_graph(G: nx.Graph, fid: Path) -> None:
     """Save a graph to a file.
 
-    Supports both JSON and parquet formats. For parquet format, saves nodes
-    and edges in separate files with a metadata JSON file for graph-level attributes.
+    Currently only supports JSON format.
 
     Args:
         G (nx.Graph): A graph
