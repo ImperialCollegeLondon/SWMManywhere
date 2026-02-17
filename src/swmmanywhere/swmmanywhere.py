@@ -449,6 +449,9 @@ def load_config(
     # Check starting graph
     config = check_starting_graph(config)
 
+    # Register custom parameters
+    config = register_custom_parameters(config)
+    
     # Check parameter overrides
     config = check_parameter_overrides(config)
 
@@ -458,8 +461,6 @@ def load_config(
     # Check and register custom graphfcns
     config = check_and_register_custom_graphfcns(config)
 
-    # Register custom parameters
-    config = register_custom_parameters(config)
 
     return config
 

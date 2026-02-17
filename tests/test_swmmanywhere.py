@@ -273,9 +273,14 @@ def test_custom_graphfcn():
 def test_custom_parameters(tmp_path):
     """Test custom parameters provided by filename."""
     config = swmmanywhere.load_config(validation=False)
-    config["custom_graphfcn_modules"] = [
+    config["custom_parameter_modules"] = [
         Path(__file__).parent / "test_data" / "custom_parameters.py"
     ]
+    config["parameter_overrides"] = {
+        "new_params": {
+            "new_param": 1
+        }
+    }
 
     config_address = tmp_path / "test_config.yml"
     config["base_dir"] = tmp_path
