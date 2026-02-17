@@ -276,11 +276,7 @@ def test_custom_parameters(tmp_path):
     config["custom_parameter_modules"] = [
         Path(__file__).parent / "test_data" / "custom_parameters.py"
     ]
-    config["parameter_overrides"] = {
-        "new_params": {
-            "new_param": 1
-        }
-    }
+    config["parameter_overrides"] = {"new_params": {"new_param": 1}}
 
     config_address = tmp_path / "test_config.yml"
     config["base_dir"] = tmp_path
