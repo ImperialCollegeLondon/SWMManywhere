@@ -292,6 +292,11 @@ def test_custom_parameters(tmp_path):
     # Check graphfcn was added
     assert "new_params" in parameters.get_full_parameters()
 
+    # remove the custom parameter for other tests
+    from swmmanywhere.parameters import parameter_register
+
+    del parameter_register["new_params"]
+
 
 def test_copy_test_data(tmp_path):
     """Test the copy_test_data function."""
