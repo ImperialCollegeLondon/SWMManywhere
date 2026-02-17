@@ -67,7 +67,7 @@ model_dir = outputs[0].parent
 # are about to demonstrate, we also plot the subbasins.
 # %%
 m = plot_map(model_dir)
-subbasins = gpd.read_file(model_dir / "subbasins.geoparquet")
+subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
 folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
 m
 
@@ -129,7 +129,7 @@ model_dir = outputs[0].parent
 # highlight the impact of flipping the elevation data.
 # %%
 m = plot_map(model_dir)
-subbasins_new = gpd.read_file(model_dir / "subbasins.geoparquet")
+subbasins_new = gpd.read_parquet(model_dir / "subbasins.geoparquet")
 folium.GeoJson(subbasins_new, fill_opacity=0, color="red", weight=2).add_to(m)
 folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
 m

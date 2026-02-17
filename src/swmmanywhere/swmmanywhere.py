@@ -5,24 +5,27 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-import geopandas as gpd
 import jsonschema
 import pandas as pd
 import pyswmm
 from tqdm.auto import tqdm
 
-import swmmanywhere.geospatial_utilities as go
 from swmmanywhere import filepaths, parameters, preprocessing
 from swmmanywhere.graph_utilities import (
     iterate_graphfcns,
-    load_graph,
-    save_graph,
     validate_graphfcn_list,
 )
 from swmmanywhere.logging import logger, verbose
 from swmmanywhere.metric_utilities import iterate_metrics, validate_metric_list
 from swmmanywhere.post_processing import synthetic_write
-from swmmanywhere.utilities import yaml_dump, yaml_load
+from swmmanywhere.utilities import (
+    load_graph,
+    read_df,
+    save_graph,
+    save_graph_to_features,
+    yaml_dump,
+    yaml_load,
+)
 
 
 def _check_defaults(config: dict) -> dict:
@@ -136,7 +139,7 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Save the final graph
     logger.info("Saving final graph and writing inp file.")
-    go.graph_to_geojson(
+    save_graph_to_features(
         G, addresses.model_paths.nodes, addresses.model_paths.edges, G.graph["crs"]
     )
     save_graph(G, addresses.model_paths.graph)
@@ -177,15 +180,9 @@ def swmmanywhere(config: dict) -> tuple[Path, dict | None]:
 
     # Iterate the metrics
     logger.info("Iterating metrics.")
-    if addresses.model_paths.subcatchments.suffix == ".geoparquet":
-        subs = gpd.read_parquet(addresses.model_paths.subcatchments)
-    else:
-        subs = gpd.read_file(addresses.model_paths.subcatchments)
 
-    if config["real"]["subcatchments"].suffix == ".geoparquet":
-        real_subs = gpd.read_parquet(config["real"]["subcatchments"])
-    else:
-        real_subs = gpd.read_file(config["real"]["subcatchments"])
+    subs = read_df(addresses.model_paths.subcatchments)
+    real_subs = read_df(Path(config["real"]["subcatchments"]))
     metrics = iterate_metrics(
         synthetic_results,
         subs,
