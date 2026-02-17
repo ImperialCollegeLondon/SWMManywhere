@@ -404,60 +404,6 @@ def _cast_to_str(df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return df
 
 
-def _graph_to_geoparquet(
-    nodes: list[dict], edges: list[dict], fid_nodes: Path, fid_edges: Path, crs: str
-):
-    """Write a graph to a GeoParquet file.
-
-    Args:
-        nodes (list[dict]): The nodes of the graph.
-        edges (list[dict]): The edges of the graph.
-        fid_nodes (Path): The filepath to save the nodes GeoParquet file.
-        fid_edges (Path): The filepath to save the edges GeoParquet file.
-        crs (str): The CRS of the graph.
-    """
-    nodes = gpd.GeoDataFrame(
-        [x["properties"] for x in nodes],
-        geometry=[sgeom.Point(x["geometry"]["coordinates"]) for x in nodes],
-        crs=crs,
-    )
-    edges = gpd.GeoDataFrame(
-        [x["properties"] for x in edges],
-        geometry=[sgeom.LineString(x["geometry"]["coordinates"]) for x in edges],
-        crs=crs,
-    )
-    _cast_to_str(nodes).to_parquet(fid_nodes)
-    _cast_to_str(edges).to_parquet(fid_edges)
-
-
-def _graph_to_geojson(
-    nodes: list[dict], edges: list[dict], fid_nodes: Path, fid_edges: Path, crs: str
-) -> None:
-    """Write a graph to a GeoJSON file.
-
-    Args:
-        nodes (list[dict]): The nodes of the graph.
-        edges (list[dict]): The edges of the graph.
-        fid_nodes (Path): The filepath to save the nodes GeoJSON file.
-        fid_edges (Path): The filepath to save the edges GeoJSON file.
-        crs (str): The CRS of the graph.
-    """
-    for iterable, fid in zip([nodes, edges], [fid_nodes, fid_edges]):
-        geojson = {
-            "type": "FeatureCollection",
-            "features": iterable,
-            "crs": {
-                "type": "name",
-                "properties": {
-                    "name": "urn:ogc:def:crs:{0}".format(crs.replace(":", "::"))
-                },
-            },
-        }
-
-        with fid.open("w") as output_file:
-            json.dump(geojson, output_file, indent=2)
-
-
 def save_graph_to_features(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, crs: str):
     """Write a graph to GeoJSON or GeoParquet feature files.
 
@@ -471,10 +417,23 @@ def save_graph_to_features(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, cr
     nodes = nodes_to_features(graph)
     edges = edges_to_features(graph)
 
+    nodes = gpd.GeoDataFrame(
+        [x["properties"] for x in nodes],
+        geometry=[sgeom.Point(x["geometry"]["coordinates"]) for x in nodes],
+        crs=crs,
+    )
+    edges = gpd.GeoDataFrame(
+        [x["properties"] for x in edges],
+        geometry=[sgeom.LineString(x["geometry"]["coordinates"]) for x in edges],
+        crs=crs,
+    )
+
     if fid_nodes.suffix == ".geoparquet":
-        _graph_to_geoparquet(nodes, edges, fid_nodes, fid_edges, crs)
+        _cast_to_str(nodes).to_parquet(fid_nodes)
+        _cast_to_str(edges).to_parquet(fid_edges)
     elif fid_nodes.suffix == ".geojson":
-        _graph_to_geojson(nodes, edges, fid_nodes, fid_edges, crs)
+        nodes.to_file(fid_nodes, driver="GeoJSON")
+        edges.to_file(fid_edges, driver="GeoJSON")
     else:
         raise ValueError(f"Unsupported file type: {fid_nodes.suffix}")
 
