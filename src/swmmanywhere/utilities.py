@@ -285,7 +285,7 @@ def load_graph(fid: Path) -> nx.Graph:
     """
     # Load from JSON format (original implementation)
     json_data = json.loads(fid.read_text())
-    G = nx.node_link_graph(json_data, directed=True)
+    G = nx.node_link_graph(json_data, directed=True, edges="edges")
     for u, v, data in G.edges(data=True):
         if "geometry" in data:
             geometry_coords = data["geometry"]
