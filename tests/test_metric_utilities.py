@@ -10,8 +10,8 @@ import pytest
 import shapely
 
 from swmmanywhere import metric_utilities as mu
-from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.parameters import MetricEvaluation
+from swmmanywhere.utilities import load_graph
 
 
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:

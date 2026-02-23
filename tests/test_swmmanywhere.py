@@ -15,7 +15,7 @@ from swmmanywhere import parameters, swmmanywhere
 from swmmanywhere.defs import copy_test_data
 from swmmanywhere.graph_utilities import graphfcns
 from swmmanywhere.metric_utilities import metrics
-from swmmanywhere.utilities import plot_basic, plot_map
+from swmmanywhere.utilities import plot_basic, plot_map, read_df
 
 
 def test_run():
@@ -93,7 +93,7 @@ def test_swmmanywhere(run, wbt_zip_path):
         assert (inp.parent / "nodes.geoparquet").exists()
 
         # Check cost separately since it isn't implicitly checked by running the model
-        edges = gpd.read_file(inp.parent / "edges.geoparquet")
+        edges = read_df(inp.parent / "edges.geoparquet")
         assert "cost_usd" in edges.columns
         assert edges.cost_usd.min() > 0
 
@@ -202,6 +202,37 @@ def test_minimal_req():
         }
 
         swmmanywhere.swmmanywhere(config)
+
+
+def test_mvc(tmp_path):
+    """Test SWMManywhere with the minimum viable config from quickstart guide."""
+    # Match the exact config from docs/quickstart.md and
+    # docs/snippets/minimum_viable_template.yml
+    config = {
+        "base_dir": tmp_path,
+        "project": "my_first_swmm",
+        "extension": "parquet",
+        "bbox": [1.52740, 42.50524, 1.54273, 42.51259],
+    }
+    inp, metrics = swmmanywhere.swmmanywhere(config)
+
+    # Verify the output file is created at the expected location from quickstart.md
+    # Expected: <base_dir>/<project>/bbox_1/model_1/model_1.inp
+    expected_inp = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "model_1.inp"
+    assert inp == expected_inp
+    assert inp.exists()
+
+    # Verify geoparquet files were created and can be read
+    edges_path = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "edges.geoparquet"
+    nodes_path = tmp_path / "my_first_swmm" / "bbox_1" / "model_1" / "nodes.geoparquet"
+    assert edges_path.exists()
+    assert nodes_path.exists()
+
+    # Read the files to verify they're valid (using read_file like other tests)
+    edges = gpd.read_parquet(edges_path)
+    nodes = gpd.read_parquet(nodes_path)
+    assert len(edges) > 0
+    assert len(nodes) > 0
 
 
 def test_custom_metric():

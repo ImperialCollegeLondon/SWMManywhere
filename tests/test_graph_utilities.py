@@ -21,12 +21,14 @@ from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.graph_utilities import (
     filter_streets,
     iterate_graphfcns,
-    load_graph,
-    save_graph,
     validate_graphfcn_list,
 )
 from swmmanywhere.graph_utilities import graphfcns as gu
 from swmmanywhere.logging import logger
+from swmmanywhere.utilities import (
+    load_graph,
+    save_graph,
+)
 
 
 @pytest.fixture
@@ -786,7 +788,7 @@ def test_clip_to_catchments(street_network):
             assert """WARNING""" in ftext
             logger.remove()
             os.environ["SWMMANYWHERE_VERBOSE"] = "false"
-        assert (addresses.model_paths.nodes.parent / "subbasins.geojson").exists()
+        assert addresses.model_paths.subbasins.exists()
 
 
 def test_filter_streets():
