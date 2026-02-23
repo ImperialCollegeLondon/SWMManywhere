@@ -5,19 +5,19 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.14.4"
+    rev: "v0.15.2"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.18.2"
+    rev: "v1.19.1"
     hooks:
       - id: mypy
         additional_dependencies:
           [types-requests, types-PyYAML]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         args: ["--disable", "MD013", "--disable", "MD025", "--"]
@@ -31,13 +31,13 @@ repos:
       - tomli
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.11.1
+    rev: v2.16.2
     hooks:
     - id: pyproject-fmt
       name: Apply a consistent format to pyproject.toml
   
   - repo: https://github.com/dosisod/refurb
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
     - id: refurb
       name: Modernizing Python codebases using Refurb
