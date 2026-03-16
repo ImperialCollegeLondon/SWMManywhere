@@ -90,29 +90,21 @@ urls.Documentation = "https://imperialcollegelondon.github.io/SWMManywhere/"
 urls.Issues = "https://github.com/ImperialCollegeLondon/SWMManywhere/issues"
 urls.Source = "https://github.com/ImperialCollegeLondon/SWMManywhere"
 
-[tool.hatch.build.targets.wheel]
-only-include = [ "src" ]
-sources = [ "src" ]
-
-[tool.hatch.build.targets.sdist]
-exclude = [
+[tool.hatch]
+build.hooks.vcs.version-file = "_version.py"
+build.targets.sdist.exclude = [
   "*.zip",
 ]
-
-[tool.hatch.metadata]
-license = "BSD-3-clause"                                 # Or your primary license name
-license-files = [ "LICENSE", "src/netcomp/LICENSE.txt" ]
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "_version.py"
+build.targets.wheel.only-include = [ "src" ]
+build.targets.wheel.sources = [ "src" ]
+metadata.license = "BSD-3-clause"  # Or your primary license name
+metadata.license-files = [ "LICENSE", "src/netcomp/LICENSE.txt" ]
+version.source = "vcs"
 
 [tool.ruff]
-lint.select = [ "D", "E", "F", "I" ]                                   # pydocstyle, pycodestyle, Pyflakes, isort
+lint.select = [ "D", "E", "F", "I" ]  # pydocstyle, pycodestyle, Pyflakes, isort
 lint.per-file-ignores."docs/notebooks/*" = [ "D100" ]
-lint.per-file-ignores."src/netcomp/*" = [ "D", "F" ]                   # Ignore all checks for netcomp
+lint.per-file-ignores."src/netcomp/*" = [ "D", "F" ]  # Ignore all checks for netcomp
 lint.per-file-ignores."tests/*" = [ "D100", "D104" ]
 lint.isort.known-first-party = [ "swmmanywhere", "netcomp" ]
 lint.isort.required-imports = [ "from __future__ import annotations" ]
@@ -122,33 +114,29 @@ lint.pydocstyle.convention = "google"
 skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*"
 ignore-words-list = "gage,gages,Carrer,anc"
 
-[tool.pytest.ini_options]
-addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
-markers = [
+[tool.pytest]
+ini_options.addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
+ini_options.markers = [
   "downloads: mark a test as requiring downloads",
 ]
 
-[tool.coverage.report]
-exclude_lines = [
-  "if TYPE_CHECKING:",
-]
-omit = [
+[tool.coverage]
+run.branch = true
+run.omit = [
   "**/__init__.py",
 ]
-ignore_errors = true
-
-[tool.coverage.paths]
-source = [ "src", "*/site-packages" ]
-omit = [
-  "**/__init__.py",
-]
-
-[tool.coverage.run]
-branch = true
-source = [
+run.source = [
   "swmmanywhere",
 ]
-omit = [
+paths.omit = [
+  "**/__init__.py",
+]
+paths.source = [ "src", "*/site-packages" ]
+report.exclude_lines = [
+  "if TYPE_CHECKING:",
+]
+report.ignore_errors = true
+report.omit = [
   "**/__init__.py",
 ]
 
@@ -159,13 +147,10 @@ warn_unreachable = true
 warn_unused_ignores = false
 disallow_untyped_defs = false
 exclude = [ ".venv/" ]
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
+overrides = [ { module = "tests.*", disallow_untyped_defs = false } ]
 
 [tool.refurb]
 ignore = [
-  184, # Because some frankly bizarre suggestions
-  109, # Because pyyaml doesn't support tuples
+  184,  # Because some frankly bizarre suggestions
+  109,  # Because pyyaml doesn't support tuples
 ]
