@@ -1064,7 +1064,7 @@ def bias_flood_depth(
     """Run the evaluated metric."""
 
     def _f(x):
-        return np.trapz(x.value, x.duration)
+        return np.trapezoid(x.value, x.duration)
 
     syn_flooding = extract_var(synthetic_results, "flooding").groupby("id").apply(_f)
     syn_area = synthetic_subs.impervious_area.sum()
