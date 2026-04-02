@@ -24,7 +24,7 @@ jobs:
         os: ${{fromJson(inputs.os)}}
         python-version: ${{fromJson(inputs.python-version)}}
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
@@ -36,7 +36,7 @@ jobs:
       run: pytest
 
     - name: Upload coverage to Codecov
-      if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
+      if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10') && secrets.codecov_token != ''
       uses: codecov/codecov-action@v5
       with:
         fail_ci_if_error: true
