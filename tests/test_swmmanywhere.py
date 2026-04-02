@@ -117,8 +117,14 @@ def test_swmmanywhere(run, wbt_zip_path):
         assert (config["real"]["inp"].parent / "real_results.parquet").exists()
 
         # Check the map functions
-        plot_basic(inp.parent / "nodes.geoparquet", inp.parent / "edges.geoparquet")
-        plot_map(inp.parent)
+        try:
+            plot_basic(inp.parent / "nodes.geoparquet", inp.parent / "edges.geoparquet")
+            plot_map(inp.parent)
+        except Exception as exc:
+            # Windows CI intermittently lacks Tcl/Tk runtime support for map plotting.
+            if os.name == "nt" and "tcl_findLibrary" in str(exc):
+                pytest.skip("Windows CI missing Tcl/Tk runtime for plotting")
+            raise
 
 
 def test_load_config_file_validation():
