@@ -1,5 +1,4 @@
-"""
->>> True
+""">>> True
 True
 """
 
@@ -76,7 +75,6 @@ if __name__ == "__main__":
     subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
     folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
     m
-
 
     # %% [markdown]
     ## Supply custom elevation data

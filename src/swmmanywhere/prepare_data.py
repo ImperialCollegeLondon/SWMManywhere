@@ -24,7 +24,6 @@ import pyarrow.parquet as pq
 import pystac_client
 import requests
 import rioxarray
-import rioxarray.merge as rxr_merge
 import xarray as xr
 from geopy.geocoders import Nominatim
 from packaging.version import Version
@@ -270,15 +269,19 @@ def download_elevation(fid: Path, bbox: tuple[float, float, float, float]) -> No
     Author:
         cheginit
     """
-    from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
     from pystac_client.exceptions import APIError
-    import rioxarray
-    
+    from tenacity import (
+        retry,
+        retry_if_exception_type,
+        stop_after_attempt,
+        wait_exponential,
+    )
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type((APIError, requests.exceptions.RequestException)),
-        reraise=True
+        reraise=True,
     )
     def _fetch_elevation_data():
         catalog = pystac_client.Client.open(
@@ -306,7 +309,7 @@ def download_elevation(fid: Path, bbox: tuple[float, float, float, float]) -> No
         dem = rioxarray.merge.merge_arrays(arrays)
         dem = dem.rio.clip_box(*bbox)
         return dem
-    
+
     try:
         dem = _fetch_elevation_data()
         dem.rio.to_raster(fid)
@@ -316,22 +319,22 @@ def download_elevation(fid: Path, bbox: tuple[float, float, float, float]) -> No
         # Write an empty raster to avoid breaking downstream steps
         # Create a dummy raster with 0s over the bbox
         import numpy as np
-        from rioxarray.rioxarray import affine_to_coords
         from affine import Affine
-        
+        from rioxarray.rioxarray import affine_to_coords
+
         # Define resolution (approx 30m as per NASADEM)
         res = 0.0002777777777777778  # ~30m in degrees
         west, south, east, north = bbox
         width = int((east - west) / res)
         height = int((north - south) / res)
-        
+
         if width <= 0 or height <= 0:
             logger.warning("Bounding box too small to create dummy raster")
             return
-        
+
         transform = Affine(res, 0, west, 0, -res, north)
         data = np.zeros((1, height, width), dtype=np.float32)
-        
+
         dem = rioxarray.open_rasterio(
             xr.DataArray(
                 data,
