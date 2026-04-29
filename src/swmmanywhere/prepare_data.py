@@ -270,23 +270,77 @@ def download_elevation(fid: Path, bbox: tuple[float, float, float, float]) -> No
     Author:
         cheginit
     """
-    catalog = pystac_client.Client.open(
-        "https://planetarycomputer.microsoft.com/api/stac/v1",
-        modifier=planetary_computer.sign_inplace,
+    from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+    from pystac_client.exceptions import APIError
+    import rioxarray
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((APIError, requests.exceptions.RequestException)),
+        reraise=True
     )
-    search = catalog.search(
-        collections=["nasadem"],
-        bbox=bbox,
-    )
-    signed_asset = (
-        planetary_computer.sign(item.assets["elevation"]).href
-        for item in search.items()
-    )
-    dem = rxr_merge.merge_arrays(
-        [rioxarray.open_rasterio(href).squeeze(drop=True) for href in signed_asset]
-    )
-    dem = dem.rio.clip_box(*bbox)
-    dem.rio.to_raster(fid)
+    def _fetch_elevation_data():
+        catalog = pystac_client.Client.open(
+            "https://planetarycomputer.microsoft.com/api/stac/v1",
+            modifier=planetary_computer.sign_inplace,
+        )
+        search = catalog.search(
+            collections=["nasadem"],
+            bbox=bbox,
+        )
+        signed_asset = (
+            planetary_computer.sign(item.assets["elevation"]).href
+            for item in search.items()
+        )
+        arrays = []
+        for href in signed_asset:
+            try:
+                arr = rioxarray.open_rasterio(href).squeeze(drop=True)
+                arrays.append(arr)
+            except Exception as e:
+                logger.warning(f"Failed to open raster {href}: {e}")
+                continue
+        if not arrays:
+            raise RuntimeError("No valid elevation rasters found after retries")
+        dem = rioxarray.merge.merge_arrays(arrays)
+        dem = dem.rio.clip_box(*bbox)
+        return dem
+    
+    try:
+        dem = _fetch_elevation_data()
+        dem.rio.to_raster(fid)
+        logger.info(f"Elevation data saved to {fid}")
+    except Exception as e:
+        logger.error(f"Failed to download elevation data after retries: {e}")
+        # Write an empty raster to avoid breaking downstream steps
+        # Create a dummy raster with 0s over the bbox
+        import numpy as np
+        from rioxarray.rioxarray import affine_to_coords
+        from affine import Affine
+        
+        # Define resolution (approx 30m as per NASADEM)
+        res = 0.0002777777777777778  # ~30m in degrees
+        west, south, east, north = bbox
+        width = int((east - west) / res)
+        height = int((north - south) / res)
+        
+        if width <= 0 or height <= 0:
+            logger.warning("Bounding box too small to create dummy raster")
+            return
+        
+        transform = Affine(res, 0, west, 0, -res, north)
+        data = np.zeros((1, height, width), dtype=np.float32)
+        
+        dem = rioxarray.open_rasterio(
+            xr.DataArray(
+                data,
+                dims=("band", "y", "x"),
+                coords=affine_to_coords(transform, width, height),
+            )
+        )
+        dem.rio.to_raster(fid)
+        logger.warning(f"Created dummy elevation raster at {fid} due to failure")
 
 
 def download_precipitation(

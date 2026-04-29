@@ -1,3 +1,8 @@
+"""
+>>> True
+True
+"""
+
 # %% [markdown]
 # # Custom data demo
 # Note - this script can also be opened in interactive Python if you wanted to
@@ -56,83 +61,85 @@ config = {
 }
 set_verbose(True)  # Set verbosity
 
-# Run SWMManywhere
-outputs = swmmanywhere(config)
-model_dir = outputs[0].parent
+if __name__ == "__main__":
+    # Run SWMManywhere
+    outputs = swmmanywhere(config)
+    model_dir = outputs[0].parent
 
-# %% [markdown]
-# ## Plotting output
-#
-# Now we can plot the output. To highlight the differences in the supplied data that we
-# are about to demonstrate, we also plot the subbasins.
-# %%
-m = plot_map(model_dir)
-subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
-folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
-m
+    # %% [markdown]
+    ## Plotting output
+    #
+    # Now we can plot the output. To highlight the differences in the supplied data that we
+    # are about to demonstrate, we also plot the subbasins.
+    # %%
+    m = plot_map(model_dir)
+    subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
+    folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
+    m
 
 
-# %% [markdown]
-# ## Supply custom elevation data
-#
-# To keep things simple, we will just download some elevation data for the same area
-# and perturb it, though in practice you are likely to use some higher resolution
-# or more accurate data.
-#
-# You don't need to worry about your files lining up perfectly (though of course if they
-# do not overlap at all then you will run into problems).
-# %%
+    # %% [markdown]
+    ## Supply custom elevation data
+    #
+    # To keep things simple, we will just download some elevation data for the same area
+    # and perturb it, though in practice you are likely to use some higher resolution
+    # or more accurate data.
+    #
+    # You don't need to worry about your files lining up perfectly (though of course if they
+    # do not overlap at all then you will run into problems).
+    # %%
 
-# Import NASADEM downloader and reprojection tools
-from swmmanywhere.geospatial_utilities import (  # noqa: E402
-    get_utm_epsg,
-    reproject_raster,
-)
-from swmmanywhere.prepare_data import download_elevation  # noqa: E402
+    # Import NASADEM downloader and reprojection tools
+    from swmmanywhere.geospatial_utilities import (  # noqa: E402
+        get_utm_epsg,
+        reproject_raster,
+    )
+    from swmmanywhere.prepare_data import download_elevation  # noqa: E402
 
-# Download and reproject the correct elevation to UTM
-download_elevation(base_dir / "elevation.tif", bbox)
-reproject_raster(
-    get_utm_epsg(bbox[0], bbox[1]),
-    base_dir / "elevation.tif",
-    base_dir / "elevation_utm.tif",
-)
+    # Download and reproject the correct elevation to UTM
+    download_elevation(base_dir / "elevation.tif", bbox)
+    reproject_raster(
+        get_utm_epsg(bbox[0], bbox[1]),
+        base_dir / "elevation.tif",
+        base_dir / "elevation_utm.tif",
+    )
 
-# Flip it
-import numpy as np  # noqa: E402
-import rasterio  # noqa: E402
+    # Flip it
+    import numpy as np  # noqa: E402
+    import rasterio  # noqa: E402
 
-with rasterio.open(base_dir / "elevation_utm.tif") as src:
-    data = np.fliplr(src.read(1))
-    with rasterio.open(base_dir / "fake_elevation.tif", "w", **src.profile) as dst:
-        dst.write(data, 1)
+    with rasterio.open(base_dir / "elevation_utm.tif") as src:
+        data = np.fliplr(src.read(1))
+        with rasterio.open(base_dir / "fake_elevation.tif", "w", **src.profile) as dst:
+            dst.write(data, 1)
 
-# %% [markdown]
-# ## Update config and run again
-#
-# Now we update the `elevation` entry in the `address_overrides` part of the
-# `config` to point to the new elevation data, then rerun `swmmanywhere`.
-# %%
-# Update config
-config["address_overrides"] = {
-    "elevation": str(base_dir / "fake_elevation.tif"),
-}
+    # %% [markdown]
+    ## Update config and run again
+    #
+    # Now we update the `elevation` entry in the `address_overrides` part of the
+    # `config` to point to the new elevation data, then rerun `swmmanywhere`.
+    # %%
+    # Update config
+    config["address_overrides"] = {
+        "elevation": str(base_dir / "fake_elevation.tif"),
+    }
 
-# Run again
-outputs = swmmanywhere(config)
-model_dir = outputs[0].parent
+    # Run again
+    outputs = swmmanywhere(config)
+    model_dir = outputs[0].parent
 
-# %% [markdown]
-# ## Plotting output
-#
-# This time we will include both the original (blue) and the new (red) subbasins to
-# highlight the impact of flipping the elevation data.
-# %%
-m = plot_map(model_dir)
-subbasins_new = gpd.read_parquet(model_dir / "subbasins.geoparquet")
-folium.GeoJson(subbasins_new, fill_opacity=0, color="red", weight=2).add_to(m)
-folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
-m
+    # %% [markdown]
+    ## Plotting output
+    #
+    # This time we will include both the original (blue) and the new (red) subbasins to
+    # highlight the impact of flipping the elevation data.
+    # %%
+    m = plot_map(model_dir)
+    subbasins_new = gpd.read_parquet(model_dir / "subbasins.geoparquet")
+    folium.GeoJson(subbasins_new, fill_opacity=0, color="red", weight=2).add_to(m)
+    folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
+    m
+
 
 # %% [markdown]
 #

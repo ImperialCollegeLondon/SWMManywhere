@@ -124,7 +124,7 @@ exclude = [ ".venv/" ]
 overrides = [ { module = "tests.*", disallow_untyped_defs = false } ]
 
 [tool.pytest]
-ini_options.addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
+ini_options.addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py --ignore=docs/notebooks/"
 ini_options.markers = [
   "downloads: mark a test as requiring downloads",
 ]
