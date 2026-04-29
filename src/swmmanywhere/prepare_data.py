@@ -278,16 +278,15 @@ def download_elevation(fid: Path, bbox: tuple[float, float, float, float]) -> No
         collections=["nasadem"],
         bbox=bbox,
     )
-    
+
     # Handle pystac-client v0.x and v1.x compatibility
     if Version(pystac_client.__version__) >= Version("1.0.0"):
         items = search.item_collection().items
     else:
         items = search.items()
-    
+
     signed_asset = (
-        planetary_computer.sign(item.assets["elevation"]).href
-        for item in items
+        planetary_computer.sign(item.assets["elevation"]).href for item in items
     )
     dem = rxr_merge.merge_arrays(
         [rioxarray.open_rasterio(href).squeeze(drop=True) for href in signed_asset]
