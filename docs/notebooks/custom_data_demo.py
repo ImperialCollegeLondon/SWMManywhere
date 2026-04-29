@@ -1,4 +1,5 @@
-""">>> True
+""">>> True.
+
 True
 """
 
@@ -68,8 +69,8 @@ if __name__ == "__main__":
     # %% [markdown]
     ## Plotting output
     #
-    # Now we can plot the output. To highlight the differences in the supplied data that we
-    # are about to demonstrate, we also plot the subbasins.
+    # Now we can plot the output. To highlight the differences in the supplied data that
+    # we are about to demonstrate, we also plot the subbasins.
     # %%
     m = plot_map(model_dir)
     subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
@@ -83,8 +84,8 @@ if __name__ == "__main__":
     # and perturb it, though in practice you are likely to use some higher resolution
     # or more accurate data.
     #
-    # You don't need to worry about your files lining up perfectly (though of course if they
-    # do not overlap at all then you will run into problems).
+    # You don't need to worry about your files lining up perfectly (though of course if
+    # they do not overlap at all then you will run into problems).
     # %%
 
     # Import NASADEM downloader and reprojection tools
