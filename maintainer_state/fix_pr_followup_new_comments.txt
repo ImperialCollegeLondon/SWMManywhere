@@ -1,6 +1,0 @@
-## Origin CI failure follow-up
-Fix PR #487 is still `failure` on GitHub after the daemon already reran failed jobs once for workflow run `25128631115`.
-
-The original local verify passed before push, but origin CI remains red. Rediagnose the difference between the local verify and GitHub Actions, then update this existing fix branch if a real fix is needed.
-
-Failed job logs were fetched and included in the CI log excerpt.
