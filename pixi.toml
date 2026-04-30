@@ -1,0 +1,45 @@
+[project]
+name = "swmmanywhere"
+version = "0.1.0"
+description = "SWMManywhere software"
+channels = ["conda-forge", "defaults"]
+
+[environments]
+default = ["python"]
+test = ["default", "dev"]
+
+[dependencies]
+python = ">=3.10"
+
+cdsapi = "*"
+cytoolz = "*"
+folium = "*"
+geopandas = ">=1"
+geopy = "*"
+joblib = "*"
+jsonschema = "*"
+loguru = "*"
+matplotlib = "*"
+netcdf4 = "*"
+networkx = ">=3"
+numpy = ">=2"
+osmnx = ">=1.9.3"
+pandas = "*"
+planetary-computer = "*"
+pyarrow = "*"
+pydantic = "*"
+pyflwdir = "*"
+pystac-client = "*"
+pyswmm = "*"
+pywbt = ">=0.2.2"
+pyyaml = "*"
+rasterio = "*"
+rioxarray = "*"
+scipy = "*"
+shapely = "*"
+tqdm = "*"
+xarray = "*"
+
+[dev]
+pytest = "*"
+ruff = "*"
