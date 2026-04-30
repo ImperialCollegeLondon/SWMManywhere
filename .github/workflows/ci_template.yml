@@ -29,14 +29,19 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Install pixi
+      run: |
+        curl -fsSL https://pixi.sh/install.sh | bash
+        echo "$HOME/.pixi/bin" >> $GITHUB_PATH
+
     - name: Install dependencies
-      run: pip install -e .[dev]
+      run: pixi install
 
     - name: Run pre-commit
-      run: pre-commit run --all-files
+      run: pixi run pre-commit run --all-files
 
     - name: Run tests
-      run: pytest
+      run: pixi run pytest
 
     - name: Upload coverage to Codecov
       if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
