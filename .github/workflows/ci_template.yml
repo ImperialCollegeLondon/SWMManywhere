@@ -33,6 +33,8 @@ jobs:
       run: |
         curl -fsSL https://pixi.sh/install.sh | bash
         echo "$HOME/.pixi/bin" >> $GITHUB_PATH
+        pixi --version
+        which pixi
 
     - name: Install dependencies
       run: pixi install
@@ -40,6 +42,9 @@ jobs:
     - name: Run pre-commit
       run: pixi run pre-commit run --all-files
 
+    - name: Verify pytest
+      run: |
+        pytest --version
     - name: Run tests
       run: pixi run pytest
 
