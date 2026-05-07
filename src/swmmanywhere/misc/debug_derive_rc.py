@@ -56,7 +56,9 @@ def derive_rc_alt(
 
     # Calculate impervious area and runoff coefficient (rc)
     subcatchments["impervious_area"] = 0.0  # Initialize as float
-    subcatchments["impervious_area"] = subcatchments["impervious_area"].astype(float)  # Force float64
+    subcatchments["impervious_area"] = subcatchments["impervious_area"].astype(
+        float
+    )  # Force float64
 
     # Calculate all intersection-impervious geometries
     intersection_area = shapely.intersection(
