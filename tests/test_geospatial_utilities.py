@@ -333,6 +333,8 @@ def test_derive_rc(street_network):
         data={"id": [107733, 1696030874, 6277683849]}, geometry=subs, crs=crs
     )
     subs["area"] = subs.geometry.area
+    subs["impervious_area"] = 0.0  # Explicitly initialize as float
+    subs["impervious_area"] = subs["impervious_area"].astype(float)  # Force float64
 
     # Test no RC
     subs_rc = go.derive_rc(subs, buildings, buildings).set_index("id")

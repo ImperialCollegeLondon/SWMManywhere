@@ -76,13 +76,13 @@ def results():
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 10,
+                "value": 10.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:00"),
             },
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 5,
+                "value": 5.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
@@ -94,55 +94,55 @@ def results():
             {
                 "id": 770549936,
                 "variable": "flooding",
-                "value": 5,
+                "value": 5.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:00"),
             },
             {
                 "id": 107736,
                 "variable": "flooding",
-                "value": 10,
+                "value": 10.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:00"),
             },
             {
                 "id": 107733,
                 "variable": "flooding",
-                "value": 1,
+                "value": 1.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:00"),
             },
             {
                 "id": 107737,
                 "variable": "flooding",
-                "value": 2,
+                "value": 2.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:00"),
             },
             {
                 "id": 1696030874,
                 "variable": "flooding",
-                "value": 0,
+                "value": 0.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": 770549936,
                 "variable": "flooding",
-                "value": 5,
+                "value": 5.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": 107736,
                 "variable": "flooding",
-                "value": 15,
+                "value": 15.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": 107733,
                 "variable": "flooding",
-                "value": 2,
+                "value": 2.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": 107737,
                 "variable": "flooding",
-                "value": 2,
+                "value": 2.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
         ]
@@ -285,25 +285,25 @@ def test_outfall_nse_flow(subs):
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 10,
+                "value": 10.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01").date(),
             },
             {
                 "id": "",
                 "variable": "flow",
-                "value": 5,
+                "value": 5.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01").date(),
             },
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 5,
+                "value": 5.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": "",
                 "variable": "flow",
-                "value": 2,
+                "value": 2.0,  # ← explicitly float
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
         ]
