@@ -29,6 +29,7 @@ bibliography: paper.bib
 ## Summary
 
 Urban drainage network models (UDMs) contain pipe and manhole information for drainage networks in urban areas. When driven by precipitation timeseries data, they can be used to simulate the flow of water through the network, which is useful for a variety of purposes, most notably simulating and alleviating pluvial flooding. Despite the clear usefulness of UDMs, they are often not used owing to the difficulty and expense of creating them. This creates a significant gap for users attempting to generate UDMs if they are not able to perform an expensive underground survey.
+SWMManywhere automates the full workflow of UDM synthesis, from global data acquisition and preprocessing through to hydraulically plausible model generation. No previous expertise with hydraulic modelling is required, only a bounding box is needed, however, users may tune a variety of parameters to better understand UDM synthesis for their case [@Dobson2025].
 
 ## Statement of need
 

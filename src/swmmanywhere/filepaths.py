@@ -197,12 +197,12 @@ class BBoxPaths:
     @property
     def river(self):
         """The river graph for the bounding box."""
-        return self.overrides.get("river", self.download / f"river.{self.extension}")
+        return self.overrides.get("river", self.download / "river.json")
 
     @property
     def street(self):
         """The street graph for the bounding box."""
-        return self.overrides.get("street", self.download / f"street.{self.extension}")
+        return self.overrides.get("street", self.download / "street.json")
 
     @property
     def elevation(self):
@@ -290,6 +290,13 @@ class ModelPaths:
         """The street cover file for the model."""
         return self.overrides.get(
             "streetcover", self.model / f"streetcover.geo{self.extension}"
+        )
+
+    @property
+    def subbasins(self):
+        """The subbasins file for the model."""
+        return self.overrides.get(
+            "subbasins", self.model / f"subbasins.geo{self.extension}"
         )
 
 

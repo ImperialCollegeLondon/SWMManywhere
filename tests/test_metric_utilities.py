@@ -10,8 +10,8 @@ import pytest
 import shapely
 
 from swmmanywhere import metric_utilities as mu
-from swmmanywhere.graph_utilities import load_graph
 from swmmanywhere.parameters import MetricEvaluation
+from swmmanywhere.utilities import load_graph
 
 
 def assert_close(a: float, b: float, rtol: float = 1e-3) -> None:
@@ -285,25 +285,25 @@ def test_outfall_nse_flow(subs):
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 10,
+                "value": 10.0,
                 "date": pd.to_datetime("2021-01-01").date(),
             },
             {
                 "id": "",
                 "variable": "flow",
-                "value": 5,
+                "value": 5.0,
                 "date": pd.to_datetime("2021-01-01").date(),
             },
             {
                 "id": 4253560,
                 "variable": "flow",
-                "value": 5,
+                "value": 5.0,
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
             {
                 "id": "",
                 "variable": "flow",
-                "value": 2,
+                "value": 2.0,
                 "date": pd.to_datetime("2021-01-01 00:00:05"),
             },
         ]

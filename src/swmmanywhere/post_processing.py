@@ -19,6 +19,7 @@ from swmmio import Model
 
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
+from swmmanywhere.utilities import read_df
 
 
 def _fill_backslash_columns(df: pd.DataFrame, key: str) -> pd.DataFrame:
@@ -127,13 +128,9 @@ def synthetic_write(addresses: FilePaths):
     Args:
         addresses (FilePaths): A dictionary of file paths.
     """
-    nodes = gpd.read_file(addresses.model_paths.nodes)
-    edges = gpd.read_file(addresses.model_paths.edges)
-
-    if addresses.model_paths.subcatchments.suffix == ".geoparquet":
-        subs = gpd.read_parquet(addresses.model_paths.subcatchments)
-    else:
-        subs = gpd.read_file(addresses.model_paths.subcatchments)
+    nodes = read_df(addresses.model_paths.nodes)
+    edges = read_df(addresses.model_paths.edges)
+    subs = read_df(addresses.model_paths.subcatchments)
     subs = subs.loc[subs.id.isin(nodes.id)]
 
     # Extract SWMM relevant data

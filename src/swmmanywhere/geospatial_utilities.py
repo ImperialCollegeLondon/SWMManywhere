@@ -7,7 +7,6 @@ such as reprojecting coordinates and handling raster data.
 from __future__ import annotations
 
 import itertools
-import json
 import math
 import os
 import shutil
@@ -903,80 +902,6 @@ def calculate_angle(
     angle_degrees = math.degrees(angle_radians)
 
     return angle_degrees
-
-
-def nodes_to_features(G: nx.Graph):
-    """Convert a graph to a GeoJSON node feature collection.
-
-    Args:
-        G (nx.Graph): The input graph.
-
-    Returns:
-        dict: A GeoJSON feature collection.
-    """
-    features = []
-    for node, data in G.nodes(data=True):
-        feature = {
-            "type": "Feature",
-            "geometry": sgeom.mapping(sgeom.Point(data["x"], data["y"])),
-            "properties": {"id": node, **data},
-        }
-        features.append(feature)
-    return features
-
-
-def edges_to_features(G: nx.Graph):
-    """Convert a graph to a GeoJSON edge feature collection.
-
-    Args:
-        G (nx.Graph): The input graph.
-
-    Returns:
-        dict: A GeoJSON feature collection.
-    """
-    features = []
-    for u, v, data in G.edges(data=True):
-        if "geometry" not in data:
-            geom = None
-        else:
-            geom = sgeom.mapping(data["geometry"])
-            del data["geometry"]
-        feature = {
-            "type": "Feature",
-            "geometry": geom,
-            "properties": {"u": u, "v": v, **data},
-        }
-        features.append(feature)
-    return features
-
-
-def graph_to_geojson(graph: nx.Graph, fid_nodes: Path, fid_edges: Path, crs: str):
-    """Write a graph to a GeoJSON file.
-
-    Args:
-        graph (nx.Graph): The input graph.
-        fid_nodes (Path): The filepath to save the nodes GeoJSON file.
-        fid_edges (Path): The filepath to save the edges GeoJSON file.
-        crs (str): The CRS of the graph.
-    """
-    graph = graph.copy()
-    nodes = nodes_to_features(graph)
-    edges = edges_to_features(graph)
-
-    for iterable, fid in zip([nodes, edges], [fid_nodes, fid_edges]):
-        geojson = {
-            "type": "FeatureCollection",
-            "features": iterable,
-            "crs": {
-                "type": "name",
-                "properties": {
-                    "name": "urn:ogc:def:crs:{0}".format(crs.replace(":", "::"))
-                },
-            },
-        }
-
-        with fid.open("w") as output_file:
-            json.dump(geojson, output_file, indent=2)
 
 
 def merge_points(coordinates: list[tuple[float, float]], threshold: float) -> dict:

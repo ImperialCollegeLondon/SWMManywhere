@@ -10,34 +10,13 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import geopandas as gpd
 import networkx as nx
-import pandas as pd
 
 from swmmanywhere import geospatial_utilities as go
-from swmmanywhere import graph_utilities as gu
 from swmmanywhere import prepare_data
 from swmmanywhere.filepaths import FilePaths
 from swmmanywhere.logging import logger
-
-
-def write_df(df: pd.DataFrame | gpd.GeoDataFrame, fid: Path):
-    """Write a DataFrame to a file.
-
-    Write a DataFrame to a file. The file type is determined by the file
-    extension.
-
-    Args:
-        df (DataFrame): DataFrame to write to a file.
-        fid (Path): Path to the file.
-    """
-    if fid.suffix in (".geoparquet", ".parquet"):
-        df.to_parquet(fid)
-    elif fid.suffix in (".geojson", ".json"):
-        if isinstance(df, gpd.GeoDataFrame):
-            df.to_file(fid, driver="GeoJSON")
-        else:
-            df.to_json(fid)
+from swmmanywhere.utilities import load_graph, read_df, save_graph, write_df
 
 
 def prepare_precipitation(
@@ -56,6 +35,7 @@ def prepare_precipitation(
     )
     precip = precip.reset_index()
     precip = go.reproject_df(precip, source_crs, target_crs)
+
     write_df(precip, addresses.bbox_paths.precipitation)
 
 
@@ -85,8 +65,9 @@ def prepare_building(
     logger.info(f"downloading buildings to {addresses.bbox_paths.building}")
     prepare_data.download_buildings_bbox(addresses.bbox_paths.building, bbox)
 
-    buildings = gpd.read_parquet(addresses.bbox_paths.building)
+    buildings = read_df(addresses.bbox_paths.building)
     buildings = buildings.to_crs(target_crs)
+
     write_df(buildings, addresses.bbox_paths.building)
 
 
@@ -136,7 +117,7 @@ def prepare_street(
     # Reproject graph
     street_network = go.reproject_graph(street_network, source_crs, target_crs)
 
-    gu.save_graph(street_network, addresses.bbox_paths.street)
+    save_graph(street_network, addresses.bbox_paths.street)
 
 
 def prepare_river(
@@ -151,7 +132,7 @@ def prepare_river(
     logger.info(f"downloading river network to {addresses.bbox_paths.river}")
     river_network = prepare_data.download_river(bbox)
     river_network = go.reproject_graph(river_network, source_crs, target_crs)
-    gu.save_graph(river_network, addresses.bbox_paths.river)
+    save_graph(river_network, addresses.bbox_paths.river)
 
 
 def run_downloads(
@@ -201,8 +182,8 @@ def create_starting_graph(addresses: FilePaths):
     Returns:
         nx.Graph: Combined street and river network.
     """
-    river = gu.load_graph(addresses.bbox_paths.river)
+    river = load_graph(addresses.bbox_paths.river)
     nx.set_edge_attributes(river, "river", "edge_type")
-    street = gu.load_graph(addresses.bbox_paths.street)
+    street = load_graph(addresses.bbox_paths.street)
     nx.set_edge_attributes(street, "street", "edge_type")
     return nx.compose(river, street)

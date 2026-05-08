@@ -79,7 +79,7 @@ def derive_rc_alt(
     )
 
     # Store as impervious area in subcatchments
-    subcatchments["impervious_area"] = 0
+    subcatchments["impervious_area"] = 0.0
     subcatchments.loc[areas.index, "impervious_area"] = areas
     subcatchments["rc"] = (
         subcatchments["impervious_area"] / subcatchments.geometry.area * 100

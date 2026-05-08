@@ -138,7 +138,7 @@ m = plot_map(model_dir)
 # We will load a file called `subbasins` and add it to the map.
 
 # %%
-subbasins = gpd.read_file(model_dir / "subbasins.geoparquet")
+subbasins = gpd.read_parquet(model_dir / "subbasins.geoparquet")
 folium.GeoJson(subbasins, fill_opacity=0, color="blue", weight=2).add_to(m)
 m
 

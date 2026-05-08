@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -39,7 +39,7 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -55,13 +55,13 @@ jobs:
 
     steps:
     - name: Download packages built by build-and-inspect-python-package
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: Packages
         path: dist
 
     - name: Generate artifact attestation for sdist and wheel
-      uses: actions/attest-build-provenance@v2
+      uses: actions/attest-build-provenance@v3
       with:
         subject-path: dist
 
@@ -79,13 +79,13 @@ jobs:
 
     steps:
     - name: Download packages built by build-and-inspect-python-package
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: Packages
         path: dist
 
     - name: Generate artifact attestation for sdist and wheel
-      uses: actions/attest-build-provenance@v2
+      uses: actions/attest-build-provenance@v3
       with:
         subject-path: dist
 
@@ -97,7 +97,7 @@ jobs:
     needs: publish-PyPI
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build draft PDF
         uses: openjournals/openjournals-draft-action@master
         with:
@@ -105,7 +105,7 @@ jobs:
           # This should be the path to the paper within your repo.
           paper-path: docs/paper/paper.md
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: paper
           # This is the output path where Pandoc will write the compiled
@@ -118,9 +118,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
