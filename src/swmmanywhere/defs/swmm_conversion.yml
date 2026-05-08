@@ -11,7 +11,7 @@ INFILTRATION:
   iwcolumns: [subcatchment, /0, /0, /0, /0, /0]
 JUNCTIONS: 
   columns: [Name, InvertElev, MaxDepth, InitDepth, SurchargeDepth, PondedArea]
-  iwcolumns: [id, chamber_floor_elevation, max_depth, /0, surcharge_depth, flooded_area]
+  iwcolumns: [id, chamber_floor_elevation, max_depth, /0, /0, /100]
 OUTFALLS: 
   columns: [Name, InvertElev, OutfallType, StageOrTimeseries, TideGate, RouteTo]
   iwcolumns: [id, chamber_floor_elevation, /FREE, / , /NO, /*]
