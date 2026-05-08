@@ -468,9 +468,6 @@ def load_config(
     # Check and register custom graphfcns
     config = check_and_register_custom_graphfcns(config)
 
-    # Register custom parameters
-    config = register_custom_parameters(config)
-
     # Register custom IO
     config = register_custom_io(config)
 
