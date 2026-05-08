@@ -1,0 +1,1 @@
+python -m swmmanywhere --config_path=/path/to/file.yml

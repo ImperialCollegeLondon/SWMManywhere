@@ -1,0 +1,3 @@
+base_dir: /path/to/base/directory
+project: my_first_swmm
+bbox: [1.52740,42.50524,1.54273,42.51259]
