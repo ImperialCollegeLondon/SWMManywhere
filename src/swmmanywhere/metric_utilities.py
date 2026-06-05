@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from itertools import product
-from typing import Callable, Optional, get_type_hints
+from typing import Any, Callable, Optional, get_type_hints
 
 import cytoolz.curried as tlz
 import geopandas as gpd
@@ -169,7 +169,7 @@ def extract_var(df: pd.DataFrame, var: str) -> pd.DataFrame:
 
 
 # Restriction registry
-restriction_registry = {}
+restriction_registry: dict[str, Any] = {}
 
 
 def register_restriction(restriction_func: Callable):
@@ -234,7 +234,7 @@ def restriction_on_metric(scale: str, metric: str, variable: str):
 
 
 # Coefficient Registry
-coef_registry = {}
+coef_registry: dict[str, Any] = {}
 
 
 def register_coef(coef_func: Callable):
@@ -710,7 +710,7 @@ def create_grid(bbox: tuple, scale: float | tuple[float, float]) -> gpd.GeoDataF
     return gpd.GeoDataFrame(grid)
 
 
-scale_registry = {}
+scale_registry: dict[str, Any] = {}
 
 
 def register_scale(scale_func: Callable):
