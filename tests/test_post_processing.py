@@ -9,10 +9,15 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import pyswmm
+import pytest
 from shapely import geometry as sgeom
+from swmmio import Model
 
 from swmmanywhere import post_processing as stt
 from swmmanywhere.filepaths import FilePaths
+from swmmanywhere.parameters import get_full_parameters
+from swmmanywhere.post_processing import io_registry
+from swmmanywhere.swmmanywhere import import_module
 
 fid = (
     Path(__file__).parent.parent
@@ -21,6 +26,89 @@ fid = (
     / "defs"
     / "basic_drainage_all_bits.inp"
 )
+
+
+def validate_model(m):
+    """Validate a SWMMIO model."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tmp_path = Path(temp_dir)
+        m.inp.save(str(tmp_path / "model.inp"))
+        with pyswmm.Simulation(str(tmp_path / "model.inp")) as sim:
+            sim.start()
+
+
+@pytest.fixture
+def filepaths(tmp_path):
+    """Fixture to create a temporary FilePaths object, with nodes/edges/subs."""
+    addresses = FilePaths(
+        base_dir=tmp_path,
+        bbox_bounds=[0, 1, 0, 1],
+        project_name="test",
+        extension="json",
+        precipitation="storm.dat",
+    )
+
+    nodes = gpd.GeoDataFrame(
+        {
+            "id": ["node1", "node2"],
+            "x": [0, 1],
+            "y": [0, 1],
+            "chamber_floor_elevation": [1, 1],
+            "surface_elevation": [2, 2],
+        }
+    )
+    nodes.to_file(addresses.model_paths.nodes)
+
+    edges = gpd.GeoDataFrame(
+        {
+            "id": ["node1-node2"],
+            "u": ["node1"],
+            "v": ["node2"],
+            "diameter": [1],
+        }
+    )
+    edges.to_file(addresses.model_paths.edges)
+
+    subs = gpd.GeoDataFrame(
+        {
+            "id": ["node1"],
+            "area": [1],
+            "rc": [1],
+            "width": [1],
+            "slope": [0.001],
+            "geometry": [sgeom.Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])],
+        }
+    )
+    subs.to_file(addresses.model_paths.subcatchments)
+
+    return addresses
+
+
+def test_apply_nodes(filepaths):
+    """Test the apply_nodes function."""
+    m = Model(str(fid))
+    m = io_registry["apply_nodes"](m, filepaths)
+    assert list(m.inp.storage["Name"]) == ["node1", "node2"]
+    assert list(m.inp.storage["InvertElev"]) == [1, 1]
+    assert list(m.inp.coordinates["X"]) == [0, 1]
+    assert list(m.inp.coordinates["Y"]) == [0, 1]
+
+
+def test_iterate_io(filepaths):
+    """Test the iterate_io function."""
+    stt.iterate_io(
+        ["apply_nodes"],
+        get_full_parameters(),
+        filepaths,
+    )
+    assert filepaths.model_paths.inp.exists()
+
+
+def test_custom_io():
+    """Test register_parameter_group."""
+    import_module(Path(__file__).parent / "test_data" / "custom_io.py")
+
+    assert "new_io" in io_registry.keys()
 
 
 def test_overwrite_section():
