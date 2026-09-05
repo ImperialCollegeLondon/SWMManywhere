@@ -9,7 +9,9 @@ pytest -m downloads
 
 from __future__ import annotations
 
+import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
@@ -287,3 +289,63 @@ def test_download_elevation():
             mock_merge_arrays.assert_called_once()
             mock_merged_array.rio.clip_box.assert_called_once_with(*bbox)
             mock_merged_array.rio.to_raster.assert_called_once_with(temp_fid)
+
+
+def test_get_latest_s3_url_parses_absolute_hrefs(tmp_path, monkeypatch):
+    """The release id is read from the catalog's absolute child hrefs."""
+    monkeypatch.chdir(tmp_path)
+    catalog = {
+        "links": [
+            {"rel": "self", "href": "https://stac.overturemaps.org/catalog.json"},
+            {
+                "rel": "child",
+                "title": "Latest Overture Release",
+                "href": "https://stac.overturemaps.org/2026-08-19.0/catalog.json",
+            },
+            {
+                "rel": "child",
+                "title": "2026-07-22.0 Overture Release",
+                "href": "https://stac.overturemaps.org/2026-07-22.0/catalog.json",
+            },
+        ]
+    }
+    with mock.patch.object(downloaders.requests, "get") as mock_get:
+        mock_get.return_value.json.return_value = catalog
+        region, url = downloaders._get_latest_s3_url()
+
+    assert region == "us-west-2"
+    assert url == (
+        "overturemaps-us-west-2/release/2026-08-19.0/theme=buildings/type=building/"
+    )
+    cache = json.loads((tmp_path / ".cache" / "overture_release.json").read_text())
+    assert cache["release"] == "2026-08-19.0"
+
+
+def test_get_latest_s3_url_ignores_malformed_cache(tmp_path, monkeypatch):
+    """A cache holding the old, URL-shaped release is refreshed from the catalog."""
+    monkeypatch.chdir(tmp_path)
+    cache_file = tmp_path / ".cache" / "overture_release.json"
+    cache_file.parent.mkdir()
+    cache_file.write_text(
+        json.dumps(
+            {
+                "release": "https:/stac.overturemaps.org/2026-08-19.0",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+    )
+    catalog = {
+        "links": [
+            {
+                "rel": "child",
+                "title": "Latest Overture Release",
+                "href": "https://stac.overturemaps.org/2026-08-19.0/catalog.json",
+            }
+        ]
+    }
+    with mock.patch.object(downloaders.requests, "get") as mock_get:
+        mock_get.return_value.json.return_value = catalog
+        _, url = downloaders._get_latest_s3_url()
+
+    assert "release/2026-08-19.0/" in url
+    mock_get.assert_called_once()
