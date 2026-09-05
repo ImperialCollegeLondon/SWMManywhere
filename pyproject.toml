@@ -35,6 +35,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "affine<3",
   "cdsapi",
   "cytoolz",
   "folium",
