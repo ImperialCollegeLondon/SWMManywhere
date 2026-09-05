@@ -2,6 +2,8 @@
 
 Contributed by [Zhonghao Zhang](https://github.com/Zhonghao1995).
 
+![The web frontend after building a small box in Andorra la Vella: parameter panel on the left, synthesised pipes, manholes and outfalls on the map, and a manhole's attributes and simulated flooding series](screenshot.png)
+
 A browser interface for SWMManywhere: draw a bounding box on a map, adjust the
 package's parameters, build, inspect the synthesised network on the map, click any
 element for its attributes and simulated time series, and download the model
