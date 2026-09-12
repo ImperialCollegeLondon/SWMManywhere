@@ -1,0 +1,9 @@
+# On top of the swmmanywhere package itself (pip install -e . from the repo root).
+fastapi>=0.110
+uvicorn>=0.29
+# affine 3 turned Affine into a plain class; pyflwdir's numba-compiled `slope`
+# (called from swmmanywhere.geospatial_utilities) cannot type it. Pin until upstream does.
+affine<3
+# tests
+pytest>=7
+httpx>=0.27
