@@ -12,7 +12,7 @@ from swmmanywhere import __main__
 from swmmanywhere.logging import logger
 
 
-def test_swmmanywhere_cli(tmp_path):
+def test_swmmanywhere_cli(tmp_path, mvc_cache):
     """Test that the CLI can successfully run with an actual configuration."""
     base_dir = Path(tmp_path)
 
