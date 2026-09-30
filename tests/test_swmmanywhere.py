@@ -207,8 +207,7 @@ def test_minimal_req():
         swmmanywhere.swmmanywhere(config)
 
 
-@pytest.mark.downloads
-def test_mvc(tmp_path):
+def test_mvc(tmp_path, mvc_cache):
     """Test SWMManywhere with the minimum viable config from quickstart guide."""
     # Match the exact config from docs/quickstart.md and
     # docs/snippets/minimum_viable_template.yml
