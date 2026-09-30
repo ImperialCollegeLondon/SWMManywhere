@@ -48,7 +48,7 @@ A variety of datasets were selected to enable SWMManywhere to be applied globall
 : SWMManywhere data sources. \label{table:table1}
 
 | Data Source | Description | Reference |
-|-------------|-------------| --------- |
+| ----------- | ----------- | --------- |
 | **OpenStreetMap (OSM)** | Provides global street and river data, used to define potential pipe locations and outfall points for drainage networks. | [@Boeing2017;@OpenStreetMap] |
 | **Google-Microsoft Open Buildings** | A dataset of global building footprints, used for estimating impervious surfaces essential for runoff calculations. | [@OpenStreetMap-overture;@VIDA2023] |
 | **NASADEM** | Provides 30m resolution global digital elevation model (DEM) data to support sub-catchment delineation and slope calculation. | [@Crippen2016] |

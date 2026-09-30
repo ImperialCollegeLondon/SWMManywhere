@@ -78,6 +78,7 @@ There may be cases where you want to change existing parameter groups, such as i
 ```python
 from swmmanywhere.parameters import register_parameter_group, TopologyDerivation, Field
 
+
 @register_parameter_group("topology_derivation")
 class NewTopologyDerivation(TopologyDerivation):
     new_weight_scaling: float = Field(
