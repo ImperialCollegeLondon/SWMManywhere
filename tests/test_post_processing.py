@@ -194,6 +194,7 @@ def test_synthetic_write():
 
         # Manually convert to ha to make comparable to synthetic_write
         data_dict["subs"]["area"] /= 10000
+        data_dict["subs"]["slope"] *= 100
 
         # Write the model with data_dict_to_inp
         stt.data_dict_to_inp(
