@@ -115,7 +115,7 @@ def test_split_long_edges(street_network):
         assert data["length"] <= (max_length * 2)
 
 
-def test_derive_subcatchments(street_network):
+def test_derive_subcatchments(street_network, wbt_zip_path):
     """Test the derive_subcatchments function."""
     with tempfile.TemporaryDirectory(dir=".") as temp_dir:
         temp_path = Path(temp_dir)
@@ -125,6 +125,7 @@ def test_derive_subcatchments(street_network):
             project_name="test",
             extension="json",
             elevation=Path(__file__).parent / "test_data" / "elevation.tif",
+            whiteboxtools_binaries_zip=wbt_zip_path,
             building=temp_path / "building.geojson",
             streetcover=temp_path / "building.geojson",
             subcatchments=temp_path / "subcatchments.geojson",
@@ -694,7 +695,7 @@ def test_merge_street_nodes(street_network):
     assert almost_equal(G_.nodes[25510321]["x"], 700445.0112082)
 
 
-def test_clip_to_catchments(street_network):
+def test_clip_to_catchments(street_network, wbt_zip_path):
     """Test the clip_to_catchments function."""
     G, _ = street_network
 
@@ -709,6 +710,7 @@ def test_clip_to_catchments(street_network):
             nodes=temp_path / "nodes.geojson",
             edges=temp_path / "edges.geojson",
             elevation=Path(__file__).parent / "test_data" / "elevation.tif",
+            whiteboxtools_binaries_zip=wbt_zip_path,
         )
 
         # Test default clipping
