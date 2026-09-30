@@ -45,7 +45,6 @@ jobs:
         token: ${{ secrets.codecov_token }}
         verbose: true
 
-    - name: Run notebooks (downloads data, non-blocking)
+    - name: Run notebooks (downloads data)
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-      continue-on-error: true
       run: pytest docs/notebooks --no-cov
