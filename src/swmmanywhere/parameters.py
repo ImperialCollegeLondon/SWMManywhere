@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
 from swmmanywhere.logging import logger
 
-parameter_register = {}
+parameter_register: dict[str, Any] = {}
 
 
 def register_parameter_group(name: str) -> Callable:

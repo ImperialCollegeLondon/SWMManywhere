@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import operator
+import re
 from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -32,6 +33,10 @@ from pyarrow import fs
 
 from swmmanywhere.logging import logger
 from swmmanywhere.utilities import yaml_load
+
+# Overture release ids look like "2026-08-19.0". The STAC catalog's child hrefs are
+# absolute URLs (https://stac.overturemaps.org/<release>/catalog.json).
+OVERTURE_RELEASE = re.compile(r"\d{4}-\d{2}-\d{2}\.\d+")
 
 
 def get_country(x: float, y: float) -> dict[int, str]:
@@ -83,9 +88,10 @@ def _get_latest_s3_url() -> tuple[str, str]:
     cache_file.parent.mkdir(exist_ok=True)
     s3_region = "us-west-2"
 
-    # Check cache (valid for 72 hours given monthly releases)
-    if cache_file.exists():
-        cache = json.loads(cache_file.read_text())
+    # Check cache (valid for 72 hours given monthly releases). A cache written
+    # before absolute STAC hrefs were handled holds a malformed release; ignore it.
+    cache = json.loads(cache_file.read_text()) if cache_file.exists() else {}
+    if OVERTURE_RELEASE.fullmatch(str(cache.get("release", ""))):
         cached_time = datetime.fromisoformat(cache["timestamp"])
 
         # If cache is less than 72 hours old, use it
@@ -115,7 +121,10 @@ def _get_latest_s3_url() -> tuple[str, str]:
         if link["rel"] == "child" and "release" in link.get("title", "").lower()
     ]
     releases.sort(key=operator.itemgetter("href"), reverse=True)
-    latest = str(Path(releases[0]["href"].rstrip("/")).parent)
+    match = OVERTURE_RELEASE.search(releases[0]["href"])
+    if match is None:
+        raise ValueError(f"No Overture release id in href {releases[0]['href']!r}")
+    latest = match.group(0)
     cache_file.write_text(
         json.dumps({"release": latest, "timestamp": datetime.now().isoformat()})
     )
