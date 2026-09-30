@@ -112,7 +112,7 @@ lint.isort.required-imports = [ "from __future__ import annotations" ]
 lint.pydocstyle.convention = "google"
 
 [tool.codespell]
-skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*"
+skip = "src/swmmanywhere/defs/iso_converter.yml,*.inp,docs/paper/*,tests/test_data/*.json"
 ignore-words-list = "gage,gages,Carrer,anc"
 
 [tool.mypy]
@@ -126,6 +126,7 @@ overrides = [ { module = "tests.*", disallow_untyped_defs = false } ]
 
 [tool.pytest]
 ini_options.addopts = "-v --cov=src/swmmanywhere --cov-report=xml --doctest-modules --ignore=src/swmmanywhere/logging.py"
+ini_options.testpaths = [ "src", "tests" ]
 ini_options.markers = [
   "downloads: mark a test as requiring downloads",
 ]
