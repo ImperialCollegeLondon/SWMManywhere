@@ -54,6 +54,9 @@ def test_swmmanywhere(run, wbt_zip_path):
         config["bbox"] = [0.05677, 51.55656, 0.07193, 51.56726]
         config["address_overrides"] = {
             "building": str(test_data_dir / "building.geoparquet"),
+            "street": str(test_data_dir / "demo_street.json"),
+            "river": str(test_data_dir / "demo_river.json"),
+            "elevation": str(test_data_dir / "demo_elevation.tif"),
             "whiteboxtools_binaries_zip": str(wbt_zip_path),
         }
         config["parameter_overrides"] = {
@@ -204,7 +207,7 @@ def test_minimal_req():
         swmmanywhere.swmmanywhere(config)
 
 
-def test_mvc(tmp_path):
+def test_mvc(tmp_path, mvc_cache):
     """Test SWMManywhere with the minimum viable config from quickstart guide."""
     # Match the exact config from docs/quickstart.md and
     # docs/snippets/minimum_viable_template.yml
