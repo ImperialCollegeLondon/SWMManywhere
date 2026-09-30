@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -23,3 +24,11 @@ def wbt_zip_path() -> Path:
     _, suffix, _ = _get_platform_suffix()
 
     return Path(__file__).parent / "wbt_zip" / f"WhiteboxTools_{suffix}.zip"
+
+
+@pytest.fixture
+def mvc_cache(tmp_path, wbt_zip_path) -> None:
+    """Seed `tmp_path` with cached downloads for the quickstart (MVC) config."""
+    project = tmp_path / "my_first_swmm"
+    shutil.copytree(Path(__file__).parent / "test_data" / "mvc", project / "bbox_1")
+    shutil.copy(wbt_zip_path, project / "whitebox_tools.zip")

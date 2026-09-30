@@ -18,6 +18,8 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    env:
+      MPLBACKEND: Agg
     strategy:
       fail-fast: false
       matrix:
@@ -39,6 +41,10 @@ jobs:
       if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
       uses: codecov/codecov-action@v5
       with:
-        fail_ci_if_error: true
+        fail_ci_if_error: ${{ github.event_name == 'push' }}
         token: ${{ secrets.codecov_token }}
         verbose: true
+
+    - name: Run notebooks (downloads data, retries once)
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      run: for nb in docs/notebooks/*.py; do python "$nb" || python "$nb"; done
