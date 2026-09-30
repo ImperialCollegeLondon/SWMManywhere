@@ -6,12 +6,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
 import yaml
 
 from swmmanywhere import __main__
 from swmmanywhere.logging import logger
 
 
+@pytest.mark.downloads
 def test_swmmanywhere_cli(tmp_path):
     """Test that the CLI can successfully run with an actual configuration."""
     base_dir = Path(tmp_path)
