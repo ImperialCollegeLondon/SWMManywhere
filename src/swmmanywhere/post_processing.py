@@ -57,6 +57,7 @@ def synthetic_write(addresses: FilePaths):
     subs["subcatchment"] = subs["id"] + "-sub"
     subs["rain_gage"] = 1  # TODO revise when revising storms
     subs["area"] /= 10000  # convert to ha
+    subs["slope"] *= 100  # convert slope from m/m ratio to percentage (%)
 
     # Edges
     edges["u"] = edges["u"].astype(str)
