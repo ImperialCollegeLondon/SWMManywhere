@@ -322,7 +322,6 @@ class MetricEvaluation(BaseModel):
         json_schema_extra={"unit": "m"},
         description="Scale of the grid for metric evaluation",
     )
-
     warmup: float = Field(
         default=0,
         ge=0,
@@ -332,3 +331,14 @@ class MetricEvaluation(BaseModel):
             is used to exclude the initial part of the simulation from the metric
             calculations.""",
     )
+
+
+@register_parameter_group(name="post_processing")
+class PostProcessing(BaseModel):
+    """Parameters for post processing.
+
+    These parameters are applied or used during the post processing steps. They may be
+    direct SWMM parameters, or control other factors during post processing.
+    """
+
+    pass
