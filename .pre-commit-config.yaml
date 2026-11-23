@@ -5,7 +5,7 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.17.5"
+    rev: "v0.17.6"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -17,7 +17,7 @@ repos:
         additional_dependencies:
           [types-requests, types-PyYAML]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.50.0
+    rev: v0.50.1
     hooks:
       - id: markdownlint
         args: ["--disable", "MD013", "--disable", "MD025", "--"]
@@ -31,7 +31,7 @@ repos:
       - tomli
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.6
+    rev: v2.31.2
     hooks:
     - id: pyproject-fmt
       name: Apply a consistent format to pyproject.toml
